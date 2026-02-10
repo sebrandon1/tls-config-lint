@@ -1,0 +1,113 @@
+name: Self Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  self-test-default:
+    name: Self Test (default settings)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run TLS Config Lint against testdata
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata
+          fail-on-findings: false
+      - name: Verify findings detected
+        run: |
+          echo "Findings: ${{ steps.lint.outputs.findings-count }}"
+          echo "Critical: ${{ steps.lint.outputs.critical-count }}"
+          echo "High: ${{ steps.lint.outputs.high-count }}"
+          echo "Medium: ${{ steps.lint.outputs.medium-count }}"
+          echo "Info: ${{ steps.lint.outputs.info-count }}"
+          if [[ "${{ steps.lint.outputs.findings-count }}" -eq 0 ]]; then
+            echo "ERROR: Expected findings but got 0"
+            exit 1
+          fi
+
+  self-test-sarif:
+    name: Self Test (SARIF output)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run TLS Config Lint with SARIF
+        uses: ./
+        with:
+          scan-path: testdata
+          fail-on-findings: false
+          sarif-output: tls-lint.sarif
+      - name: Verify SARIF file
+        run: |
+          if [[ ! -f tls-lint.sarif ]]; then
+            echo "ERROR: SARIF file not created"
+            exit 1
+          fi
+          # Validate it's valid JSON with expected structure
+          jq '.runs[0].tool.driver.name' tls-lint.sarif | grep -q "tls-config-lint"
+          echo "SARIF file is valid"
+
+  self-test-threshold:
+    name: Self Test (critical threshold)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run with critical threshold (should fail)
+        id: lint-critical
+        uses: ./
+        with:
+          scan-path: testdata
+          severity-threshold: critical
+          fail-on-findings: true
+        continue-on-error: true
+      - name: Verify failure on critical findings
+        run: |
+          if [[ "${{ steps.lint-critical.outcome }}" != "failure" ]]; then
+            echo "ERROR: Expected failure on critical findings"
+            exit 1
+          fi
+          echo "Correctly failed on critical findings"
+
+  self-test-exclude:
+    name: Self Test (exclude patterns)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run with excluded patterns
+        id: lint-exclude
+        uses: ./
+        with:
+          scan-path: testdata/go
+          languages: go
+          exclude-patterns: insecure-skip-verify
+          fail-on-findings: false
+      - name: Verify exclusion worked
+        run: |
+          echo "Findings after exclusion: ${{ steps.lint-exclude.outputs.findings-count }}"
+
+  self-test-single-lang:
+    name: Self Test (single language)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Go-only scan
+        id: lint-go
+        uses: ./
+        with:
+          scan-path: testdata/go
+          languages: go
+          fail-on-findings: false
+      - name: Verify Go findings
+        run: |
+          if [[ "${{ steps.lint-go.outputs.findings-count }}" -eq 0 ]]; then
+            echo "ERROR: Expected Go findings"
+            exit 1
+          fi
+          echo "Go findings: ${{ steps.lint-go.outputs.findings-count }}"

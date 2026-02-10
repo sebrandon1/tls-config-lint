@@ -1,0 +1,26 @@
+# .tls-config-lint.yml - Configuration for tls-config-lint GitHub Action
+#
+# Place this file in your repository root to customize scanning behavior.
+# Action inputs override these values when both are specified.
+
+# Minimum severity to cause CI failure: critical, high, medium, info
+severity-threshold: high
+
+# Languages to scan (omit for auto-detection)
+# languages:
+#   - go
+#   - python
+#   - nodejs
+#   - cpp
+
+# Directories to exclude from scanning (in addition to built-in exclusions)
+# exclude-dirs:
+#   - test/fixtures
+#   - examples/insecure
+#   - third_party
+
+# Pattern IDs to suppress
+# Run the action once to see pattern IDs in the output, then add IDs here
+# exclude-patterns:
+#   - insecure-skip-verify    # Intentional in test helpers
+#   - hardcoded-tls-config    # Using centralized TLS config
