@@ -34,10 +34,10 @@ generate_sarif() {
 
 		local sarif_level
 		case "$(normalize_severity "$severity")" in
-		critical | high) sarif_level="error" ;;
-		medium) sarif_level="warning" ;;
-		info) sarif_level="note" ;;
-		*) sarif_level="note" ;;
+			critical | high) sarif_level="error" ;;
+			medium) sarif_level="warning" ;;
+			info) sarif_level="note" ;;
+			*) sarif_level="note" ;;
 		esac
 
 		rules_json=$(echo "$rules_json" | jq \
@@ -63,10 +63,10 @@ generate_sarif() {
 
 		local sarif_level
 		case "$(normalize_severity "$severity")" in
-		critical | high) sarif_level="error" ;;
-		medium) sarif_level="warning" ;;
-		info) sarif_level="note" ;;
-		*) sarif_level="note" ;;
+			critical | high) sarif_level="error" ;;
+			medium) sarif_level="warning" ;;
+			info) sarif_level="note" ;;
+			*) sarif_level="note" ;;
 		esac
 
 		# Find rule index

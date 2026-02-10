@@ -37,27 +37,27 @@ parse_config_file() {
 			value="${value%"${value##*[![:space:]]}"}"
 
 			case "$current_key" in
-			languages)
-				if [[ -n "$CFG_LANGUAGES" ]]; then
-					CFG_LANGUAGES="$CFG_LANGUAGES,$value"
-				else
-					CFG_LANGUAGES="$value"
-				fi
-				;;
-			exclude-dirs)
-				if [[ -n "$CFG_EXCLUDE_DIRS" ]]; then
-					CFG_EXCLUDE_DIRS="$CFG_EXCLUDE_DIRS,$value"
-				else
-					CFG_EXCLUDE_DIRS="$value"
-				fi
-				;;
-			exclude-patterns)
-				if [[ -n "$CFG_EXCLUDE_PATTERNS" ]]; then
-					CFG_EXCLUDE_PATTERNS="$CFG_EXCLUDE_PATTERNS,$value"
-				else
-					CFG_EXCLUDE_PATTERNS="$value"
-				fi
-				;;
+				languages)
+					if [[ -n "$CFG_LANGUAGES" ]]; then
+						CFG_LANGUAGES="$CFG_LANGUAGES,$value"
+					else
+						CFG_LANGUAGES="$value"
+					fi
+					;;
+				exclude-dirs)
+					if [[ -n "$CFG_EXCLUDE_DIRS" ]]; then
+						CFG_EXCLUDE_DIRS="$CFG_EXCLUDE_DIRS,$value"
+					else
+						CFG_EXCLUDE_DIRS="$value"
+					fi
+					;;
+				exclude-patterns)
+					if [[ -n "$CFG_EXCLUDE_PATTERNS" ]]; then
+						CFG_EXCLUDE_PATTERNS="$CFG_EXCLUDE_PATTERNS,$value"
+					else
+						CFG_EXCLUDE_PATTERNS="$value"
+					fi
+					;;
 			esac
 			continue
 		fi
@@ -72,21 +72,21 @@ parse_config_file() {
 			value="${value%"${value##*[![:space:]]}"}"
 
 			case "$current_key" in
-			severity-threshold)
-				if [[ -n "$value" ]]; then
-					CFG_SEVERITY_THRESHOLD="$value"
-				fi
-				;;
-			languages | exclude-dirs | exclude-patterns)
-				# If value is on same line (not a list), store it
-				if [[ -n "$value" ]]; then
-					case "$current_key" in
-					languages) CFG_LANGUAGES="$value" ;;
-					exclude-dirs) CFG_EXCLUDE_DIRS="$value" ;;
-					exclude-patterns) CFG_EXCLUDE_PATTERNS="$value" ;;
-					esac
-				fi
-				;;
+				severity-threshold)
+					if [[ -n "$value" ]]; then
+						CFG_SEVERITY_THRESHOLD="$value"
+					fi
+					;;
+				languages | exclude-dirs | exclude-patterns)
+					# If value is on same line (not a list), store it
+					if [[ -n "$value" ]]; then
+						case "$current_key" in
+							languages) CFG_LANGUAGES="$value" ;;
+							exclude-dirs) CFG_EXCLUDE_DIRS="$value" ;;
+							exclude-patterns) CFG_EXCLUDE_PATTERNS="$value" ;;
+						esac
+					fi
+					;;
 			esac
 		fi
 	done <"$config_file"

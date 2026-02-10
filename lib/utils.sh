@@ -13,11 +13,11 @@ severity_level() {
 	local sev
 	sev=$(normalize_severity "$1")
 	case "$sev" in
-	critical) echo 4 ;;
-	high) echo 3 ;;
-	medium) echo 2 ;;
-	info) echo 1 ;;
-	*) echo 0 ;;
+		critical) echo 4 ;;
+		high) echo 3 ;;
+		medium) echo 2 ;;
+		info) echo 1 ;;
+		*) echo 0 ;;
 	esac
 }
 

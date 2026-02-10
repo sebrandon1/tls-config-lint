@@ -15,10 +15,10 @@ INFO_COUNT=0
 build_include_flags() {
 	local lang="$1"
 	case "$lang" in
-	go) echo "--include=*.go" ;;
-	python) echo "--include=*.py" ;;
-	nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
-	cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
+		go) echo "--include=*.go" ;;
+		python) echo "--include=*.py" ;;
+		nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
+		cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
 	esac
 }
 
@@ -26,10 +26,10 @@ build_include_flags() {
 build_test_exclude_flags() {
 	local lang="$1"
 	case "$lang" in
-	go) echo "--exclude=*_test.go" ;;
-	python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
-	nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
-	cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
+		go) echo "--exclude=*_test.go" ;;
+		python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
+		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
+		cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
 	esac
 }
 
@@ -37,9 +37,9 @@ build_test_exclude_flags() {
 build_lang_exclude_dirs() {
 	local lang="$1"
 	case "$lang" in
-	nodejs) echo "--exclude-dir=node_modules --exclude-dir=__tests__" ;;
-	python) echo "--exclude-dir=__pycache__ --exclude-dir=venv --exclude-dir=.venv" ;;
-	*) echo "" ;;
+		nodejs) echo "--exclude-dir=node_modules --exclude-dir=__tests__" ;;
+		python) echo "--exclude-dir=__pycache__ --exclude-dir=venv --exclude-dir=.venv" ;;
+		*) echo "" ;;
 	esac
 }
 
@@ -135,10 +135,10 @@ scan_pattern() {
 
 		# Update severity counters
 		case "$(normalize_severity "$severity")" in
-		critical) CRITICAL_COUNT=$((CRITICAL_COUNT + 1)) ;;
-		high) HIGH_COUNT=$((HIGH_COUNT + 1)) ;;
-		medium) MEDIUM_COUNT=$((MEDIUM_COUNT + 1)) ;;
-		info) INFO_COUNT=$((INFO_COUNT + 1)) ;;
+			critical) CRITICAL_COUNT=$((CRITICAL_COUNT + 1)) ;;
+			high) HIGH_COUNT=$((HIGH_COUNT + 1)) ;;
+			medium) MEDIUM_COUNT=$((MEDIUM_COUNT + 1)) ;;
+			info) INFO_COUNT=$((INFO_COUNT + 1)) ;;
 		esac
 	done <<<"$grep_output"
 }
@@ -187,10 +187,10 @@ filter_go_tls_config_noise() {
 				log_debug "Filtered tls.Config finding in $ffile (uses TLSSecurityProfile)"
 				# Decrement counter
 				case "$(normalize_severity "$fsev")" in
-				critical) CRITICAL_COUNT=$((CRITICAL_COUNT - 1)) ;;
-				high) HIGH_COUNT=$((HIGH_COUNT - 1)) ;;
-				medium) MEDIUM_COUNT=$((MEDIUM_COUNT - 1)) ;;
-				info) INFO_COUNT=$((INFO_COUNT - 1)) ;;
+					critical) CRITICAL_COUNT=$((CRITICAL_COUNT - 1)) ;;
+					high) HIGH_COUNT=$((HIGH_COUNT - 1)) ;;
+					medium) MEDIUM_COUNT=$((MEDIUM_COUNT - 1)) ;;
+					info) INFO_COUNT=$((INFO_COUNT - 1)) ;;
 				esac
 			fi
 		else
@@ -198,7 +198,7 @@ filter_go_tls_config_noise() {
 		fi
 	done
 
-	FINDINGS=("${filtered_findings[@]+"${filtered_findings[@]}"}")  
+	FINDINGS=("${filtered_findings[@]+"${filtered_findings[@]}"}")
 }
 
 # Scan all patterns for a language
@@ -227,11 +227,11 @@ scan_language() {
 	# Get patterns array based on language
 	local patterns_var
 	case "$lang" in
-	go) patterns_var="GO_PATTERNS" ;;
-	python) patterns_var="PYTHON_PATTERNS" ;;
-	nodejs) patterns_var="NODEJS_PATTERNS" ;;
-	cpp) patterns_var="CPP_PATTERNS" ;;
-	*) return 0 ;;
+		go) patterns_var="GO_PATTERNS" ;;
+		python) patterns_var="PYTHON_PATTERNS" ;;
+		nodejs) patterns_var="NODEJS_PATTERNS" ;;
+		cpp) patterns_var="CPP_PATTERNS" ;;
+		*) return 0 ;;
 	esac
 
 	# Use eval to iterate the named array (compatible with bash 3.x+)

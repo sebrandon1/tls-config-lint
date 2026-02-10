@@ -18,10 +18,10 @@ emit_annotations() {
 
 		local annotation_type
 		case "$sev_lower" in
-		critical | high) annotation_type="error" ;;
-		medium) annotation_type="warning" ;;
-		info) annotation_type="notice" ;;
-		*) annotation_type="notice" ;;
+			critical | high) annotation_type="error" ;;
+			medium) annotation_type="warning" ;;
+			info) annotation_type="notice" ;;
+			*) annotation_type="notice" ;;
 		esac
 
 		local message="[${severity}] ${name}: ${description}"
