@@ -10,6 +10,7 @@ emit_annotations() {
 	fi
 
 	for finding in "${FINDINGS[@]}"; do
+		# shellcheck disable=SC2034  # match_text unused here but needed for field parsing
 		IFS='|' read -r pattern_id severity name description file line_num match_text <<<"$finding"
 
 		local sev_lower

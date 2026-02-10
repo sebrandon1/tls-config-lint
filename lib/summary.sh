@@ -40,6 +40,7 @@ generate_summary() {
 		summary+="|----------|---------|------|------|-------------|\n"
 
 		for finding in "${FINDINGS[@]}"; do
+			# shellcheck disable=SC2034  # All fields needed for table row
 			IFS='|' read -r pattern_id severity name description file line_num match_text <<<"$finding"
 			# Escape pipe characters in description for markdown table
 			description="${description//|/\\|}"

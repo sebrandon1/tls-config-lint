@@ -2,6 +2,7 @@
 # cpp.sh - C++ TLS pattern definitions
 # Format: "id|severity|name|description|regex"
 
+# shellcheck disable=SC2034  # Array is used by scanner.sh via eval
 CPP_PATTERNS=(
 	"ssl-ctx-verify-none|CRITICAL|SSL_CTX_set_verify SSL_VERIFY_NONE|Disables TLS certificate verification (MITM vulnerability)|SSL_CTX_set_verify.*SSL_VERIFY_NONE"
 	"ssl-set-verify-none|CRITICAL|SSL_set_verify SSL_VERIFY_NONE|Disables TLS certificate verification (MITM vulnerability)|SSL_set_verify.*SSL_VERIFY_NONE"

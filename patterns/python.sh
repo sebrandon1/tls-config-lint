@@ -2,6 +2,7 @@
 # python.sh - Python TLS pattern definitions
 # Format: "id|severity|name|description|regex"
 
+# shellcheck disable=SC2034  # Array is used by scanner.sh via eval
 PYTHON_PATTERNS=(
 	"verify-false|CRITICAL|verify=False|Disables TLS certificate verification (MITM vulnerability)|verify[[:space:]]*=[[:space:]]*False"
 	"cert-none|CRITICAL|ssl.CERT_NONE|Disables certificate verification via ssl module|CERT_NONE"

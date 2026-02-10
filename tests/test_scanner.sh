@@ -78,7 +78,9 @@ assert_greater_than "C++ scan finds total findings" 5 "$(get_findings_count)"
 FINDINGS=()
 CRITICAL_COUNT=0
 HIGH_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 INFO_COUNT=0
 
 # Test: Pattern exclusion works

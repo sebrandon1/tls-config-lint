@@ -107,17 +107,17 @@ scan_pattern() {
 	lang_exclude_dirs=$(build_lang_exclude_dirs "$lang")
 	common_exclude_dirs=$(build_common_exclude_dirs "$exclude_dirs")
 
-	# Run grep
+	# Run grep from inside scan_path so --exclude-dir won't match the scan root itself
 	local grep_output
 	# shellcheck disable=SC2086
-	grep_output=$(grep -rn $include_flags $exclude_test_flags $lang_exclude_dirs $common_exclude_dirs \
-		-E "$regex" "$scan_path" 2>/dev/null) || true
+	grep_output=$(cd "$scan_path" && grep -rn $include_flags $exclude_test_flags $lang_exclude_dirs $common_exclude_dirs \
+		-E "$regex" . 2>/dev/null) || true
 
 	if [[ -z "$grep_output" ]]; then
 		return 0
 	fi
 
-	# Parse grep output lines: file:line:match
+	# Parse grep output lines: ./file:line:match
 	while IFS= read -r match_line; do
 		local file line_num match_text
 		# Extract file path (everything before first colon-number-colon)
@@ -125,10 +125,8 @@ scan_pattern() {
 		line_num=$(echo "$match_line" | sed -E 's/^[^:]+:([0-9]+):.*$/\1/')
 		match_text=$(echo "$match_line" | sed -E 's/^[^:]+:[0-9]+://')
 
-		# Make file path relative to scan_path
-		if [[ "$scan_path" != "." ]]; then
-			file="${file#"$scan_path"/}"
-		fi
+		# Strip leading ./ from file path
+		file="${file#./}"
 
 		# Trim match text for readability
 		match_text=$(echo "$match_text" | sed 's/^[[:space:]]*//' | cut -c1-200)
@@ -169,8 +167,8 @@ filter_go_tls_config_noise() {
 	# Check if any Go files reference TLSSecurityProfile
 	local profile_files
 	# shellcheck disable=SC2086
-	profile_files=$(grep -rl --include="*.go" $common_exclude_dirs \
-		--exclude="*_test.go" "TLSSecurityProfile" "$scan_path" 2>/dev/null) || true
+	profile_files=$(cd "$scan_path" && grep -rl --include="*.go" $common_exclude_dirs \
+		--exclude="*_test.go" "TLSSecurityProfile" . 2>/dev/null) || true
 
 	if [[ -z "$profile_files" ]]; then
 		return 0
@@ -181,12 +179,7 @@ filter_go_tls_config_noise() {
 	for finding in "${FINDINGS[@]}"; do
 		IFS='|' read -r fid fsev _ _ ffile _ _ <<<"$finding"
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
-			local full_path
-			if [[ "$scan_path" == "." ]]; then
-				full_path="$ffile"
-			else
-				full_path="$scan_path/$ffile"
-			fi
+			local full_path="$scan_path/$ffile"
 			# Keep finding only if file does NOT reference TLSSecurityProfile
 			if ! grep -q "TLSSecurityProfile" "$full_path" 2>/dev/null; then
 				filtered_findings+=("$finding")

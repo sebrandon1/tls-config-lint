@@ -2,6 +2,7 @@
 # go.sh - Go TLS pattern definitions
 # Format: "id|severity|name|description|regex"
 
+# shellcheck disable=SC2034  # Array is used by scanner.sh via eval
 GO_PATTERNS=(
 	"insecure-skip-verify|CRITICAL|InsecureSkipVerify: true|Disables TLS certificate verification (MITM vulnerability)|InsecureSkipVerify[[:space:]]*:[[:space:]]*true"
 	"min-version-tls10|HIGH|MinVersion TLS 1.0|TLS 1.0 has known vulnerabilities (POODLE, BEAST)|MinVersion[[:space:]]*[:=][[:space:]]*.*VersionTLS10"
