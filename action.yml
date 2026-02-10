@@ -1,0 +1,78 @@
+name: 'TLS Config Lint'
+description: 'Lint TLS configurations for security anti-patterns across Go, Python, Node.js/TypeScript, and C++ projects'
+author: 'sebrandon1'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  severity-threshold:
+    description: 'Minimum severity to cause failure: critical, high, medium, info'
+    required: false
+    default: 'high'
+  languages:
+    description: 'Comma-separated languages to scan: go,python,nodejs,cpp or auto to detect'
+    required: false
+    default: 'auto'
+  exclude-dirs:
+    description: 'Additional directories to exclude (comma-separated)'
+    required: false
+    default: ''
+  exclude-patterns:
+    description: 'Pattern IDs to suppress (comma-separated)'
+    required: false
+    default: ''
+  config-file:
+    description: 'Path to optional repo config file'
+    required: false
+    default: '.tls-config-lint.yml'
+  scan-path:
+    description: 'Directory to scan'
+    required: false
+    default: '.'
+  fail-on-findings:
+    description: 'Whether to fail CI on findings above threshold'
+    required: false
+    default: 'true'
+  sarif-output:
+    description: 'Path to write SARIF file (empty = disabled)'
+    required: false
+    default: ''
+
+outputs:
+  findings-count:
+    description: 'Total number of findings'
+    value: ${{ steps.scan.outputs.findings-count }}
+  critical-count:
+    description: 'Number of critical findings'
+    value: ${{ steps.scan.outputs.critical-count }}
+  high-count:
+    description: 'Number of high findings'
+    value: ${{ steps.scan.outputs.high-count }}
+  medium-count:
+    description: 'Number of medium findings'
+    value: ${{ steps.scan.outputs.medium-count }}
+  info-count:
+    description: 'Number of info findings'
+    value: ${{ steps.scan.outputs.info-count }}
+  sarif-file:
+    description: 'Path to SARIF file (if generated)'
+    value: ${{ steps.scan.outputs.sarif-file }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run TLS Config Lint
+      id: scan
+      shell: bash
+      env:
+        INPUT_SEVERITY_THRESHOLD: ${{ inputs.severity-threshold }}
+        INPUT_LANGUAGES: ${{ inputs.languages }}
+        INPUT_EXCLUDE_DIRS: ${{ inputs.exclude-dirs }}
+        INPUT_EXCLUDE_PATTERNS: ${{ inputs.exclude-patterns }}
+        INPUT_CONFIG_FILE: ${{ inputs.config-file }}
+        INPUT_SCAN_PATH: ${{ inputs.scan-path }}
+        INPUT_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+        INPUT_SARIF_OUTPUT: ${{ inputs.sarif-output }}
+      run: bash "${{ github.action_path }}/entrypoint.sh"
