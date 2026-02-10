@@ -14,7 +14,7 @@ jobs:
     name: Self Test (default settings)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run TLS Config Lint against testdata
         id: lint
         uses: ./
@@ -37,7 +37,7 @@ jobs:
     name: Self Test (SARIF output)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run TLS Config Lint with SARIF
         uses: ./
         with:
@@ -58,7 +58,7 @@ jobs:
     name: Self Test (critical threshold)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run with critical threshold (should fail)
         id: lint-critical
         uses: ./
@@ -79,7 +79,7 @@ jobs:
     name: Self Test (exclude patterns)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run with excluded patterns
         id: lint-exclude
         uses: ./
@@ -96,7 +96,7 @@ jobs:
     name: Self Test (single language)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run Go-only scan
         id: lint-go
         uses: ./
