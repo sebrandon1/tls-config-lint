@@ -3,9 +3,6 @@
 # Place this file in your repository root to customize scanning behavior.
 # Action inputs override these values when both are specified.
 
-# Minimum severity to cause CI failure: critical, high, medium, info
-severity-threshold: high
-
 # Languages to scan (omit for auto-detection)
 # languages:
 #   - go

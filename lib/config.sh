@@ -4,13 +4,11 @@
 set -euo pipefail
 
 # Parse .tls-config-lint.yml config file
-# Sets global variables: CFG_SEVERITY_THRESHOLD, CFG_LANGUAGES, CFG_EXCLUDE_DIRS,
-# CFG_EXCLUDE_PATTERNS
+# Sets global variables: CFG_LANGUAGES, CFG_EXCLUDE_DIRS, CFG_EXCLUDE_PATTERNS
 parse_config_file() {
 	local config_file="$1"
 
 	# Initialize config defaults (empty = not set in config)
-	CFG_SEVERITY_THRESHOLD=""
 	CFG_LANGUAGES=""
 	CFG_EXCLUDE_DIRS=""
 	CFG_EXCLUDE_PATTERNS=""
@@ -37,27 +35,27 @@ parse_config_file() {
 			value="${value%"${value##*[![:space:]]}"}"
 
 			case "$current_key" in
-				languages)
-					if [[ -n "$CFG_LANGUAGES" ]]; then
-						CFG_LANGUAGES="$CFG_LANGUAGES,$value"
-					else
-						CFG_LANGUAGES="$value"
-					fi
-					;;
-				exclude-dirs)
-					if [[ -n "$CFG_EXCLUDE_DIRS" ]]; then
-						CFG_EXCLUDE_DIRS="$CFG_EXCLUDE_DIRS,$value"
-					else
-						CFG_EXCLUDE_DIRS="$value"
-					fi
-					;;
-				exclude-patterns)
-					if [[ -n "$CFG_EXCLUDE_PATTERNS" ]]; then
-						CFG_EXCLUDE_PATTERNS="$CFG_EXCLUDE_PATTERNS,$value"
-					else
-						CFG_EXCLUDE_PATTERNS="$value"
-					fi
-					;;
+			languages)
+				if [[ -n "$CFG_LANGUAGES" ]]; then
+					CFG_LANGUAGES="$CFG_LANGUAGES,$value"
+				else
+					CFG_LANGUAGES="$value"
+				fi
+				;;
+			exclude-dirs)
+				if [[ -n "$CFG_EXCLUDE_DIRS" ]]; then
+					CFG_EXCLUDE_DIRS="$CFG_EXCLUDE_DIRS,$value"
+				else
+					CFG_EXCLUDE_DIRS="$value"
+				fi
+				;;
+			exclude-patterns)
+				if [[ -n "$CFG_EXCLUDE_PATTERNS" ]]; then
+					CFG_EXCLUDE_PATTERNS="$CFG_EXCLUDE_PATTERNS,$value"
+				else
+					CFG_EXCLUDE_PATTERNS="$value"
+				fi
+				;;
 			esac
 			continue
 		fi
@@ -72,21 +70,16 @@ parse_config_file() {
 			value="${value%"${value##*[![:space:]]}"}"
 
 			case "$current_key" in
-				severity-threshold)
-					if [[ -n "$value" ]]; then
-						CFG_SEVERITY_THRESHOLD="$value"
-					fi
-					;;
-				languages | exclude-dirs | exclude-patterns)
-					# If value is on same line (not a list), store it
-					if [[ -n "$value" ]]; then
-						case "$current_key" in
-							languages) CFG_LANGUAGES="$value" ;;
-							exclude-dirs) CFG_EXCLUDE_DIRS="$value" ;;
-							exclude-patterns) CFG_EXCLUDE_PATTERNS="$value" ;;
-						esac
-					fi
-					;;
+			languages | exclude-dirs | exclude-patterns)
+				# If value is on same line (not a list), store it
+				if [[ -n "$value" ]]; then
+					case "$current_key" in
+					languages) CFG_LANGUAGES="$value" ;;
+					exclude-dirs) CFG_EXCLUDE_DIRS="$value" ;;
+					exclude-patterns) CFG_EXCLUDE_PATTERNS="$value" ;;
+					esac
+				fi
+				;;
 			esac
 		fi
 	done <"$config_file"
@@ -95,7 +88,6 @@ parse_config_file() {
 # Merge inputs with config file values
 # Precedence: action inputs > config file > defaults
 merge_config() {
-	local input_severity="${INPUT_SEVERITY_THRESHOLD:-high}"
 	local input_languages="${INPUT_LANGUAGES:-auto}"
 	local input_exclude_dirs="${INPUT_EXCLUDE_DIRS:-}"
 	local input_exclude_patterns="${INPUT_EXCLUDE_PATTERNS:-}"
@@ -106,15 +98,6 @@ merge_config() {
 
 	# Parse config file
 	parse_config_file "$input_config_file"
-
-	# Merge severity threshold (input wins if not default, else config, else default)
-	if [[ "$input_severity" != "high" ]]; then
-		SEVERITY_THRESHOLD="$input_severity"
-	elif [[ -n "$CFG_SEVERITY_THRESHOLD" ]]; then
-		SEVERITY_THRESHOLD="$CFG_SEVERITY_THRESHOLD"
-	else
-		SEVERITY_THRESHOLD="high"
-	fi
 
 	# Merge languages (input wins if not default)
 	if [[ "$input_languages" != "auto" ]]; then
@@ -150,6 +133,6 @@ merge_config() {
 	SARIF_OUTPUT="$input_sarif_output"
 
 	# Export for use in other scripts
-	export SEVERITY_THRESHOLD LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
+	export LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
 	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT
 }

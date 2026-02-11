@@ -1,11 +1,13 @@
 # tls-config-lint
 
-A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, and C++ projects.
+A GitHub Action that scans your codebase for TLS configuration anti-patterns across Go, Python, Node.js/TypeScript, and C++ projects. Uses a binary **pass/fail** model: any hardcoded TLS configuration that doesn't dynamically inherit from the cluster's centralized `tlsSecurityProfile` is a **FAIL**.
+
+This approach aligns with [CNF-21745](https://issues.redhat.com/browse/CNF-21745) acceptance criteria for OCP 4.22 TLS compliance.
 
 ## Features
 
-- Detects 34 TLS security anti-patterns across 4 languages
-- Configurable severity thresholds (critical, high, medium, info)
+- Detects 23 TLS security anti-patterns across 4 languages
+- Binary pass/fail model (no severity thresholds)
 - Inline PR annotations on affected lines
 - Job summary with findings table
 - Optional SARIF output for GitHub Code Scanning integration
@@ -16,7 +18,7 @@ A GitHub Action that scans your codebase for TLS configuration anti-patterns and
 ## Quick Start
 
 ```yaml
-- uses: sebrandon1/tls-config-lint@v1
+- uses: sebrandon1/tls-config-lint@v2
 ```
 
 ## Usage Examples
@@ -31,21 +33,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: sebrandon1/tls-config-lint@v1
-```
-
-### Custom severity threshold
-
-```yaml
-- uses: sebrandon1/tls-config-lint@v1
-  with:
-    severity-threshold: critical
+      - uses: sebrandon1/tls-config-lint@v2
 ```
 
 ### With SARIF for Code Scanning
 
 ```yaml
-- uses: sebrandon1/tls-config-lint@v1
+- uses: sebrandon1/tls-config-lint@v2
   with:
     sarif-output: tls-lint.sarif
     fail-on-findings: false
@@ -58,7 +52,7 @@ jobs:
 ### Specific languages only
 
 ```yaml
-- uses: sebrandon1/tls-config-lint@v1
+- uses: sebrandon1/tls-config-lint@v2
   with:
     languages: go,python
 ```
@@ -66,7 +60,7 @@ jobs:
 ### Exclude directories and patterns
 
 ```yaml
-- uses: sebrandon1/tls-config-lint@v1
+- uses: sebrandon1/tls-config-lint@v2
   with:
     exclude-dirs: test/fixtures,examples/insecure
     exclude-patterns: insecure-skip-verify,hardcoded-tls-config
@@ -76,13 +70,12 @@ jobs:
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `severity-threshold` | `high` | Minimum severity to cause failure: `critical`, `high`, `medium`, `info` |
 | `languages` | `auto` | Comma-separated: `go,python,nodejs,cpp` or `auto` to detect |
 | `exclude-dirs` | _(empty)_ | Additional dirs to exclude (comma-separated) |
 | `exclude-patterns` | _(empty)_ | Pattern IDs to suppress (comma-separated) |
 | `config-file` | `.tls-config-lint.yml` | Path to optional repo config file |
 | `scan-path` | `.` | Directory to scan |
-| `fail-on-findings` | `true` | Whether to fail CI on findings above threshold |
+| `fail-on-findings` | `true` | Whether to fail CI when findings are detected |
 | `sarif-output` | _(empty)_ | Path to write SARIF file (empty = disabled) |
 
 ## Outputs
@@ -90,10 +83,6 @@ jobs:
 | Output | Description |
 |--------|-------------|
 | `findings-count` | Total number of findings |
-| `critical-count` | Number of critical findings |
-| `high-count` | Number of high findings |
-| `medium-count` | Number of medium findings |
-| `info-count` | Number of info findings |
 | `sarif-file` | Path to SARIF file (if generated) |
 
 ## Configuration File
@@ -101,7 +90,6 @@ jobs:
 Create a `.tls-config-lint.yml` in your repository root for persistent configuration:
 
 ```yaml
-severity-threshold: high
 languages:
   - go
   - python
@@ -118,59 +106,50 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 
 ## Detected Patterns
 
-### Go (11 patterns)
+All patterns are **FAIL** findings. Any match indicates a TLS configuration that should be reviewed.
 
-| ID | Severity | Description |
-|----|----------|-------------|
-| `insecure-skip-verify` | CRITICAL | `InsecureSkipVerify: true` disables certificate verification |
-| `min-version-tls10` | HIGH | `MinVersion` set to TLS 1.0 |
-| `min-version-tls11` | HIGH | `MinVersion` set to TLS 1.1 |
-| `max-version-tls10` | HIGH | `MaxVersion` set to TLS 1.0 |
-| `max-version-tls11` | HIGH | `MaxVersion` set to TLS 1.1 |
-| `max-version-tls12` | MEDIUM | `MaxVersion` set to TLS 1.2 (prevents 1.3) |
-| `min-version-tls13` | INFO | Forces TLS 1.3 only |
-| `prefer-server-cipher-suites` | INFO | Deprecated in Go 1.17+ |
-| `curve-preferences` | INFO | Explicit curve configuration |
-| `hardcoded-tls-config` | INFO | Hardcoded `tls.Config{}` |
-| `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
+### Go (6 patterns)
 
-### Python (8 patterns)
+| ID | Description |
+|----|-------------|
+| `insecure-skip-verify` | `InsecureSkipVerify: true` disables certificate verification |
+| `min-version-tls10` | `MinVersion` set to TLS 1.0 |
+| `min-version-tls11` | `MinVersion` set to TLS 1.1 |
+| `max-version-tls10` | `MaxVersion` set to TLS 1.0 |
+| `max-version-tls11` | `MaxVersion` set to TLS 1.1 |
+| `hardcoded-tls-config` | Hardcoded `tls.Config{}` not using centralized `tlsSecurityProfile` |
 
-| ID | Severity | Description |
-|----|----------|-------------|
-| `verify-false` | CRITICAL | `verify=False` disables certificate verification |
-| `cert-none` | CRITICAL | `ssl.CERT_NONE` disables verification |
-| `create-unverified-context` | CRITICAL | `_create_unverified_context()` |
-| `check-hostname-false` | CRITICAL | `check_hostname = False` |
-| `protocol-tlsv1` | HIGH | Uses `PROTOCOL_TLSv1` (TLS 1.0) |
-| `protocol-tlsv11` | HIGH | Uses `PROTOCOL_TLSv1_1` |
-| `max-version-tlsv12` | MEDIUM | Caps at TLS 1.2 |
-| `min-version-tlsv13` | INFO | Forces TLS 1.3 |
+### Python (6 patterns)
 
-### Node.js/TypeScript (7 patterns)
+| ID | Description |
+|----|-------------|
+| `verify-false` | `verify=False` disables certificate verification |
+| `cert-none` | `ssl.CERT_NONE` disables verification |
+| `create-unverified-context` | `_create_unverified_context()` |
+| `check-hostname-false` | `check_hostname = False` |
+| `protocol-tlsv1` | Uses `PROTOCOL_TLSv1` (TLS 1.0) |
+| `protocol-tlsv11` | Uses `PROTOCOL_TLSv1_1` |
 
-| ID | Severity | Description |
-|----|----------|-------------|
-| `reject-unauthorized-false` | CRITICAL | `rejectUnauthorized: false` |
-| `node-tls-reject-unauthorized` | CRITICAL | `NODE_TLS_REJECT_UNAUTHORIZED` env var |
-| `tlsv1-method` | HIGH | Uses `TLSv1_method` |
-| `tlsv11-method` | HIGH | Uses `TLSv1_1_method` |
-| `min-version-weak` | HIGH | `minVersion` allows TLS 1.0/1.1 |
-| `max-version-tlsv12` | MEDIUM | Caps at TLS 1.2 |
-| `min-version-tlsv13` | INFO | Forces TLS 1.3 |
+### Node.js/TypeScript (5 patterns)
 
-### C++ (8 patterns)
+| ID | Description |
+|----|-------------|
+| `reject-unauthorized-false` | `rejectUnauthorized: false` |
+| `node-tls-reject-unauthorized` | `NODE_TLS_REJECT_UNAUTHORIZED` env var |
+| `tlsv1-method` | Uses `TLSv1_method` |
+| `tlsv11-method` | Uses `TLSv1_1_method` |
+| `min-version-weak` | `minVersion` allows TLS 1.0/1.1 |
 
-| ID | Severity | Description |
-|----|----------|-------------|
-| `ssl-ctx-verify-none` | CRITICAL | `SSL_CTX_set_verify` with `SSL_VERIFY_NONE` |
-| `ssl-set-verify-none` | CRITICAL | `SSL_set_verify` with `SSL_VERIFY_NONE` |
-| `tls1-version` | HIGH | Uses `TLS1_VERSION` (TLS 1.0) |
-| `tls11-version` | HIGH | Uses `TLS1_1_VERSION` |
-| `sslv3-method` | HIGH | Uses `SSLv3_method` |
-| `tlsv1-method` | HIGH | Uses `TLSv1_method` |
-| `max-proto-tls12` | MEDIUM | Caps at TLS 1.2 |
-| `min-proto-tls13` | INFO | Forces TLS 1.3 |
+### C++ (6 patterns)
+
+| ID | Description |
+|----|-------------|
+| `ssl-ctx-verify-none` | `SSL_CTX_set_verify` with `SSL_VERIFY_NONE` |
+| `ssl-set-verify-none` | `SSL_set_verify` with `SSL_VERIFY_NONE` |
+| `tls1-version` | Uses `TLS1_VERSION` (TLS 1.0) |
+| `tls11-version` | Uses `TLS1_1_VERSION` |
+| `sslv3-method` | Uses `SSLv3_method` |
+| `tlsv1-method` | Uses `TLSv1_method` |
 
 ## Built-in Exclusions
 
@@ -185,6 +164,16 @@ The following directories are excluded from scanning by default:
 ## Go-Specific: TLSSecurityProfile Noise Reduction
 
 For Go projects, findings for `hardcoded-tls-config` (detecting `tls.Config{}`) are automatically filtered out in files that also reference `TLSSecurityProfile`, since those files are consuming centralized configuration rather than hardcoding TLS settings.
+
+## Migrating from v1
+
+v2 simplifies to a pass/fail model. Key changes:
+
+- **Removed:** `severity-threshold` input (all findings are failures)
+- **Removed:** `critical-count`, `high-count`, `medium-count`, `info-count` outputs
+- **Removed:** INFO patterns (PQC readiness, curve preferences, deprecated Go options)
+- **Removed:** MEDIUM patterns (MaxVersion TLS 1.2 caps)
+- **Kept:** `findings-count` output, `fail-on-findings` input, `sarif-file` output
 
 ## License
 

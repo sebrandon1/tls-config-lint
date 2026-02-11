@@ -17,7 +17,7 @@ generate_sarif() {
 	local seen_patterns=()
 
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r pattern_id severity name description _ _ _ <<<"$finding"
+		IFS='|' read -r pattern_id name description _ _ _ <<<"$finding"
 
 		# Skip if already seen
 		local already_seen=false
@@ -32,25 +32,16 @@ generate_sarif() {
 		fi
 		seen_patterns+=("$pattern_id")
 
-		local sarif_level
-		case "$(normalize_severity "$severity")" in
-			critical | high) sarif_level="error" ;;
-			medium) sarif_level="warning" ;;
-			info) sarif_level="note" ;;
-			*) sarif_level="note" ;;
-		esac
-
 		rules_json=$(echo "$rules_json" | jq \
 			--arg id "$pattern_id" \
 			--arg name "$name" \
 			--arg desc "$description" \
-			--arg level "$sarif_level" \
 			'. + [{
 				id: $id,
 				name: $name,
 				shortDescription: { text: $name },
 				fullDescription: { text: $desc },
-				defaultConfiguration: { level: $level },
+				defaultConfiguration: { level: "error" },
 				properties: { tags: ["security", "tls"] }
 			}]')
 	done
@@ -59,15 +50,7 @@ generate_sarif() {
 	local results_json="[]"
 
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r pattern_id severity name description file line_num match_text <<<"$finding"
-
-		local sarif_level
-		case "$(normalize_severity "$severity")" in
-			critical | high) sarif_level="error" ;;
-			medium) sarif_level="warning" ;;
-			info) sarif_level="note" ;;
-			*) sarif_level="note" ;;
-		esac
+		IFS='|' read -r pattern_id name description file line_num match_text <<<"$finding"
 
 		# Find rule index
 		local rule_index=0
@@ -83,13 +66,12 @@ generate_sarif() {
 			--arg msg "$description" \
 			--arg file "$file" \
 			--argjson line "$line_num" \
-			--arg level "$sarif_level" \
 			--argjson ruleIdx "$rule_index" \
 			--arg snippet "$match_text" \
 			'. + [{
 				ruleId: $id,
 				ruleIndex: $ruleIdx,
-				level: $level,
+				level: "error",
 				message: { text: $msg },
 				locations: [{
 					physicalLocation: {
@@ -113,7 +95,7 @@ generate_sarif() {
 					driver: {
 						name: "tls-config-lint",
 						informationUri: "https://github.com/sebrandon1/tls-config-lint",
-						version: "1.0.0",
+						version: "2.0.0",
 						rules: $rules
 					}
 				},

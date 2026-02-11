@@ -4,21 +4,17 @@
 set -euo pipefail
 
 # Global findings storage
-# Each finding: "id|severity|name|description|file|line|match"
+# Each finding: "id|name|description|file|line|match"
 FINDINGS=()
-CRITICAL_COUNT=0
-HIGH_COUNT=0
-MEDIUM_COUNT=0
-INFO_COUNT=0
 
 # Build grep --include flags for a language
 build_include_flags() {
 	local lang="$1"
 	case "$lang" in
-		go) echo "--include=*.go" ;;
-		python) echo "--include=*.py" ;;
-		nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
-		cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
+	go) echo "--include=*.go" ;;
+	python) echo "--include=*.py" ;;
+	nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
+	cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
 	esac
 }
 
@@ -26,10 +22,10 @@ build_include_flags() {
 build_test_exclude_flags() {
 	local lang="$1"
 	case "$lang" in
-		go) echo "--exclude=*_test.go" ;;
-		python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
-		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
-		cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
+	go) echo "--exclude=*_test.go" ;;
+	python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
+	nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
+	cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
 	esac
 }
 
@@ -37,9 +33,9 @@ build_test_exclude_flags() {
 build_lang_exclude_dirs() {
 	local lang="$1"
 	case "$lang" in
-		nodejs) echo "--exclude-dir=node_modules --exclude-dir=__tests__" ;;
-		python) echo "--exclude-dir=__pycache__ --exclude-dir=venv --exclude-dir=.venv" ;;
-		*) echo "" ;;
+	nodejs) echo "--exclude-dir=node_modules --exclude-dir=__tests__" ;;
+	python) echo "--exclude-dir=__pycache__ --exclude-dir=venv --exclude-dir=.venv" ;;
+	*) echo "" ;;
 	esac
 }
 
@@ -91,8 +87,8 @@ scan_pattern() {
 	local exclude_dirs="$4"
 	local exclude_patterns="$5"
 
-	# Parse pattern: "id|severity|name|description|regex"
-	IFS='|' read -r pattern_id severity name description regex <<<"$pattern_line"
+	# Parse pattern: "id|name|description|regex"
+	IFS='|' read -r pattern_id name description regex <<<"$pattern_line"
 
 	# Skip excluded patterns
 	if is_pattern_excluded "$pattern_id" "$exclude_patterns"; then
@@ -131,15 +127,7 @@ scan_pattern() {
 		# Trim match text for readability
 		match_text=$(echo "$match_text" | sed 's/^[[:space:]]*//' | cut -c1-200)
 
-		FINDINGS+=("${pattern_id}|${severity}|${name}|${description}|${file}|${line_num}|${match_text}")
-
-		# Update severity counters
-		case "$(normalize_severity "$severity")" in
-			critical) CRITICAL_COUNT=$((CRITICAL_COUNT + 1)) ;;
-			high) HIGH_COUNT=$((HIGH_COUNT + 1)) ;;
-			medium) MEDIUM_COUNT=$((MEDIUM_COUNT + 1)) ;;
-			info) INFO_COUNT=$((INFO_COUNT + 1)) ;;
-		esac
+		FINDINGS+=("${pattern_id}|${name}|${description}|${file}|${line_num}|${match_text}")
 	done <<<"$grep_output"
 }
 
@@ -153,7 +141,7 @@ filter_go_tls_config_noise() {
 	# Check if there are any "hardcoded-tls-config" findings
 	local has_tls_config=false
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r fid _ _ _ _ _ _ <<<"$finding"
+		IFS='|' read -r fid _ _ _ _ _ <<<"$finding"
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
 			has_tls_config=true
 			break
@@ -177,7 +165,7 @@ filter_go_tls_config_noise() {
 	# Filter findings: remove hardcoded-tls-config entries where file also references TLSSecurityProfile
 	local filtered_findings=()
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r fid fsev _ _ ffile _ _ <<<"$finding"
+		IFS='|' read -r fid _ _ ffile _ _ <<<"$finding"
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
 			local full_path="$scan_path/$ffile"
 			# Keep finding only if file does NOT reference TLSSecurityProfile
@@ -185,13 +173,6 @@ filter_go_tls_config_noise() {
 				filtered_findings+=("$finding")
 			else
 				log_debug "Filtered tls.Config finding in $ffile (uses TLSSecurityProfile)"
-				# Decrement counter
-				case "$(normalize_severity "$fsev")" in
-					critical) CRITICAL_COUNT=$((CRITICAL_COUNT - 1)) ;;
-					high) HIGH_COUNT=$((HIGH_COUNT - 1)) ;;
-					medium) MEDIUM_COUNT=$((MEDIUM_COUNT - 1)) ;;
-					info) INFO_COUNT=$((INFO_COUNT - 1)) ;;
-				esac
 			fi
 		else
 			filtered_findings+=("$finding")
@@ -227,11 +208,11 @@ scan_language() {
 	# Get patterns array based on language
 	local patterns_var
 	case "$lang" in
-		go) patterns_var="GO_PATTERNS" ;;
-		python) patterns_var="PYTHON_PATTERNS" ;;
-		nodejs) patterns_var="NODEJS_PATTERNS" ;;
-		cpp) patterns_var="CPP_PATTERNS" ;;
-		*) return 0 ;;
+	go) patterns_var="GO_PATTERNS" ;;
+	python) patterns_var="PYTHON_PATTERNS" ;;
+	nodejs) patterns_var="NODEJS_PATTERNS" ;;
+	cpp) patterns_var="CPP_PATTERNS" ;;
+	*) return 0 ;;
 	esac
 
 	# Use eval to iterate the named array (compatible with bash 3.x+)
@@ -261,11 +242,11 @@ run_scan() {
 		fi
 	done
 
-	local total=$((CRITICAL_COUNT + HIGH_COUNT + MEDIUM_COUNT + INFO_COUNT))
-	log_msg "Scan complete: $total findings ($CRITICAL_COUNT critical, $HIGH_COUNT high, $MEDIUM_COUNT medium, $INFO_COUNT info)"
+	local total=${#FINDINGS[@]}
+	log_msg "Scan complete: $total findings"
 }
 
 # Get total findings count
 get_findings_count() {
-	echo $((CRITICAL_COUNT + HIGH_COUNT + MEDIUM_COUNT + INFO_COUNT))
+	echo "${#FINDINGS[@]}"
 }

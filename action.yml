@@ -1,5 +1,5 @@
 name: 'TLS Config Lint'
-description: 'Lint TLS configurations for security anti-patterns across Go, Python, Node.js/TypeScript, and C++ projects'
+description: 'Lint TLS configurations for security anti-patterns across Go, Python, Node.js/TypeScript, and C++ projects. Uses a pass/fail model aligned with CNF-21745.'
 author: 'sebrandon1'
 
 branding:
@@ -7,10 +7,6 @@ branding:
   color: 'blue'
 
 inputs:
-  severity-threshold:
-    description: 'Minimum severity to cause failure: critical, high, medium, info'
-    required: false
-    default: 'high'
   languages:
     description: 'Comma-separated languages to scan: go,python,nodejs,cpp or auto to detect'
     required: false
@@ -32,7 +28,7 @@ inputs:
     required: false
     default: '.'
   fail-on-findings:
-    description: 'Whether to fail CI on findings above threshold'
+    description: 'Whether to fail CI when findings are detected'
     required: false
     default: 'true'
   sarif-output:
@@ -44,18 +40,6 @@ outputs:
   findings-count:
     description: 'Total number of findings'
     value: ${{ steps.scan.outputs.findings-count }}
-  critical-count:
-    description: 'Number of critical findings'
-    value: ${{ steps.scan.outputs.critical-count }}
-  high-count:
-    description: 'Number of high findings'
-    value: ${{ steps.scan.outputs.high-count }}
-  medium-count:
-    description: 'Number of medium findings'
-    value: ${{ steps.scan.outputs.medium-count }}
-  info-count:
-    description: 'Number of info findings'
-    value: ${{ steps.scan.outputs.info-count }}
   sarif-file:
     description: 'Path to SARIF file (if generated)'
     value: ${{ steps.scan.outputs.sarif-file }}
@@ -67,7 +51,6 @@ runs:
       id: scan
       shell: bash
       env:
-        INPUT_SEVERITY_THRESHOLD: ${{ inputs.severity-threshold }}
         INPUT_LANGUAGES: ${{ inputs.languages }}
         INPUT_EXCLUDE_DIRS: ${{ inputs.exclude-dirs }}
         INPUT_EXCLUDE_PATTERNS: ${{ inputs.exclude-patterns }}

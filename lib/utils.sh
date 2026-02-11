@@ -1,36 +1,7 @@
 #!/usr/bin/env bash
-# utils.sh - Severity comparison, logging helpers, and common utilities
+# utils.sh - Logging helpers and common utilities
 
 set -euo pipefail
-
-# Normalize severity string to lowercase
-normalize_severity() {
-	echo "$1" | tr '[:upper:]' '[:lower:]'
-}
-
-# Get numeric severity level
-severity_level() {
-	local sev
-	sev=$(normalize_severity "$1")
-	case "$sev" in
-		critical) echo 4 ;;
-		high) echo 3 ;;
-		medium) echo 2 ;;
-		info) echo 1 ;;
-		*) echo 0 ;;
-	esac
-}
-
-# Check if severity meets or exceeds threshold
-# Returns 0 (true) if finding_severity >= threshold_severity
-meets_threshold() {
-	local finding_sev="$1"
-	local threshold_sev="$2"
-	local finding_level threshold_level
-	finding_level=$(severity_level "$finding_sev")
-	threshold_level=$(severity_level "$threshold_sev")
-	[[ "$finding_level" -ge "$threshold_level" ]]
-}
 
 # Logging helpers
 log_info() {
