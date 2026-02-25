@@ -13,9 +13,13 @@ unset GITHUB_STEP_SUMMARY
 
 # Test: Zero findings summary
 FINDINGS=()
+# shellcheck disable=SC2034  # Used by generate_summary via get_findings_count
 CRITICAL_COUNT=0
+# shellcheck disable=SC2034  # Used by generate_summary via get_findings_count
 HIGH_COUNT=0
+# shellcheck disable=SC2034  # Used by generate_summary via get_findings_count
 MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by generate_summary via get_findings_count
 INFO_COUNT=0
 
 output=$(generate_summary "high")
@@ -25,9 +29,13 @@ assert_contains "Zero findings shows no-issues message" "No TLS configuration is
 FINDINGS=()
 FINDINGS+=("test-critical|CRITICAL|Test Critical|Critical desc|test.go|10|code")
 FINDINGS+=("test-medium|MEDIUM|Test Medium|Medium desc|test.py|20|code")
+# shellcheck disable=SC2034  # Used by generate_summary
 CRITICAL_COUNT=1
+# shellcheck disable=SC2034  # Used by generate_summary
 HIGH_COUNT=0
+# shellcheck disable=SC2034  # Used by generate_summary
 MEDIUM_COUNT=1
+# shellcheck disable=SC2034  # Used by generate_summary
 INFO_COUNT=0
 
 output=$(generate_summary "high")
