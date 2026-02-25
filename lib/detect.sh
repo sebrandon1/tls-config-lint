@@ -32,6 +32,12 @@ detect_languages() {
 		detected+=("cpp")
 	fi
 
+	# Java: check for pom.xml, build.gradle, or *.java files
+	if [[ -f "$scan_path/pom.xml" ]] || [[ -f "$scan_path/build.gradle" ]] ||
+		find "$scan_path" -maxdepth 3 -name '*.java' -print -quit 2>/dev/null | grep -q .; then
+		detected+=("java")
+	fi
+
 	if [[ ${#detected[@]} -eq 0 ]]; then
 		log_msg "No supported languages detected in $scan_path"
 		echo ""

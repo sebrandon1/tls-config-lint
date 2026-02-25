@@ -19,6 +19,7 @@ build_include_flags() {
 		python) echo "--include=*.py" ;;
 		nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
 		cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
+		java) echo "--include=*.java" ;;
 	esac
 }
 
@@ -30,6 +31,7 @@ build_test_exclude_flags() {
 		python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
 		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
 		cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
+		java) echo "--exclude=*Test.java --exclude=*Tests.java --exclude=*IT.java" ;;
 	esac
 }
 
@@ -39,6 +41,7 @@ build_lang_exclude_dirs() {
 	case "$lang" in
 		nodejs) echo "--exclude-dir=node_modules --exclude-dir=__tests__" ;;
 		python) echo "--exclude-dir=__pycache__ --exclude-dir=venv --exclude-dir=.venv" ;;
+		java) echo "--exclude-dir=target --exclude-dir=build --exclude-dir=.gradle" ;;
 		*) echo "" ;;
 	esac
 }
@@ -231,6 +234,7 @@ scan_language() {
 		python) patterns_var="PYTHON_PATTERNS" ;;
 		nodejs) patterns_var="NODEJS_PATTERNS" ;;
 		cpp) patterns_var="CPP_PATTERNS" ;;
+		java) patterns_var="JAVA_PATTERNS" ;;
 		*) return 0 ;;
 	esac
 
