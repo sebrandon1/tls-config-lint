@@ -28,7 +28,8 @@ jobs:
           echo "High: ${{ steps.lint.outputs.high-count }}"
           echo "Medium: ${{ steps.lint.outputs.medium-count }}"
           echo "Info: ${{ steps.lint.outputs.info-count }}"
-          if [[ "${{ steps.lint.outputs.findings-count }}" -eq 0 ]]; then
+          count="${{ steps.lint.outputs.findings-count }}"
+          if [[ "$count" -eq 0 ]]; then
             echo "ERROR: Expected findings but got 0"
             exit 1
           fi
@@ -106,7 +107,8 @@ jobs:
           fail-on-findings: false
       - name: Verify Go findings
         run: |
-          if [[ "${{ steps.lint-go.outputs.findings-count }}" -eq 0 ]]; then
+          count="${{ steps.lint-go.outputs.findings-count }}"
+          if [[ "$count" -eq 0 ]]; then
             echo "ERROR: Expected Go findings"
             exit 1
           fi
