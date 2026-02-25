@@ -33,9 +33,20 @@ jobs:
       - name: Check formatting
         run: shfmt -d -i 0 -ci .
 
-  unit-tests:
-    name: Unit Tests
+  actionlint:
+    name: actionlint
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run actionlint
+        uses: rhysd/actionlint@v1
+
+  unit-tests:
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v6
       - name: Run tests
