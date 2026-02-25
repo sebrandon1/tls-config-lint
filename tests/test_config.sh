@@ -66,3 +66,70 @@ assert_equals "Merge uses input languages when non-auto" "cpp" "$LANGUAGES"
 
 # Cleanup
 rm -f "$TEMP_CONFIG"
+
+echo "  --- Config Validation Tests ---"
+
+# Test: Invalid severity threshold is rejected
+if (
+	SEVERITY_THRESHOLD="invalid"
+	LANGUAGES="auto"
+	FAIL_ON_FINDINGS="true"
+	SCAN_PATH="."
+	validate_config 2>/dev/null
+); then
+	assert_equals "Invalid severity threshold rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid severity threshold rejected" "true" "true"
+fi
+
+# Test: Invalid language is rejected
+if (
+	SEVERITY_THRESHOLD="high"
+	LANGUAGES="go,invalid_lang"
+	FAIL_ON_FINDINGS="true"
+	SCAN_PATH="."
+	validate_config 2>/dev/null
+); then
+	assert_equals "Invalid language rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid language rejected" "true" "true"
+fi
+
+# Test: Invalid fail-on-findings is rejected
+if (
+	SEVERITY_THRESHOLD="high"
+	LANGUAGES="auto"
+	FAIL_ON_FINDINGS="maybe"
+	SCAN_PATH="."
+	validate_config 2>/dev/null
+); then
+	assert_equals "Invalid fail-on-findings rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid fail-on-findings rejected" "true" "true"
+fi
+
+# Test: Invalid scan path is rejected
+if (
+	SEVERITY_THRESHOLD="high"
+	LANGUAGES="auto"
+	FAIL_ON_FINDINGS="true"
+	SCAN_PATH="/nonexistent/path"
+	validate_config 2>/dev/null
+); then
+	assert_equals "Invalid scan path rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid scan path rejected" "true" "true"
+fi
+
+# Test: Valid config passes validation
+if (
+	SEVERITY_THRESHOLD="high"
+	LANGUAGES="go,python"
+	FAIL_ON_FINDINGS="true"
+	SCAN_PATH="."
+	validate_config 2>/dev/null
+); then
+	assert_equals "Valid config passes validation" "true" "true"
+else
+	assert_equals "Valid config passes validation" "true" "false"
+fi
