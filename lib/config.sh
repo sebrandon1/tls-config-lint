@@ -152,4 +152,59 @@ merge_config() {
 	# Export for use in other scripts
 	export SEVERITY_THRESHOLD LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
 	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT
+
+	# Validate merged configuration
+	validate_config
+}
+
+# Validate configuration values
+validate_config() {
+	local valid=true
+
+	# Validate severity-threshold
+	case "$(normalize_severity "$SEVERITY_THRESHOLD")" in
+		critical | high | medium | info) ;;
+		*)
+			log_error "Invalid severity-threshold: '$SEVERITY_THRESHOLD' (must be critical, high, medium, or info)"
+			valid=false
+			;;
+	esac
+
+	# Validate languages
+	if [[ "$LANGUAGES" != "auto" ]]; then
+		IFS=',' read -ra lang_list <<<"$LANGUAGES"
+		local invalid_langs=()
+		for lang in "${lang_list[@]}"; do
+			lang="${lang// /}"
+			case "$lang" in
+				go | python | nodejs | cpp) ;;
+				*)
+					invalid_langs+=("$lang")
+					;;
+			esac
+		done
+		if [[ ${#invalid_langs[@]} -gt 0 ]]; then
+			log_error "Invalid language(s): ${invalid_langs[*]} (supported: go, python, nodejs, cpp)"
+			valid=false
+		fi
+	fi
+
+	# Validate fail-on-findings
+	case "$FAIL_ON_FINDINGS" in
+		true | false) ;;
+		*)
+			log_error "Invalid fail-on-findings: '$FAIL_ON_FINDINGS' (must be true or false)"
+			valid=false
+			;;
+	esac
+
+	# Validate scan-path exists
+	if [[ ! -d "$SCAN_PATH" ]]; then
+		log_error "Scan path does not exist: '$SCAN_PATH'"
+		valid=false
+	fi
+
+	if [[ "$valid" != "true" ]]; then
+		return 1
+	fi
 }

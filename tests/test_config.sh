@@ -66,3 +66,52 @@ assert_equals "Merge uses input languages when non-auto" "cpp" "$LANGUAGES"
 
 # Cleanup
 rm -f "$TEMP_CONFIG"
+
+echo "  --- Config Validation Tests ---"
+
+# Helper to run validate_config in a subshell with given values
+# shellcheck disable=SC2034  # Variables are used by validate_config
+run_validate() {
+	(
+		SEVERITY_THRESHOLD="$1"
+		LANGUAGES="$2"
+		FAIL_ON_FINDINGS="$3"
+		SCAN_PATH="$4"
+		validate_config 2>/dev/null
+	)
+}
+
+# Test: Invalid severity threshold is rejected
+if run_validate "invalid" "auto" "true" "."; then
+	assert_equals "Invalid severity threshold rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid severity threshold rejected" "true" "true"
+fi
+
+# Test: Invalid language is rejected
+if run_validate "high" "go,invalid_lang" "true" "."; then
+	assert_equals "Invalid language rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid language rejected" "true" "true"
+fi
+
+# Test: Invalid fail-on-findings is rejected
+if run_validate "high" "auto" "maybe" "."; then
+	assert_equals "Invalid fail-on-findings rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid fail-on-findings rejected" "true" "true"
+fi
+
+# Test: Invalid scan path is rejected
+if run_validate "high" "auto" "true" "/nonexistent/path"; then
+	assert_equals "Invalid scan path rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid scan path rejected" "true" "true"
+fi
+
+# Test: Valid config passes validation
+if run_validate "high" "go,python" "true" "."; then
+	assert_equals "Valid config passes validation" "true" "true"
+else
+	assert_equals "Valid config passes validation" "true" "false"
+fi
