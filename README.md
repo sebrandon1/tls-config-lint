@@ -6,7 +6,7 @@ A GitHub Action that scans your codebase for TLS configuration anti-patterns and
 
 ## Features
 
-- Detects 63 TLS security anti-patterns across 6 languages
+- Detects 74 TLS security anti-patterns across 6 languages
 - Configurable severity thresholds (critical, high, medium, info)
 - Inline PR annotations on affected lines
 - Job summary with findings table
@@ -149,7 +149,7 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `hardcoded-tls-config` | INFO | Hardcoded `tls.Config{}` |
 | `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
 
-### Python (11 patterns)
+### Python (14 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -163,9 +163,12 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `max-version-tlsv12` | MEDIUM | Caps at TLS 1.2 |
 | `no-default-ciphers` | MEDIUM | Custom cipher configuration (review needed) |
 | `min-version-tlsv13` | INFO | Forces TLS 1.3 |
+| `urllib3-disable-warnings` | HIGH | Hides TLS verification warnings |
+| `urllib3-default-ciphers` | HIGH | Overrides global urllib3 cipher config |
+| `aiohttp-ssl-false` | CRITICAL | Disables verification in aiohttp |
 | `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
 
-### Node.js/TypeScript (9 patterns)
+### Node.js/TypeScript (12 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -177,6 +180,9 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `weak-cipher-config` | HIGH | Weak ciphers in TLS options |
 | `max-version-tlsv12` | MEDIUM | Caps at TLS 1.2 |
 | `honor-cipher-order-false` | MEDIUM | Server doesn't enforce cipher preference |
+| `axios-defaults-httpsagent` | MEDIUM | Global default HTTPS agent override |
+| `strict-ssl-false` | CRITICAL | `strictSSL: false` disables verification |
+| `secure-protocol-weak` | HIGH | Weak TLS protocol in HTTPS options |
 | `min-version-tlsv13` | INFO | Forces TLS 1.3 |
 
 ### C++ (10 patterns)
@@ -194,7 +200,7 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `max-proto-tls12` | MEDIUM | Caps at TLS 1.2 |
 | `min-proto-tls13` | INFO | Forces TLS 1.3 |
 
-### Java (11 patterns)
+### Java (16 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -208,6 +214,11 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `enabled-weak-protocols` | MEDIUM | Enables deprecated TLS protocols |
 | `ssl-socket-factory-default` | MEDIUM | Default `SSLSocketFactory` may use weak ciphers |
 | `sslcontext-tlsv13` | INFO | Forces TLS 1.3 only |
+| `noop-hostname-verifier` | CRITICAL | Apache HttpClient `NoopHostnameVerifier` |
+| `trust-all-strategy` | CRITICAL | Apache HttpClient `TrustAllStrategy` / `TrustSelfSignedStrategy` |
+| `okhttp-ssl-socket-factory` | CRITICAL | OkHttp custom SSL socket factory |
+| `apache-httpclient-custom-ssl` | HIGH | Custom SSLContext in Apache HttpClient |
+| `ssl-connection-socket-factory` | HIGH | Custom SSL connection socket factory |
 | `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
 
 ### Rust (14 patterns)

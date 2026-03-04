@@ -64,6 +64,39 @@ public class Insecure {
         return SSLSocketFactory.getDefault();
     }
 
+    // CRITICAL: Apache HttpClient NoopHostnameVerifier
+    public void apacheNoopVerifier() {
+        CloseableHttpClient client = HttpClients.custom()
+            .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+            .build();
+    }
+
+    // CRITICAL: Apache HttpClient TrustAllStrategy
+    public void apacheTrustAll() throws Exception {
+        SSLContext sslContext = SSLContexts.custom()
+            .loadTrustMaterial(null, TrustAllStrategy.INSTANCE)
+            .build();
+    }
+
+    // CRITICAL: OkHttp custom sslSocketFactory
+    public void okhttpCustomSsl(SSLSocketFactory factory, X509TrustManager tm) {
+        OkHttpClient client = new OkHttpClient.Builder()
+            .sslSocketFactory(factory, tm)
+            .build();
+    }
+
+    // HIGH: Apache HttpClient custom SSLContext
+    public void apacheCustomSslContext(SSLContext ctx) {
+        CloseableHttpClient client = HttpClients.custom()
+            .setSSLContext(ctx)
+            .build();
+    }
+
+    // HIGH: SSLConnectionSocketFactory
+    public void customConnectionFactory(SSLContext ctx) {
+        SSLConnectionSocketFactory factory = new SSLConnectionSocketFactory(ctx);
+    }
+
     // INFO: PQC/ML-KEM adoption
     public void postQuantumSetup() {
         // Using MLKEM for post-quantum key exchange

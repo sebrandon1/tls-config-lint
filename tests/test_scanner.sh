@@ -44,7 +44,7 @@ source "$ROOT_DIR/patterns/python.sh"
 scan_language "$ROOT_DIR/testdata/python" "python" "" ""
 
 assert_greater_than "Python scan finds critical findings" 0 "$CRITICAL_COUNT"
-assert_greater_than "Python scan finds total findings" 10 "$(get_findings_count)"
+assert_greater_than "Python scan finds total findings" 13 "$(get_findings_count)"
 
 # Reset state for Node.js
 FINDINGS=()
@@ -58,7 +58,7 @@ source "$ROOT_DIR/patterns/nodejs.sh"
 scan_language "$ROOT_DIR/testdata/nodejs" "nodejs" "" ""
 
 assert_greater_than "Node.js scan finds critical findings" 0 "$CRITICAL_COUNT"
-assert_greater_than "Node.js scan finds total findings" 7 "$(get_findings_count)"
+assert_greater_than "Node.js scan finds total findings" 10 "$(get_findings_count)"
 
 # Reset state for C++
 FINDINGS=()
@@ -86,7 +86,7 @@ source "$ROOT_DIR/patterns/java.sh"
 scan_language "$ROOT_DIR/testdata/java" "java" "" ""
 
 assert_greater_than "Java scan finds critical findings" 0 "$CRITICAL_COUNT"
-assert_greater_than "Java scan finds total findings" 10 "$(get_findings_count)"
+assert_greater_than "Java scan finds total findings" 15 "$(get_findings_count)"
 
 # Reset state for Rust
 FINDINGS=()

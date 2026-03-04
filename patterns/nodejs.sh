@@ -13,4 +13,7 @@ NODEJS_PATTERNS=(
 	"min-version-tlsv13|INFO|minVersion TLSv1.3|Forces TLS 1.3 (may break older clients)|minVersion.*TLSv1\.3"
 	"weak-cipher-config|HIGH|Weak cipher configuration|Weak or insecure ciphers in TLS options|ciphers.*(DES|RC4|NULL|EXPORT)"
 	"honor-cipher-order-false|MEDIUM|honorCipherOrder disabled|Server does not enforce cipher preference order|honorCipherOrder.*false"
+	"axios-defaults-httpsagent|MEDIUM|axios defaults httpsAgent|Global default HTTPS agent override (review TLS settings)|axios\.defaults\.httpsAgent"
+	"strict-ssl-false|CRITICAL|strictSSL: false|Disables TLS certificate verification in request/request-promise|strictSSL[[:space:]]*:[[:space:]]*false"
+	"secure-protocol-weak|HIGH|Weak secureProtocol|Weak TLS protocol version in HTTPS options|secureProtocol[[:space:]]*:[[:space:]]*['\"]TLSv1[^.3]"
 )
