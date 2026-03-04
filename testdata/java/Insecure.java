@@ -53,4 +53,20 @@ public class Insecure {
         SSLContext ctx = SSLContext.getInstance("TLSv1.3");
         return ctx;
     }
+
+    // HIGH: Weak cipher suites
+    public void enableWeakCiphers(SSLSocket socket) {
+        socket.setEnabledCipherSuites(new String[]{"TLS_RSA_WITH_DES_CBC_SHA", "TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_NULL_SHA"});
+    }
+
+    // MEDIUM: Default SSLSocketFactory may use weak ciphers
+    public SocketFactory getFactory() {
+        return SSLSocketFactory.getDefault();
+    }
+
+    // INFO: PQC/ML-KEM adoption
+    public void postQuantumSetup() {
+        // Using MLKEM for post-quantum key exchange
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("MLKEM");
+    }
 }

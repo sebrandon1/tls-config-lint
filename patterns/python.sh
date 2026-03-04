@@ -12,4 +12,7 @@ PYTHON_PATTERNS=(
 	"protocol-tlsv11|HIGH|PROTOCOL_TLSv1_1|TLS 1.1 has known vulnerabilities|PROTOCOL_TLSv1_1"
 	"max-version-tlsv12|MEDIUM|maximum_version TLSv1_2|Caps maximum TLS version at 1.2, preventing TLS 1.3|maximum_version.*TLSv1_2"
 	"min-version-tlsv13|INFO|minimum_version TLSv1_3|Forces TLS 1.3 (may break older clients)|minimum_version.*TLSv1_3"
+	"weak-cipher-config|HIGH|Weak cipher configuration|Weak or insecure ciphers configured in SSL context|set_ciphers.*(DES|RC4|NULL|EXPORT|eNULL|aNULL)"
+	"no-default-ciphers|MEDIUM|Custom cipher configuration|Custom cipher string overrides defaults (review needed)|set_ciphers\("
+	"pqc-ml-kem|INFO|PQC/ML-KEM patterns|Post-Quantum Cryptography adoption (ML-KEM)|(mlkem|ML-KEM|post_quantum|post-quantum)"
 )

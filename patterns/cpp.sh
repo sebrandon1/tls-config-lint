@@ -12,4 +12,6 @@ CPP_PATTERNS=(
 	"tlsv1-method|HIGH|TLSv1_method|TLS 1.0 has known vulnerabilities|TLSv1_method[^_]"
 	"max-proto-tls12|MEDIUM|SSL_CTX_set_max_proto_version TLS1_2|Caps maximum TLS version at 1.2|SSL_CTX_set_max_proto_version.*TLS1_2_VERSION"
 	"min-proto-tls13|INFO|SSL_CTX_set_min_proto_version TLS1_3|Forces TLS 1.3 (may break older clients)|SSL_CTX_set_min_proto_version.*TLS1_3_VERSION"
+	"weak-cipher-list|HIGH|Weak OpenSSL cipher list|Weak ciphers configured via SSL_CTX_set_cipher_list|SSL_CTX_set_cipher_list.*(DES|RC4|NULL|EXPORT|eNULL|aNULL)"
+	"weak-ciphersuites|HIGH|Weak TLS 1.3 ciphersuites|Weak ciphers configured via SSL_CTX_set_ciphersuites|SSL_CTX_set_ciphersuites.*(DES|RC4|NULL)"
 )

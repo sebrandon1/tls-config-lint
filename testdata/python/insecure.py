@@ -28,3 +28,15 @@ ctx6.maximum_version = ssl.TLSVersion.TLSv1_2
 # INFO: Forces TLS 1.3
 ctx7 = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 ctx7.minimum_version = ssl.TLSVersion.TLSv1_3
+
+# HIGH: Weak cipher configuration
+ctx8 = ssl.create_default_context()
+ctx8.set_ciphers("DES-CBC3-SHA:RC4-SHA:NULL-SHA")
+
+# MEDIUM: Custom cipher configuration (review needed)
+ctx9 = ssl.create_default_context()
+ctx9.set_ciphers("ECDHE+AESGCM:ECDHE+CHACHA20")
+
+# INFO: PQC/ML-KEM adoption
+import post_quantum
+mlkem_key = post_quantum.generate_mlkem_keypair()

@@ -33,3 +33,13 @@ const options4 = {
 const options5 = {
   minVersion: 'TLSv1.3',
 };
+
+// HIGH: Weak cipher configuration
+const options6 = {
+  ciphers: 'DES-CBC3-SHA:RC4-SHA:NULL-SHA:EXPORT',
+};
+
+// MEDIUM: Server doesn't enforce cipher preference
+const options7 = {
+  honorCipherOrder: false,
+};
