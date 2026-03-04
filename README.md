@@ -1,6 +1,8 @@
 # tls-config-lint
 
-A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, and C++ projects.
+A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, C++, and Java projects.
+
+> **See also:** [tls-compliance-operator](https://github.com/sebrandon1/tls-compliance-operator) — a Kubernetes operator that continuously monitors live TLS endpoints at runtime. Use **tls-config-lint** to catch issues in source code (shift-left) and **tls-compliance-operator** to verify runtime compliance in your cluster.
 
 ## Features
 
