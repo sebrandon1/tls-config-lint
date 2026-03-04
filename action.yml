@@ -1,5 +1,5 @@
 name: 'TLS Config Lint'
-description: 'Lint TLS configurations for security anti-patterns across Go, Python, Node.js/TypeScript, C++, and Java projects'
+description: 'Lint TLS configurations for security anti-patterns across Go, Python, Node.js/TypeScript, C++, Java, and Rust projects'
 author: 'sebrandon1'
 
 branding:
@@ -12,7 +12,7 @@ inputs:
     required: false
     default: 'high'
   languages:
-    description: 'Comma-separated languages to scan: go,python,nodejs,cpp,java or auto to detect'
+    description: 'Comma-separated languages to scan: go,python,nodejs,cpp,java,rust or auto to detect'
     required: false
     default: 'auto'
   exclude-dirs:

@@ -38,6 +38,12 @@ detect_languages() {
 		detected+=("java")
 	fi
 
+	# Rust: check for Cargo.toml or *.rs files
+	if [[ -f "$scan_path/Cargo.toml" ]] ||
+		find "$scan_path" -maxdepth 3 -name '*.rs' -print -quit 2>/dev/null | grep -q .; then
+		detected+=("rust")
+	fi
+
 	if [[ ${#detected[@]} -eq 0 ]]; then
 		log_msg "No supported languages detected in $scan_path"
 		echo ""
