@@ -39,3 +39,11 @@ void strict_tls() {
     // INFO: Forces TLS 1.3
     SSL_CTX_set_min_proto_version(ctx, TLS1_3_VERSION);
 }
+
+void weak_ciphers() {
+    SSL_CTX *ctx = SSL_CTX_new(TLS_method());
+    // HIGH: Weak OpenSSL ciphers
+    SSL_CTX_set_cipher_list(ctx, "DES-CBC3-SHA:RC4-SHA:NULL-SHA:EXPORT");
+    // HIGH: Weak TLS 1.3 ciphers
+    SSL_CTX_set_ciphersuites(ctx, "TLS_DES_CBC3_SHA:TLS_RC4_128_SHA:TLS_NULL_SHA");
+}

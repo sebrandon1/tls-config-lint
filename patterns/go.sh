@@ -15,4 +15,9 @@ GO_PATTERNS=(
 	"curve-preferences|INFO|CurvePreferences|Explicit curve configuration (PQC readiness indicator)|CurvePreferences[[:space:]]*[:=]"
 	"hardcoded-tls-config|INFO|Hardcoded tls.Config|Hardcoded TLS config (review for API server TLS profile adherence)|tls\.Config[[:space:]]*\{"
 	"pqc-ml-kem|INFO|PQC/ML-KEM patterns|Post-Quantum Cryptography adoption (ML-KEM)|(X25519MLKEM|MLKEM768|mlkem768|crypto/mlkem|NewDecapsulationKey|NewEncapsulationKey)"
+	"weak-cipher-3des|HIGH|3DES/CBC cipher suite|3DES and CBC cipher suites have known vulnerabilities|TLS_.*3DES|TLS_.*CBC"
+	"weak-cipher-rc4|CRITICAL|RC4 cipher suite|RC4 cipher is completely broken and must not be used|TLS_.*RC4"
+	"null-cipher|CRITICAL|NULL cipher suite|NULL ciphers provide no encryption|TLS_.*NULL"
+	"tls-profile-old|HIGH|Old TLS security profile|Old TLS profile allows insecure TLS 1.0 and 1.1|OldType|TLSProfileOldType"
+	"tls-profile-custom|MEDIUM|Custom TLS security profile|Custom TLS profile needs manual review for compliance|CustomType|TLSProfileCustomType"
 )

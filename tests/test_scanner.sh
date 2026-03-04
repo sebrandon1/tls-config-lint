@@ -20,7 +20,7 @@ scan_language "$ROOT_DIR/testdata/go" "go" "" ""
 
 assert_greater_than "Go scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "Go scan finds high findings" 0 "$HIGH_COUNT"
-assert_greater_than "Go scan finds total findings" 5 "$(get_findings_count)"
+assert_greater_than "Go scan finds total findings" 10 "$(get_findings_count)"
 
 # Verify specific findings
 found_insecure_skip=false
@@ -44,7 +44,7 @@ source "$ROOT_DIR/patterns/python.sh"
 scan_language "$ROOT_DIR/testdata/python" "python" "" ""
 
 assert_greater_than "Python scan finds critical findings" 0 "$CRITICAL_COUNT"
-assert_greater_than "Python scan finds total findings" 5 "$(get_findings_count)"
+assert_greater_than "Python scan finds total findings" 10 "$(get_findings_count)"
 
 # Reset state for Node.js
 FINDINGS=()
@@ -58,7 +58,7 @@ source "$ROOT_DIR/patterns/nodejs.sh"
 scan_language "$ROOT_DIR/testdata/nodejs" "nodejs" "" ""
 
 assert_greater_than "Node.js scan finds critical findings" 0 "$CRITICAL_COUNT"
-assert_greater_than "Node.js scan finds total findings" 4 "$(get_findings_count)"
+assert_greater_than "Node.js scan finds total findings" 7 "$(get_findings_count)"
 
 # Reset state for C++
 FINDINGS=()
@@ -72,7 +72,7 @@ source "$ROOT_DIR/patterns/cpp.sh"
 scan_language "$ROOT_DIR/testdata/cpp" "cpp" "" ""
 
 assert_greater_than "C++ scan finds critical findings" 0 "$CRITICAL_COUNT"
-assert_greater_than "C++ scan finds total findings" 5 "$(get_findings_count)"
+assert_greater_than "C++ scan finds total findings" 8 "$(get_findings_count)"
 
 # Reset state for Java
 FINDINGS=()
@@ -86,7 +86,7 @@ source "$ROOT_DIR/patterns/java.sh"
 scan_language "$ROOT_DIR/testdata/java" "java" "" ""
 
 assert_greater_than "Java scan finds critical findings" 0 "$CRITICAL_COUNT"
-assert_greater_than "Java scan finds total findings" 5 "$(get_findings_count)"
+assert_greater_than "Java scan finds total findings" 10 "$(get_findings_count)"
 
 # Reset state for exclude patterns test
 FINDINGS=()

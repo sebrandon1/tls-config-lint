@@ -12,4 +12,7 @@ JAVA_PATTERNS=(
 	"sslcontext-tlsv11|HIGH|SSLContext.getInstance TLSv1.1|TLS 1.1 has known vulnerabilities|SSLContext\.getInstance\(\"TLSv1\.1\"\)"
 	"enabled-weak-protocols|MEDIUM|setEnabledProtocols weak TLS|Enables deprecated TLS 1.0 or 1.1 protocols|setEnabledProtocols.*TLSv1[^.2-9]|setEnabledProtocols.*TLSv1\.1"
 	"sslcontext-tlsv13|INFO|SSLContext.getInstance TLSv1.3|Forces TLS 1.3 only (may break older clients)|SSLContext\.getInstance\(\"TLSv1\.3\"\)"
+	"weak-cipher-suite|HIGH|Weak JSSE cipher suite|Weak or insecure cipher suites enabled|setEnabledCipherSuites.*(DES|RC4|NULL|EXPORT|anon)"
+	"ssl-socket-factory-default|MEDIUM|Default SSLSocketFactory|Default SSLSocketFactory may use weak ciphers|SSLSocketFactory\.getDefault"
+	"pqc-ml-kem|INFO|PQC/ML-KEM patterns|Post-Quantum Cryptography adoption (ML-KEM)|(MLKEM|ML-KEM|postQuantum|post-quantum)"
 )

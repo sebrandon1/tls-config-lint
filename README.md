@@ -4,7 +4,7 @@ A GitHub Action that scans your codebase for TLS configuration anti-patterns and
 
 ## Features
 
-- Detects 34 TLS security anti-patterns across 4 languages
+- Detects 49 TLS security anti-patterns across 5 languages
 - Configurable severity thresholds (critical, high, medium, info)
 - Inline PR annotations on affected lines
 - Job summary with findings table
@@ -118,23 +118,28 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 
 ## Detected Patterns
 
-### Go (11 patterns)
+### Go (16 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
 | `insecure-skip-verify` | CRITICAL | `InsecureSkipVerify: true` disables certificate verification |
+| `weak-cipher-rc4` | CRITICAL | RC4 cipher suite (completely broken) |
+| `null-cipher` | CRITICAL | NULL cipher suite (no encryption) |
 | `min-version-tls10` | HIGH | `MinVersion` set to TLS 1.0 |
 | `min-version-tls11` | HIGH | `MinVersion` set to TLS 1.1 |
 | `max-version-tls10` | HIGH | `MaxVersion` set to TLS 1.0 |
 | `max-version-tls11` | HIGH | `MaxVersion` set to TLS 1.1 |
+| `weak-cipher-3des` | HIGH | 3DES/CBC cipher suites |
+| `tls-profile-old` | HIGH | Old TLS security profile allows TLS 1.0/1.1 |
 | `max-version-tls12` | MEDIUM | `MaxVersion` set to TLS 1.2 (prevents 1.3) |
+| `tls-profile-custom` | MEDIUM | Custom TLS security profile needs review |
 | `min-version-tls13` | INFO | Forces TLS 1.3 only |
 | `prefer-server-cipher-suites` | INFO | Deprecated in Go 1.17+ |
 | `curve-preferences` | INFO | Explicit curve configuration |
 | `hardcoded-tls-config` | INFO | Hardcoded `tls.Config{}` |
 | `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
 
-### Python (8 patterns)
+### Python (11 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -144,10 +149,13 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `check-hostname-false` | CRITICAL | `check_hostname = False` |
 | `protocol-tlsv1` | HIGH | Uses `PROTOCOL_TLSv1` (TLS 1.0) |
 | `protocol-tlsv11` | HIGH | Uses `PROTOCOL_TLSv1_1` |
+| `weak-cipher-config` | HIGH | Weak ciphers in SSL context |
 | `max-version-tlsv12` | MEDIUM | Caps at TLS 1.2 |
+| `no-default-ciphers` | MEDIUM | Custom cipher configuration (review needed) |
 | `min-version-tlsv13` | INFO | Forces TLS 1.3 |
+| `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
 
-### Node.js/TypeScript (7 patterns)
+### Node.js/TypeScript (9 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -156,10 +164,12 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `tlsv1-method` | HIGH | Uses `TLSv1_method` |
 | `tlsv11-method` | HIGH | Uses `TLSv1_1_method` |
 | `min-version-weak` | HIGH | `minVersion` allows TLS 1.0/1.1 |
+| `weak-cipher-config` | HIGH | Weak ciphers in TLS options |
 | `max-version-tlsv12` | MEDIUM | Caps at TLS 1.2 |
+| `honor-cipher-order-false` | MEDIUM | Server doesn't enforce cipher preference |
 | `min-version-tlsv13` | INFO | Forces TLS 1.3 |
 
-### C++ (8 patterns)
+### C++ (10 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -169,8 +179,26 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `tls11-version` | HIGH | Uses `TLS1_1_VERSION` |
 | `sslv3-method` | HIGH | Uses `SSLv3_method` |
 | `tlsv1-method` | HIGH | Uses `TLSv1_method` |
+| `weak-cipher-list` | HIGH | Weak ciphers via `SSL_CTX_set_cipher_list` |
+| `weak-ciphersuites` | HIGH | Weak ciphers via `SSL_CTX_set_ciphersuites` |
 | `max-proto-tls12` | MEDIUM | Caps at TLS 1.2 |
 | `min-proto-tls13` | INFO | Forces TLS 1.3 |
+
+### Java (11 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| `allow-all-hostname-verifier` | CRITICAL | `ALLOW_ALL` HostnameVerifier |
+| `trust-all-certs` | CRITICAL | Permissive TrustManager |
+| `custom-ssl-socket-factory` | CRITICAL | Custom `SSLSocketFactory` bypass |
+| `unversioned-ssl-context` | HIGH | `SSLContext.getInstance("TLS")` defaults to old version |
+| `sslcontext-tlsv1` | HIGH | `SSLContext.getInstance("TLSv1")` |
+| `sslcontext-tlsv11` | HIGH | `SSLContext.getInstance("TLSv1.1")` |
+| `weak-cipher-suite` | HIGH | Weak JSSE cipher suites |
+| `enabled-weak-protocols` | MEDIUM | Enables deprecated TLS protocols |
+| `ssl-socket-factory-default` | MEDIUM | Default `SSLSocketFactory` may use weak ciphers |
+| `sslcontext-tlsv13` | INFO | Forces TLS 1.3 only |
+| `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
 
 ## Built-in Exclusions
 

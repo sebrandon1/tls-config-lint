@@ -11,4 +11,6 @@ NODEJS_PATTERNS=(
 	"min-version-weak|HIGH|minVersion TLS 1.0/1.1|Allows weak TLS versions|minVersion.*TLSv1[^.3]"
 	"max-version-tlsv12|MEDIUM|maxVersion TLSv1.2|Caps maximum TLS version at 1.2, preventing TLS 1.3|maxVersion.*TLSv1\.2"
 	"min-version-tlsv13|INFO|minVersion TLSv1.3|Forces TLS 1.3 (may break older clients)|minVersion.*TLSv1\.3"
+	"weak-cipher-config|HIGH|Weak cipher configuration|Weak or insecure ciphers in TLS options|ciphers.*(DES|RC4|NULL|EXPORT)"
+	"honor-cipher-order-false|MEDIUM|honorCipherOrder disabled|Server does not enforce cipher preference order|honorCipherOrder.*false"
 )
