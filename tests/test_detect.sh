@@ -27,6 +27,10 @@ assert_contains "Detects C++ from .cpp files" "cpp" "$result"
 result=$(detect_languages "$ROOT_DIR/testdata/java" 2>/dev/null)
 assert_contains "Detects Java from .java files" "java" "$result"
 
+# Test: Detect Rust from testdata
+result=$(detect_languages "$ROOT_DIR/testdata/rust" 2>/dev/null)
+assert_contains "Detects Rust from .rs files" "rust" "$result"
+
 # Test: Empty directory returns nothing
 TEMP_DIR=$(mktemp -d)
 result=$(detect_languages "$TEMP_DIR" 2>/dev/null)

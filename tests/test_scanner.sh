@@ -88,6 +88,20 @@ scan_language "$ROOT_DIR/testdata/java" "java" "" ""
 assert_greater_than "Java scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "Java scan finds total findings" 10 "$(get_findings_count)"
 
+# Reset state for Rust
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+
+# Test: Rust scanning finds expected patterns
+source "$ROOT_DIR/patterns/rust.sh"
+scan_language "$ROOT_DIR/testdata/rust" "rust" "" ""
+
+assert_greater_than "Rust scan finds critical findings" 0 "$CRITICAL_COUNT"
+assert_greater_than "Rust scan finds total findings" 10 "$(get_findings_count)"
+
 # Reset state for exclude patterns test
 FINDINGS=()
 CRITICAL_COUNT=0

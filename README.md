@@ -1,12 +1,12 @@
 # tls-config-lint
 
-A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, C++, and Java projects.
+A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, C++, Java, and Rust projects.
 
 > **See also:** [tls-compliance-operator](https://github.com/sebrandon1/tls-compliance-operator) — a Kubernetes operator that continuously monitors live TLS endpoints at runtime. Use **tls-config-lint** to catch issues in source code (shift-left) and **tls-compliance-operator** to verify runtime compliance in your cluster.
 
 ## Features
 
-- Detects 49 TLS security anti-patterns across 5 languages
+- Detects 63 TLS security anti-patterns across 6 languages
 - Configurable severity thresholds (critical, high, medium, info)
 - Inline PR annotations on affected lines
 - Job summary with findings table
@@ -79,7 +79,7 @@ jobs:
 | Input | Default | Description |
 |-------|---------|-------------|
 | `severity-threshold` | `high` | Minimum severity to cause failure: `critical`, `high`, `medium`, `info` |
-| `languages` | `auto` | Comma-separated: `go,python,nodejs,cpp` or `auto` to detect |
+| `languages` | `auto` | Comma-separated: `go,python,nodejs,cpp,java,rust` or `auto` to detect |
 | `exclude-dirs` | _(empty)_ | Additional dirs to exclude (comma-separated) |
 | `exclude-patterns` | _(empty)_ | Pattern IDs to suppress (comma-separated) |
 | `config-file` | `.tls-config-lint.yml` | Path to optional repo config file |
@@ -210,6 +210,25 @@ See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full ex
 | `sslcontext-tlsv13` | INFO | Forces TLS 1.3 only |
 | `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
 
+### Rust (14 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| `danger-accept-invalid-certs` | CRITICAL | `danger_accept_invalid_certs(true)` disables certificate verification |
+| `danger-accept-invalid-hostnames` | CRITICAL | `danger_accept_invalid_hostnames(true)` disables hostname verification |
+| `openssl-verify-none` | CRITICAL | `SslVerifyMode::NONE` disables verification |
+| `rustls-dangerous-verifier` | CRITICAL | Custom `ServerCertVerifier` bypasses verification |
+| `openssl-no-hostname-verify` | CRITICAL | `set_verify_hostname(false)` disables hostname verification |
+| `native-tls-proto-tlsv10` | HIGH | Uses `Protocol::Tlsv10` (TLS 1.0) |
+| `native-tls-proto-tlsv11` | HIGH | Uses `Protocol::Tlsv11` (TLS 1.1) |
+| `openssl-ssl3` | HIGH | Uses `SslVersion::SSL3` |
+| `openssl-weak-cipher` | HIGH | Weak ciphers in cipher list |
+| `min-tls-version-weak` | HIGH | Weak minimum TLS version |
+| `max-version-tls12` | MEDIUM | Caps at TLS 1.2 (prevents 1.3) |
+| `custom-cipher-list` | MEDIUM | Custom cipher configuration |
+| `min-version-tls13` | INFO | Forces TLS 1.3 only |
+| `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
+
 ## Built-in Exclusions
 
 The following directories are excluded from scanning by default:
@@ -219,6 +238,8 @@ The following directories are excluded from scanning by default:
 - Python: `*_test.py`, `test_*.py`, `conftest.py`, `__pycache__/`, `venv/`, `.venv/`
 - Node.js: `*.test.js`, `*.spec.js` (and `.ts`/`.mjs`/`.mts` variants), `node_modules/`, `__tests__/`
 - C++: `*_test.cpp`, `*_test.cc`
+- Java: `*Test.java`, `*Tests.java`, `*IT.java`, `target/`, `build/`, `.gradle/`
+- Rust: `*_test.rs`, `*_tests.rs`, `target/`, `.cargo/`
 
 ## Go-Specific: TLSSecurityProfile Noise Reduction
 

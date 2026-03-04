@@ -20,6 +20,7 @@ build_include_flags() {
 		nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
 		cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
 		java) echo "--include=*.java" ;;
+		rust) echo "--include=*.rs" ;;
 	esac
 }
 
@@ -32,6 +33,7 @@ build_test_exclude_flags() {
 		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
 		cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
 		java) echo "--exclude=*Test.java --exclude=*Tests.java --exclude=*IT.java" ;;
+		rust) echo "--exclude=*_test.rs --exclude=*_tests.rs" ;;
 	esac
 }
 
@@ -42,6 +44,7 @@ build_lang_exclude_dirs() {
 		nodejs) echo "--exclude-dir=node_modules --exclude-dir=__tests__" ;;
 		python) echo "--exclude-dir=__pycache__ --exclude-dir=venv --exclude-dir=.venv" ;;
 		java) echo "--exclude-dir=target --exclude-dir=build --exclude-dir=.gradle" ;;
+		rust) echo "--exclude-dir=target --exclude-dir=.cargo" ;;
 		*) echo "" ;;
 	esac
 }
@@ -235,6 +238,7 @@ scan_language() {
 		nodejs) patterns_var="NODEJS_PATTERNS" ;;
 		cpp) patterns_var="CPP_PATTERNS" ;;
 		java) patterns_var="JAVA_PATTERNS" ;;
+		rust) patterns_var="RUST_PATTERNS" ;;
 		*) return 0 ;;
 	esac
 
