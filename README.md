@@ -98,6 +98,14 @@ jobs:
 | `info-count` | Number of info findings |
 | `sarif-file` | Path to SARIF file (if generated) |
 
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0`  | No findings at or above severity threshold |
+| `1`  | Findings detected at or above threshold (`fail-on-findings: true`) |
+| `2`  | Configuration or validation error (invalid inputs, missing `jq`) |
+
 ## Configuration File
 
 Create a `.tls-config-lint.yml` in your repository root for persistent configuration:

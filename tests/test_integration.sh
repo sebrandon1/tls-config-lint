@@ -165,8 +165,8 @@ if command -v jq >/dev/null 2>&1; then
 	output_content=$(cat "$LAST_OUTPUT_FILE")
 	assert_contains "Integration: sarif-file in output" "sarif-file=" "$output_content"
 else
-	# Without jq, SARIF generation should fail
-	assert_equals "Integration: SARIF fails without jq" "1" "$rc"
+	# Without jq, SARIF generation should fail with exit code 2
+	assert_equals "Integration: SARIF fails without jq (exit 2)" "2" "$rc"
 fi
 
 cleanup_entrypoint
@@ -178,7 +178,7 @@ run_entrypoint rc \
 	INPUT_FAIL_ON_FINDINGS="false" \
 	INPUT_CONFIG_FILE="/dev/null"
 
-assert_equals "Integration: invalid scan path exits non-zero" "1" "$rc"
+assert_equals "Integration: invalid scan path exits 2 (config error)" "2" "$rc"
 cleanup_entrypoint
 
 # --- Test 9: Invalid severity threshold ---
@@ -188,7 +188,7 @@ run_entrypoint rc \
 	INPUT_FAIL_ON_FINDINGS="false" \
 	INPUT_CONFIG_FILE="/dev/null"
 
-assert_equals "Integration: invalid severity threshold exits non-zero" "1" "$rc"
+assert_equals "Integration: invalid severity threshold exits 2 (config error)" "2" "$rc"
 cleanup_entrypoint
 
 # --- Test 10: Invalid language ---
@@ -198,7 +198,7 @@ run_entrypoint rc \
 	INPUT_FAIL_ON_FINDINGS="false" \
 	INPUT_CONFIG_FILE="/dev/null"
 
-assert_equals "Integration: invalid language exits non-zero" "1" "$rc"
+assert_equals "Integration: invalid language exits 2 (config error)" "2" "$rc"
 cleanup_entrypoint
 
 # --- Test 11: No languages detected (empty directory) ---
