@@ -26,7 +26,17 @@ main() {
 	log_msg "Starting TLS Config Lint..."
 
 	# Step 1: Merge configuration (inputs + config file + defaults)
-	merge_config
+	if ! merge_config; then
+		exit 2
+	fi
+
+	# Validate jq availability early when SARIF output is requested
+	if [[ -n "$SARIF_OUTPUT" ]]; then
+		if ! command -v jq &>/dev/null; then
+			log_error "jq is required for SARIF output but not found. Install jq or remove sarif-output setting."
+			exit 2
+		fi
+	fi
 
 	log_msg "Configuration:"
 	log_msg "  Severity threshold: $SEVERITY_THRESHOLD"
