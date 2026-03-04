@@ -37,6 +37,17 @@ ctx8.set_ciphers("DES-CBC3-SHA:RC4-SHA:NULL-SHA")
 ctx9 = ssl.create_default_context()
 ctx9.set_ciphers("ECDHE+AESGCM:ECDHE+CHACHA20")
 
+# HIGH: urllib3 disable_warnings hides verify=False issues
+import urllib3
+urllib3.disable_warnings()
+
+# HIGH: urllib3 DEFAULT_CIPHERS override
+urllib3.util.ssl_.DEFAULT_CIPHERS = "ECDH+AESGCM"
+
+# CRITICAL: aiohttp ssl=False disables verification
+import aiohttp
+connector = aiohttp.TCPConnector(ssl = False)
+
 # INFO: PQC/ML-KEM adoption
 import post_quantum
 mlkem_key = post_quantum.generate_mlkem_keypair()

@@ -14,5 +14,8 @@ PYTHON_PATTERNS=(
 	"min-version-tlsv13|INFO|minimum_version TLSv1_3|Forces TLS 1.3 (may break older clients)|minimum_version.*TLSv1_3"
 	"weak-cipher-config|HIGH|Weak cipher configuration|Weak or insecure ciphers configured in SSL context|set_ciphers.*(DES|RC4|NULL|EXPORT|eNULL|aNULL)"
 	"no-default-ciphers|MEDIUM|Custom cipher configuration|Custom cipher string overrides defaults (review needed)|set_ciphers\("
+	"urllib3-disable-warnings|HIGH|urllib3 disable_warnings|Hides TLS verification warnings (masks verify=False issues)|urllib3\.disable_warnings\|disable_warnings.*InsecureRequestWarning"
+	"urllib3-default-ciphers|HIGH|urllib3 DEFAULT_CIPHERS override|Overrides global urllib3 cipher configuration|util\.ssl_\.DEFAULT_CIPHERS[[:space:]]*="
+	"aiohttp-ssl-false|CRITICAL|aiohttp ssl=False|Disables TLS certificate verification in aiohttp|TCPConnector.*ssl[[:space:]]*=[[:space:]]*False\|ClientSession.*ssl[[:space:]]*=[[:space:]]*False"
 	"pqc-ml-kem|INFO|PQC/ML-KEM patterns|Post-Quantum Cryptography adoption (ML-KEM)|(mlkem|ML-KEM|post_quantum|post-quantum)"
 )

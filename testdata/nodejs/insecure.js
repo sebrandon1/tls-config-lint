@@ -43,3 +43,16 @@ const options6 = {
 const options7 = {
   honorCipherOrder: false,
 };
+
+// MEDIUM: axios global HTTPS agent override
+const axios = require('axios');
+axios.defaults.httpsAgent = new https.Agent({ rejectUnauthorized: false });
+
+// CRITICAL: request strictSSL disabled
+const request = require('request');
+request({ url: 'https://example.com', strictSSL: false });
+
+// HIGH: Weak secureProtocol
+const options8 = {
+  secureProtocol: 'TLSv1_method',
+};
