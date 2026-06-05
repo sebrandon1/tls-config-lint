@@ -126,16 +126,20 @@ scan_pattern() {
 	# Parse grep output lines: ./file:line:match
 	while IFS= read -r match_line; do
 		local file line_num match_text
-		# Extract file path (everything before first colon-number-colon)
-		file=$(echo "$match_line" | sed -E 's/:([0-9]+):.*$//')
-		line_num=$(echo "$match_line" | sed -E 's/^[^:]+:([0-9]+):.*$/\1/')
-		match_text=$(echo "$match_line" | sed -E 's/^[^:]+:[0-9]+://')
+		if [[ "$match_line" =~ ^(.*):([0-9]+):(.*)$ ]]; then
+			file="${BASH_REMATCH[1]}"
+			line_num="${BASH_REMATCH[2]}"
+			match_text="${BASH_REMATCH[3]}"
+		else
+			continue
+		fi
 
 		# Strip leading ./ from file path
 		file="${file#./}"
 
 		# Trim match text for readability
-		match_text=$(echo "$match_text" | sed 's/^[[:space:]]*//' | cut -c1-200)
+		match_text="${match_text#"${match_text%%[![:space:]]*}"}"
+		match_text="${match_text:0:200}"
 
 		FINDINGS+=("${pattern_id}|${severity}|${name}|${description}|${file}|${line_num}|${match_text}")
 

@@ -32,6 +32,17 @@ for finding in "${FINDINGS[@]}"; do
 done
 assert_equals "Go scan detects InsecureSkipVerify" "true" "$found_insecure_skip"
 
+# Test: Files with colons in names are parsed correctly
+found_colon_file=false
+for finding in "${FINDINGS[@]}"; do
+	IFS='|' read -r _ _ _ _ ffile _ _ <<<"$finding"
+	if [[ "$ffile" == *"config:prod.go"* ]]; then
+		found_colon_file=true
+		break
+	fi
+done
+assert_equals "Scanner handles colons in filenames" "true" "$found_colon_file"
+
 # Reset state for Python
 FINDINGS=()
 CRITICAL_COUNT=0
