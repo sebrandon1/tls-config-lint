@@ -3,6 +3,8 @@
 A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, C++, Java, and Rust projects.
 
 > **See also:** [tls-compliance-operator](https://github.com/sebrandon1/tls-compliance-operator) — a Kubernetes operator that continuously monitors live TLS endpoints at runtime. Use **tls-config-lint** to catch issues in source code (shift-left) and **tls-compliance-operator** to verify runtime compliance in your cluster.
+>
+> **See also:** [openshift/tls-scanner](https://github.com/openshift/tls-scanner) — a batch Job-based TLS auditing tool from the OpenShift team for one-shot cluster scans.
 
 ## Key Features
 
