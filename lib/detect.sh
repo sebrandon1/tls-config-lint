@@ -44,6 +44,32 @@ detect_languages() {
 		detected+=("rust")
 	fi
 
+	# Check for unsupported languages and notify
+	local unsupported=()
+	if find "$scan_path" -maxdepth 3 -name '*.rb' -print -quit 2>/dev/null | grep -q .; then
+		unsupported+=("Ruby")
+	fi
+	if find "$scan_path" -maxdepth 3 -name '*.php' -print -quit 2>/dev/null | grep -q .; then
+		unsupported+=("PHP")
+	fi
+	if find "$scan_path" -maxdepth 3 -name '*.cs' -print -quit 2>/dev/null | grep -q .; then
+		unsupported+=("C#")
+	fi
+	if find "$scan_path" -maxdepth 3 -name '*.swift' -print -quit 2>/dev/null | grep -q .; then
+		unsupported+=("Swift")
+	fi
+	if find "$scan_path" -maxdepth 3 -name '*.kt' -print -quit 2>/dev/null | grep -q .; then
+		unsupported+=("Kotlin")
+	fi
+	if [[ ${#unsupported[@]} -gt 0 ]]; then
+		local unsup_list
+		unsup_list=$(
+			IFS=', '
+			echo "${unsupported[*]}"
+		)
+		log_msg "Note: detected unsupported language(s): $unsup_list (not scanned)"
+	fi
+
 	if [[ ${#detected[@]} -eq 0 ]]; then
 		log_msg "No supported languages detected in $scan_path"
 		echo ""
