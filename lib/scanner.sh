@@ -246,7 +246,12 @@ scan_language() {
 		*) return 0 ;;
 	esac
 
-	# Use eval to iterate the named array (compatible with bash 3.x+)
+	# Validate variable name before eval (bash 3.x lacks declare -n)
+	if [[ ! "$patterns_var" =~ ^[A-Z_]+$ ]]; then
+		log_error "Invalid patterns variable name: $patterns_var"
+		return 1
+	fi
+
 	local pattern_line
 	eval 'for pattern_line in "${'"$patterns_var"'[@]}"; do
 		scan_pattern "$scan_path" "$lang" "$pattern_line" "$exclude_dirs" "$exclude_patterns"
