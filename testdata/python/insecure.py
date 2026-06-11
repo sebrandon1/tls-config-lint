@@ -48,6 +48,10 @@ urllib3.util.ssl_.DEFAULT_CIPHERS = "ECDH+AESGCM"
 import aiohttp
 connector = aiohttp.TCPConnector(ssl = False)
 
+# CRITICAL: gRPC insecure channel (plaintext)
+import grpc
+channel = grpc.insecure_channel("localhost:50051")
+
 # INFO: PQC/ML-KEM adoption
 import post_quantum
 mlkem_key = post_quantum.generate_mlkem_keypair()

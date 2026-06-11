@@ -59,6 +59,16 @@ func weakCiphers() *tls.Config {
 	}
 }
 
+func insecureGRPC() {
+	// CRITICAL: gRPC without TLS
+	conn, _ := grpc.Dial("localhost:50051", grpc.WithInsecure())
+	_ = conn
+
+	// CRITICAL: gRPC with insecure.NewCredentials()
+	conn2, _ := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	_ = conn2
+}
+
 func oldTLSProfile() {
 	// HIGH: Old TLS profile allows TLS 1.0/1.1
 	profileType := configv1.OldType

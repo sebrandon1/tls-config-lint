@@ -8,7 +8,7 @@ A GitHub Action that scans your codebase for TLS configuration anti-patterns and
 
 ## Key Features
 
-- **82 TLS Anti-Patterns** — Across 6 languages with severity classification (critical, high, medium, info)
+- **84 TLS Anti-Patterns** — Across 6 languages with severity classification (critical, high, medium, info)
 - **Inline PR Annotations** — Findings appear directly on affected lines in pull requests
 - **SARIF Output** — Optional GitHub Code Scanning integration
 - **Auto-Detection** — Discovers project languages from file markers (go.mod, package.json, etc.)

@@ -1,13 +1,13 @@
 # Detected Patterns
 
-tls-config-lint detects 82 TLS anti-patterns across 6 languages. Severity levels:
+tls-config-lint detects 84 TLS anti-patterns across 6 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
 - **MEDIUM** — Prevents TLS 1.3 adoption
 - **INFO** — Post-quantum cryptography, deprecated features
 
-## Go (16 patterns)
+## Go (17 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -27,8 +27,9 @@ tls-config-lint detects 82 TLS anti-patterns across 6 languages. Severity levels
 | `curve-preferences` | INFO | Explicit curve configuration |
 | `hardcoded-tls-config` | INFO | Hardcoded `tls.Config{}` |
 | `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
+| `grpc-insecure` | CRITICAL | gRPC connection without TLS (plaintext) |
 
-## Python (14 patterns)
+## Python (15 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -46,6 +47,7 @@ tls-config-lint detects 82 TLS anti-patterns across 6 languages. Severity levels
 | `urllib3-default-ciphers` | HIGH | Overrides global urllib3 cipher config |
 | `aiohttp-ssl-false` | CRITICAL | Disables verification in aiohttp |
 | `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
+| `grpc-insecure-channel` | CRITICAL | gRPC insecure channel (plaintext) |
 
 ## Node.js/TypeScript (12 patterns)
 
