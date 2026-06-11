@@ -17,9 +17,12 @@ parse_config_file() {
 
 	if [[ ! -f "$config_file" ]]; then
 		log_debug "No config file found at $config_file"
+		CONFIG_FILE_USED=""
 		return 0
 	fi
 
+	# shellcheck disable=SC2034  # Used by summary.sh
+	CONFIG_FILE_USED="$config_file"
 	log_msg "Reading config from $config_file"
 
 	local current_key=""

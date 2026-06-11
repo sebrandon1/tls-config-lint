@@ -14,6 +14,10 @@ generate_summary() {
 
 	summary+="## TLS Config Lint Results\n\n"
 
+	if [[ -n "${CONFIG_FILE_USED:-}" ]]; then
+		summary+="> Using config: \`$CONFIG_FILE_USED\`\n\n"
+	fi
+
 	if [[ "$total" -eq 0 ]]; then
 		summary+="**No TLS configuration issues found.**\n\n"
 	else
