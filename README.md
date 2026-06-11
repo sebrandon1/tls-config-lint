@@ -4,26 +4,18 @@ A GitHub Action that scans your codebase for TLS configuration anti-patterns and
 
 > **See also:** [tls-compliance-operator](https://github.com/sebrandon1/tls-compliance-operator) — a Kubernetes operator that continuously monitors live TLS endpoints at runtime. Use **tls-config-lint** to catch issues in source code (shift-left) and **tls-compliance-operator** to verify runtime compliance in your cluster.
 
-## Features
+## Key Features
 
-- Detects 74 TLS security anti-patterns across 6 languages
-- Configurable severity thresholds (critical, high, medium, info)
-- Inline PR annotations on affected lines
-- Job summary with findings table
-- Optional SARIF output for GitHub Code Scanning integration
-- Per-pattern suppression via pattern IDs
-- Auto-detection of project languages
-- Composite action (no Docker build overhead)
+- **82 TLS Anti-Patterns** — Across 6 languages with severity classification (critical, high, medium, info)
+- **Inline PR Annotations** — Findings appear directly on affected lines in pull requests
+- **SARIF Output** — Optional GitHub Code Scanning integration
+- **Auto-Detection** — Discovers project languages from file markers (go.mod, package.json, etc.)
+- **Configurable Thresholds** — Fail CI only on findings at or above your chosen severity
+- **Per-Pattern Suppression** — Exclude specific pattern IDs from results
+- **Job Summary** — Markdown findings table in the GitHub Actions summary
+- **Composite Action** — No Docker build overhead
 
 ## Quick Start
-
-```yaml
-- uses: sebrandon1/tls-config-lint@v1
-```
-
-## Usage Examples
-
-### Basic (default settings)
 
 ```yaml
 name: TLS Lint
@@ -34,44 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: sebrandon1/tls-config-lint@v1
-```
-
-### Custom severity threshold
-
-```yaml
-- uses: sebrandon1/tls-config-lint@v1
-  with:
-    severity-threshold: critical
-```
-
-### With SARIF for Code Scanning
-
-```yaml
-- uses: sebrandon1/tls-config-lint@v1
-  with:
-    sarif-output: tls-lint.sarif
-    fail-on-findings: false
-- uses: github/codeql-action/upload-sarif@v3
-  with:
-    sarif_file: tls-lint.sarif
-  if: always()
-```
-
-### Specific languages only
-
-```yaml
-- uses: sebrandon1/tls-config-lint@v1
-  with:
-    languages: go,python
-```
-
-### Exclude directories and patterns
-
-```yaml
-- uses: sebrandon1/tls-config-lint@v1
-  with:
-    exclude-dirs: test/fixtures,examples/insecure
-    exclude-patterns: insecure-skip-verify,hardcoded-tls-config
 ```
 
 ## Inputs
@@ -98,163 +52,25 @@ jobs:
 | `info-count` | Number of info findings |
 | `sarif-file` | Path to SARIF file (if generated) |
 
-## Exit Codes
+## Guides
 
-| Code | Meaning |
-|------|---------|
-| `0`  | No findings at or above severity threshold |
-| `1`  | Findings detected at or above threshold (`fail-on-findings: true`) |
-| `2`  | Configuration or validation error (invalid inputs, missing `jq`) |
+| Guide | Description |
+|-------|-------------|
+| [Detected Patterns](docs/patterns.md) | All 82 patterns across 6 languages |
+| [Configuration](docs/configuration.md) | Config file, advanced usage examples, exit codes |
+| [Built-in Exclusions](docs/exclusions.md) | Default excluded directories and test files |
 
-## Configuration File
+## Development
 
-Create a `.tls-config-lint.yml` in your repository root for persistent configuration:
-
-```yaml
-severity-threshold: high
-languages:
-  - go
-  - python
-exclude-dirs:
-  - test/fixtures
-  - examples/insecure
-exclude-patterns:
-  - insecure-skip-verify    # Intentional in test helpers
+```bash
+bash tests/run_tests.sh          # Run all unit tests
+shfmt -d -i 0 -ci .              # Check formatting
+shellcheck -S warning entrypoint.sh lib/*.sh patterns/*.sh tests/*.sh  # Static analysis
 ```
 
-Action inputs override config file values. Lists (exclude-dirs, exclude-patterns) are merged (union).
+## Contributing
 
-See [`.tls-config-lint.example.yml`](.tls-config-lint.example.yml) for a full example.
-
-## Detected Patterns
-
-### Go (16 patterns)
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| `insecure-skip-verify` | CRITICAL | `InsecureSkipVerify: true` disables certificate verification |
-| `weak-cipher-rc4` | CRITICAL | RC4 cipher suite (completely broken) |
-| `null-cipher` | CRITICAL | NULL cipher suite (no encryption) |
-| `min-version-tls10` | HIGH | `MinVersion` set to TLS 1.0 |
-| `min-version-tls11` | HIGH | `MinVersion` set to TLS 1.1 |
-| `max-version-tls10` | HIGH | `MaxVersion` set to TLS 1.0 |
-| `max-version-tls11` | HIGH | `MaxVersion` set to TLS 1.1 |
-| `weak-cipher-3des` | HIGH | 3DES/CBC cipher suites |
-| `tls-profile-old` | HIGH | Old TLS security profile allows TLS 1.0/1.1 |
-| `max-version-tls12` | MEDIUM | `MaxVersion` set to TLS 1.2 (prevents 1.3) |
-| `tls-profile-custom` | MEDIUM | Custom TLS security profile needs review |
-| `min-version-tls13` | INFO | Forces TLS 1.3 only |
-| `prefer-server-cipher-suites` | INFO | Deprecated in Go 1.17+ |
-| `curve-preferences` | INFO | Explicit curve configuration |
-| `hardcoded-tls-config` | INFO | Hardcoded `tls.Config{}` |
-| `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
-
-### Python (14 patterns)
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| `verify-false` | CRITICAL | `verify=False` disables certificate verification |
-| `cert-none` | CRITICAL | `ssl.CERT_NONE` disables verification |
-| `create-unverified-context` | CRITICAL | `_create_unverified_context()` |
-| `check-hostname-false` | CRITICAL | `check_hostname = False` |
-| `protocol-tlsv1` | HIGH | Uses `PROTOCOL_TLSv1` (TLS 1.0) |
-| `protocol-tlsv11` | HIGH | Uses `PROTOCOL_TLSv1_1` |
-| `weak-cipher-config` | HIGH | Weak ciphers in SSL context |
-| `max-version-tlsv12` | MEDIUM | Caps at TLS 1.2 |
-| `no-default-ciphers` | MEDIUM | Custom cipher configuration (review needed) |
-| `min-version-tlsv13` | INFO | Forces TLS 1.3 |
-| `urllib3-disable-warnings` | HIGH | Hides TLS verification warnings |
-| `urllib3-default-ciphers` | HIGH | Overrides global urllib3 cipher config |
-| `aiohttp-ssl-false` | CRITICAL | Disables verification in aiohttp |
-| `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
-
-### Node.js/TypeScript (12 patterns)
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| `reject-unauthorized-false` | CRITICAL | `rejectUnauthorized: false` |
-| `node-tls-reject-unauthorized` | CRITICAL | `NODE_TLS_REJECT_UNAUTHORIZED` env var |
-| `tlsv1-method` | HIGH | Uses `TLSv1_method` |
-| `tlsv11-method` | HIGH | Uses `TLSv1_1_method` |
-| `min-version-weak` | HIGH | `minVersion` allows TLS 1.0/1.1 |
-| `weak-cipher-config` | HIGH | Weak ciphers in TLS options |
-| `max-version-tlsv12` | MEDIUM | Caps at TLS 1.2 |
-| `honor-cipher-order-false` | MEDIUM | Server doesn't enforce cipher preference |
-| `axios-defaults-httpsagent` | MEDIUM | Global default HTTPS agent override |
-| `strict-ssl-false` | CRITICAL | `strictSSL: false` disables verification |
-| `secure-protocol-weak` | HIGH | Weak TLS protocol in HTTPS options |
-| `min-version-tlsv13` | INFO | Forces TLS 1.3 |
-
-### C++ (10 patterns)
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| `ssl-ctx-verify-none` | CRITICAL | `SSL_CTX_set_verify` with `SSL_VERIFY_NONE` |
-| `ssl-set-verify-none` | CRITICAL | `SSL_set_verify` with `SSL_VERIFY_NONE` |
-| `tls1-version` | HIGH | Uses `TLS1_VERSION` (TLS 1.0) |
-| `tls11-version` | HIGH | Uses `TLS1_1_VERSION` |
-| `sslv3-method` | HIGH | Uses `SSLv3_method` |
-| `tlsv1-method` | HIGH | Uses `TLSv1_method` |
-| `weak-cipher-list` | HIGH | Weak ciphers via `SSL_CTX_set_cipher_list` |
-| `weak-ciphersuites` | HIGH | Weak ciphers via `SSL_CTX_set_ciphersuites` |
-| `max-proto-tls12` | MEDIUM | Caps at TLS 1.2 |
-| `min-proto-tls13` | INFO | Forces TLS 1.3 |
-
-### Java (16 patterns)
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| `allow-all-hostname-verifier` | CRITICAL | `ALLOW_ALL` HostnameVerifier |
-| `trust-all-certs` | CRITICAL | Permissive TrustManager |
-| `custom-ssl-socket-factory` | CRITICAL | Custom `SSLSocketFactory` bypass |
-| `unversioned-ssl-context` | HIGH | `SSLContext.getInstance("TLS")` defaults to old version |
-| `sslcontext-tlsv1` | HIGH | `SSLContext.getInstance("TLSv1")` |
-| `sslcontext-tlsv11` | HIGH | `SSLContext.getInstance("TLSv1.1")` |
-| `weak-cipher-suite` | HIGH | Weak JSSE cipher suites |
-| `enabled-weak-protocols` | MEDIUM | Enables deprecated TLS protocols |
-| `ssl-socket-factory-default` | MEDIUM | Default `SSLSocketFactory` may use weak ciphers |
-| `sslcontext-tlsv13` | INFO | Forces TLS 1.3 only |
-| `noop-hostname-verifier` | CRITICAL | Apache HttpClient `NoopHostnameVerifier` |
-| `trust-all-strategy` | CRITICAL | Apache HttpClient `TrustAllStrategy` / `TrustSelfSignedStrategy` |
-| `okhttp-ssl-socket-factory` | CRITICAL | OkHttp custom SSL socket factory |
-| `apache-httpclient-custom-ssl` | HIGH | Custom SSLContext in Apache HttpClient |
-| `ssl-connection-socket-factory` | HIGH | Custom SSL connection socket factory |
-| `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
-
-### Rust (14 patterns)
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| `danger-accept-invalid-certs` | CRITICAL | `danger_accept_invalid_certs(true)` disables certificate verification |
-| `danger-accept-invalid-hostnames` | CRITICAL | `danger_accept_invalid_hostnames(true)` disables hostname verification |
-| `openssl-verify-none` | CRITICAL | `SslVerifyMode::NONE` disables verification |
-| `rustls-dangerous-verifier` | CRITICAL | Custom `ServerCertVerifier` bypasses verification |
-| `openssl-no-hostname-verify` | CRITICAL | `set_verify_hostname(false)` disables hostname verification |
-| `native-tls-proto-tlsv10` | HIGH | Uses `Protocol::Tlsv10` (TLS 1.0) |
-| `native-tls-proto-tlsv11` | HIGH | Uses `Protocol::Tlsv11` (TLS 1.1) |
-| `openssl-ssl3` | HIGH | Uses `SslVersion::SSL3` |
-| `openssl-weak-cipher` | HIGH | Weak ciphers in cipher list |
-| `min-tls-version-weak` | HIGH | Weak minimum TLS version |
-| `max-version-tls12` | MEDIUM | Caps at TLS 1.2 (prevents 1.3) |
-| `custom-cipher-list` | MEDIUM | Custom cipher configuration |
-| `min-version-tls13` | INFO | Forces TLS 1.3 only |
-| `pqc-ml-kem` | INFO | Post-Quantum Cryptography adoption |
-
-## Built-in Exclusions
-
-The following directories are excluded from scanning by default:
-
-- `vendor`, `.git`, `testdata`, `mocks`, `test`, `tests`, `e2e`, `testing`, `mock`, `fakes`, `fixtures`
-- Go: `*_test.go` files
-- Python: `*_test.py`, `test_*.py`, `conftest.py`, `__pycache__/`, `venv/`, `.venv/`
-- Node.js: `*.test.js`, `*.spec.js` (and `.ts`/`.mjs`/`.mts` variants), `node_modules/`, `__tests__/`
-- C++: `*_test.cpp`, `*_test.cc`
-- Java: `*Test.java`, `*Tests.java`, `*IT.java`, `target/`, `build/`, `.gradle/`
-- Rust: `*_test.rs`, `*_tests.rs`, `target/`, `.cargo/`
-
-## Go-Specific: TLSSecurityProfile Noise Reduction
-
-For Go projects, findings for `hardcoded-tls-config` (detecting `tls.Config{}`) are automatically filtered out in files that also reference `TLSSecurityProfile`, since those files are consuming centralized configuration rather than hardcoding TLS settings.
+Contributions are welcome! Please feel free to submit issues and pull requests.
 
 ## License
 
