@@ -52,18 +52,20 @@ main() {
 		LANGUAGES=$(detect_languages "$SCAN_PATH")
 		if [[ -z "$LANGUAGES" ]]; then
 			log_msg "No supported languages detected. Exiting with success."
-			set_outputs 0 0 0 0 0
+			set_outputs 0 0 0 0 0 0
 			exit 0
 		fi
 	fi
 
 	# Step 3: Run scan
+	local scan_start=$SECONDS
 	run_scan "$SCAN_PATH" "$LANGUAGES" "$EXCLUDE_DIRS" "$EXCLUDE_PATTERNS"
+	local scan_duration=$((SECONDS - scan_start))
 
 	# Step 4: Set outputs
 	local total
 	total=$(get_findings_count)
-	set_outputs "$total" "$CRITICAL_COUNT" "$HIGH_COUNT" "$MEDIUM_COUNT" "$INFO_COUNT"
+	set_outputs "$total" "$CRITICAL_COUNT" "$HIGH_COUNT" "$MEDIUM_COUNT" "$INFO_COUNT" "$scan_duration"
 
 	# Step 5: Emit annotations
 	emit_annotations
@@ -103,7 +105,7 @@ main() {
 
 # Set GitHub Actions outputs
 set_outputs() {
-	local total="$1" critical="$2" high="$3" medium="$4" info="$5"
+	local total="$1" critical="$2" high="$3" medium="$4" info="$5" duration="$6"
 
 	if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
 		{
@@ -112,6 +114,7 @@ set_outputs() {
 			echo "high-count=$high"
 			echo "medium-count=$medium"
 			echo "info-count=$info"
+			echo "scan-duration=${duration}s"
 		} >>"$GITHUB_OUTPUT"
 	fi
 }
