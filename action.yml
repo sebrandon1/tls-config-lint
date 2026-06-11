@@ -59,6 +59,9 @@ outputs:
   sarif-file:
     description: 'Path to SARIF file (if generated)'
     value: ${{ steps.scan.outputs.sarif-file }}
+  scan-duration:
+    description: 'Scan duration (e.g. 3s)'
+    value: ${{ steps.scan.outputs.scan-duration }}
 
 runs:
   using: 'composite'
