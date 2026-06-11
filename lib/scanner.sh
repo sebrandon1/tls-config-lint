@@ -116,7 +116,7 @@ scan_pattern() {
 	# Run grep from inside scan_path so --exclude-dir won't match the scan root itself
 	local grep_output
 	# shellcheck disable=SC2086
-	grep_output=$(cd "$scan_path" && grep -rn $include_flags $exclude_test_flags $lang_exclude_dirs $common_exclude_dirs \
+	grep_output=$(cd "$scan_path" && grep -rnI $include_flags $exclude_test_flags $lang_exclude_dirs $common_exclude_dirs \
 		-E "$regex" . 2>/dev/null) || true
 
 	if [[ -z "$grep_output" ]]; then
@@ -177,7 +177,7 @@ filter_go_tls_config_noise() {
 	# Check if any Go files reference TLSSecurityProfile
 	local profile_files
 	# shellcheck disable=SC2086
-	profile_files=$(cd "$scan_path" && grep -rl --include="*.go" $common_exclude_dirs \
+	profile_files=$(cd "$scan_path" && grep -rlI --include="*.go" $common_exclude_dirs \
 		--exclude="*_test.go" "TLSSecurityProfile" . 2>/dev/null) || true
 
 	if [[ -z "$profile_files" ]]; then
@@ -191,7 +191,7 @@ filter_go_tls_config_noise() {
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
 			local full_path="$scan_path/$ffile"
 			# Keep finding only if file does NOT reference TLSSecurityProfile
-			if ! grep -q "TLSSecurityProfile" "$full_path" 2>/dev/null; then
+			if ! grep -qI "TLSSecurityProfile" "$full_path" 2>/dev/null; then
 				filtered_findings+=("$finding")
 			else
 				log_debug "Filtered tls.Config finding in $ffile (uses TLSSecurityProfile)"
