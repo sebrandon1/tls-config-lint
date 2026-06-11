@@ -134,3 +134,96 @@ for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 	fi
 done
 assert_equals "Excluded pattern not found in results" "false" "$found_excluded"
+
+# --- False Positive Tests ---
+# Scan secure code files that should NOT trigger critical/high findings.
+# Each secure file contains comments and strings mentioning insecure patterns
+# plus properly configured TLS — none should produce critical/high matches.
+
+echo "  --- False Positive Tests ---"
+
+# Go secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/go/secure.go" "$fp_dir/"
+source "$ROOT_DIR/patterns/go.sh"
+scan_language "$fp_dir" "go" "" ""
+assert_equals "Go secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "Go secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
+
+# Python secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/python/secure.py" "$fp_dir/"
+source "$ROOT_DIR/patterns/python.sh"
+scan_language "$fp_dir" "python" "" ""
+assert_equals "Python secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "Python secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
+
+# Node.js secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/nodejs/secure.js" "$fp_dir/"
+source "$ROOT_DIR/patterns/nodejs.sh"
+scan_language "$fp_dir" "nodejs" "" ""
+assert_equals "Node.js secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "Node.js secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
+
+# C++ secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/cpp/secure.cpp" "$fp_dir/"
+source "$ROOT_DIR/patterns/cpp.sh"
+scan_language "$fp_dir" "cpp" "" ""
+assert_equals "C++ secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "C++ secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
+
+# Java secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/java/Secure.java" "$fp_dir/"
+source "$ROOT_DIR/patterns/java.sh"
+scan_language "$fp_dir" "java" "" ""
+assert_equals "Java secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "Java secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
+
+# Rust secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/rust/secure.rs" "$fp_dir/"
+source "$ROOT_DIR/patterns/rust.sh"
+scan_language "$fp_dir" "rust" "" ""
+assert_equals "Rust secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "Rust secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
