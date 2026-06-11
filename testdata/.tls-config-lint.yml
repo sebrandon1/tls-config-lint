@@ -1,0 +1,5 @@
+severity-threshold: critical
+languages:
+  - go
+exclude-patterns:
+  - hardcoded-tls-config

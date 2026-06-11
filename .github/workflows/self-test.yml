@@ -28,6 +28,7 @@ jobs:
           echo "High: ${{ steps.lint.outputs.high-count }}"
           echo "Medium: ${{ steps.lint.outputs.medium-count }}"
           echo "Info: ${{ steps.lint.outputs.info-count }}"
+          echo "Duration: ${{ steps.lint.outputs.scan-duration }}"
           count="${{ steps.lint.outputs.findings-count }}"
           if [[ "$count" -eq 0 ]]; then
             echo "ERROR: Expected findings but got 0"
@@ -53,6 +54,8 @@ jobs:
           fi
           # Validate it's valid JSON with expected structure
           jq '.runs[0].tool.driver.name' tls-lint.sarif | grep -q "tls-config-lint"
+          # Verify helpUri is present on rules
+          jq -e '.runs[0].tool.driver.rules[0].helpUri' tls-lint.sarif > /dev/null
           echo "SARIF file is valid"
 
   self-test-threshold:
@@ -87,29 +90,140 @@ jobs:
         with:
           scan-path: testdata/go
           languages: go
-          exclude-patterns: insecure-skip-verify
+          exclude-patterns: insecure-skip-verify,weak-cipher-rc4
           fail-on-findings: false
       - name: Verify exclusion worked
         run: |
           echo "Findings after exclusion: ${{ steps.lint-exclude.outputs.findings-count }}"
 
-  self-test-single-lang:
-    name: Self Test (single language)
+  self-test-per-language:
+    name: Self Test (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - language: go
+            scan-path: testdata/go
+          - language: python
+            scan-path: testdata/python
+          - language: nodejs
+            scan-path: testdata/nodejs
+          - language: cpp
+            scan-path: testdata/cpp
+          - language: java
+            scan-path: testdata/java
+          - language: rust
+            scan-path: testdata/rust
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run ${{ matrix.language }} scan
+        id: lint
+        uses: ./
+        with:
+          scan-path: ${{ matrix.scan-path }}
+          languages: ${{ matrix.language }}
+          fail-on-findings: false
+      - name: Verify findings detected
+        run: |
+          count="${{ steps.lint.outputs.findings-count }}"
+          critical="${{ steps.lint.outputs.critical-count }}"
+          echo "${{ matrix.language }} findings: $count (critical: $critical)"
+          if [[ "$count" -eq 0 ]]; then
+            echo "ERROR: Expected ${{ matrix.language }} findings"
+            exit 1
+          fi
+          if [[ "$critical" -eq 0 ]]; then
+            echo "ERROR: Expected critical findings for ${{ matrix.language }}"
+            exit 1
+          fi
+
+  self-test-no-findings:
+    name: Self Test (no findings - secure code)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Run Go-only scan
-        id: lint-go
+      - name: Create secure-only scan directory
+        run: |
+          mkdir -p /tmp/secure-scan
+          cp testdata/go/secure.go /tmp/secure-scan/
+      - name: Run scan on secure code
+        id: lint
         uses: ./
         with:
-          scan-path: testdata/go
+          scan-path: /tmp/secure-scan
           languages: go
-          fail-on-findings: false
-      - name: Verify Go findings
+          severity-threshold: high
+          fail-on-findings: true
+      - name: Verify no critical/high findings
         run: |
-          count="${{ steps.lint-go.outputs.findings-count }}"
-          if [[ "$count" -eq 0 ]]; then
-            echo "ERROR: Expected Go findings"
+          critical="${{ steps.lint.outputs.critical-count }}"
+          high="${{ steps.lint.outputs.high-count }}"
+          echo "Critical: $critical, High: $high"
+          if [[ "$critical" -ne 0 ]] || [[ "$high" -ne 0 ]]; then
+            echo "ERROR: Secure code should not trigger critical/high findings"
             exit 1
           fi
-          echo "Go findings: ${{ steps.lint-go.outputs.findings-count }}"
+          echo "Correctly found no critical/high findings in secure code"
+
+  self-test-config-file:
+    name: Self Test (config file)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run scan with config file
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata
+          config-file: testdata/.tls-config-lint.yml
+          fail-on-findings: false
+      - name: Verify config was applied
+        run: |
+          count="${{ steps.lint.outputs.findings-count }}"
+          echo "Findings with config file: $count"
+          if [[ "$count" -eq 0 ]]; then
+            echo "ERROR: Expected findings with config file"
+            exit 1
+          fi
+
+  self-test-exclude-dirs:
+    name: Self Test (exclude dirs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run scan excluding python and nodejs dirs
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata
+          exclude-dirs: python,nodejs
+          fail-on-findings: false
+      - name: Verify exclusion reduced findings
+        run: |
+          count="${{ steps.lint.outputs.findings-count }}"
+          echo "Findings after excluding python,nodejs dirs: $count"
+          if [[ "$count" -eq 0 ]]; then
+            echo "ERROR: Expected some findings even after excluding dirs"
+            exit 1
+          fi
+
+  self-test-info-threshold:
+    name: Self Test (info threshold)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run with info threshold (should fail - catches everything)
+        id: lint-info
+        uses: ./
+        with:
+          scan-path: testdata
+          severity-threshold: info
+          fail-on-findings: true
+        continue-on-error: true
+      - name: Verify failure on info threshold
+        run: |
+          if [[ "${{ steps.lint-info.outcome }}" != "failure" ]]; then
+            echo "ERROR: Expected failure with info threshold"
+            exit 1
+          fi
+          echo "Correctly failed with info threshold"
