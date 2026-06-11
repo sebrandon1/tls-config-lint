@@ -34,6 +34,59 @@ generate_summary() {
 		summary+="\n"
 		summary+="**Total findings:** $total | **Threshold:** $severity_threshold\n\n"
 
+		# Per-language breakdown
+		local go_count=0 py_count=0 js_count=0 cpp_count=0 java_count=0 rust_count=0
+		local lang_types=0
+		for finding in "${FINDINGS[@]}"; do
+			IFS='|' read -r _ _ _ _ file _ _ <<<"$finding"
+			case "$file" in
+				*.go) go_count=$((go_count + 1)) ;;
+				*.py) py_count=$((py_count + 1)) ;;
+				*.js | *.ts | *.mjs | *.mts) js_count=$((js_count + 1)) ;;
+				*.cpp | *.cc | *.hpp | *.h) cpp_count=$((cpp_count + 1)) ;;
+				*.java) java_count=$((java_count + 1)) ;;
+				*.rs) rust_count=$((rust_count + 1)) ;;
+			esac
+		done
+		for c in $go_count $py_count $js_count $cpp_count $java_count $rust_count; do
+			[[ "$c" -gt 0 ]] && lang_types=$((lang_types + 1))
+		done
+		if [[ "$lang_types" -gt 1 ]]; then
+			summary+="**By language:** "
+			local first=true
+			[[ "$go_count" -gt 0 ]] && {
+				$first || summary+=", "
+				summary+="Go ($go_count)"
+				first=false
+			}
+			[[ "$cpp_count" -gt 0 ]] && {
+				$first || summary+=", "
+				summary+="C++ ($cpp_count)"
+				first=false
+			}
+			[[ "$java_count" -gt 0 ]] && {
+				$first || summary+=", "
+				summary+="Java ($java_count)"
+				first=false
+			}
+			[[ "$js_count" -gt 0 ]] && {
+				$first || summary+=", "
+				summary+="Node.js ($js_count)"
+				first=false
+			}
+			[[ "$py_count" -gt 0 ]] && {
+				$first || summary+=", "
+				summary+="Python ($py_count)"
+				first=false
+			}
+			[[ "$rust_count" -gt 0 ]] && {
+				$first || summary+=", "
+				summary+="Rust ($rust_count)"
+				first=false
+			}
+			summary+="\n\n"
+		fi
+
 		# Findings table
 		summary+="### Findings\n\n"
 		summary+="| Severity | Pattern | File | Line | Description |\n"
