@@ -45,11 +45,13 @@ generate_sarif() {
 			--arg name "$name" \
 			--arg desc "$description" \
 			--arg level "$sarif_level" \
+			--arg helpUri "https://github.com/sebrandon1/tls-config-lint/blob/main/docs/patterns.md" \
 			'. + [{
 				id: $id,
 				name: $name,
 				shortDescription: { text: $name },
 				fullDescription: { text: $desc },
+				helpUri: $helpUri,
 				defaultConfiguration: { level: $level },
 				properties: { tags: ["security", "tls"] }
 			}]')
