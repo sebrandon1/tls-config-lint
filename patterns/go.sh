@@ -20,4 +20,5 @@ GO_PATTERNS=(
 	"null-cipher|CRITICAL|NULL cipher suite|NULL ciphers provide no encryption|TLS_.*NULL"
 	"tls-profile-old|HIGH|Old TLS security profile|Old TLS profile allows insecure TLS 1.0 and 1.1|OldType|TLSProfileOldType"
 	"tls-profile-custom|MEDIUM|Custom TLS security profile|Custom TLS profile needs manual review for compliance|CustomType|TLSProfileCustomType"
+	"grpc-insecure|CRITICAL|gRPC insecure connection|gRPC connection without TLS (plaintext)|grpc\.WithInsecure()\|grpc\.Dial.*insecure\.NewCredentials()\|grpc\.NewClient.*insecure\.NewCredentials()"
 )

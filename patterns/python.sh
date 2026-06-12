@@ -18,4 +18,5 @@ PYTHON_PATTERNS=(
 	"urllib3-default-ciphers|HIGH|urllib3 DEFAULT_CIPHERS override|Overrides global urllib3 cipher configuration|util\.ssl_\.DEFAULT_CIPHERS[[:space:]]*="
 	"aiohttp-ssl-false|CRITICAL|aiohttp ssl=False|Disables TLS certificate verification in aiohttp|TCPConnector.*ssl[[:space:]]*=[[:space:]]*False\|ClientSession.*ssl[[:space:]]*=[[:space:]]*False"
 	"pqc-ml-kem|INFO|PQC/ML-KEM patterns|Post-Quantum Cryptography adoption (ML-KEM)|(mlkem|ML-KEM|post_quantum|post-quantum)"
+	"grpc-insecure-channel|CRITICAL|gRPC insecure channel|gRPC connection without TLS (plaintext)|grpc\.insecure_channel("
 )
