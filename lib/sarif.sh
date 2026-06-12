@@ -102,11 +102,16 @@ generate_sarif() {
 			}]')
 	done
 
+	# Determine tool version from git tag
+	local tool_version
+	tool_version=$(git describe --tags --always 2>/dev/null || echo "unknown")
+
 	# Assemble full SARIF document
 	local sarif_doc
 	sarif_doc=$(jq -n \
 		--argjson rules "$rules_json" \
 		--argjson results "$results_json" \
+		--arg version "$tool_version" \
 		'{
 			"$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
 			version: "2.1.0",
@@ -115,7 +120,7 @@ generate_sarif() {
 					driver: {
 						name: "tls-config-lint",
 						informationUri: "https://github.com/sebrandon1/tls-config-lint",
-						version: "1.0.0",
+						version: $version,
 						rules: $rules
 					}
 				},
