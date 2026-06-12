@@ -11,8 +11,11 @@ permissions:
 
 jobs:
   self-test-default:
-    name: Self Test (default settings)
-    runs-on: ubuntu-latest
+    name: Self Test (default settings, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v6
       - name: Run TLS Config Lint against testdata
@@ -97,10 +100,12 @@ jobs:
           echo "Findings after exclusion: ${{ steps.lint-exclude.outputs.findings-count }}"
 
   self-test-per-language:
-    name: Self Test (${{ matrix.language }})
-    runs-on: ubuntu-latest
+    name: Self Test (${{ matrix.language }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest]
+        language: [go, python, nodejs, cpp, java, rust]
         include:
           - language: go
             scan-path: testdata/go
