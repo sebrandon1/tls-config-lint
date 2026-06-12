@@ -14,4 +14,6 @@ CPP_PATTERNS=(
 	"min-proto-tls13|INFO|SSL_CTX_set_min_proto_version TLS1_3|Forces TLS 1.3 (may break older clients)|SSL_CTX_set_min_proto_version.*TLS1_3_VERSION"
 	"weak-cipher-list|HIGH|Weak OpenSSL cipher list|Weak ciphers configured via SSL_CTX_set_cipher_list|SSL_CTX_set_cipher_list.*(DES|RC4|NULL|EXPORT|eNULL|aNULL)"
 	"weak-ciphersuites|HIGH|Weak TLS 1.3 ciphersuites|Weak ciphers configured via SSL_CTX_set_ciphersuites|SSL_CTX_set_ciphersuites.*(DES|RC4|NULL)"
+	"curl-ssl-verifypeer-off|CRITICAL|CURLOPT_SSL_VERIFYPEER disabled|Disables libcurl peer certificate verification (MITM vulnerability)|CURLOPT_SSL_VERIFYPEER[[:space:]]*,[[:space:]]*0\|CURLOPT_SSL_VERIFYPEER[[:space:]]*,[[:space:]]*false\|CURLOPT_SSL_VERIFYPEER[[:space:]]*,[[:space:]]*FALSE"
+	"curl-ssl-verifyhost-off|CRITICAL|CURLOPT_SSL_VERIFYHOST disabled|Disables libcurl hostname verification (MITM vulnerability)|CURLOPT_SSL_VERIFYHOST[[:space:]]*,[[:space:]]*0\|CURLOPT_SSL_VERIFYHOST[[:space:]]*,[[:space:]]*false\|CURLOPT_SSL_VERIFYHOST[[:space:]]*,[[:space:]]*FALSE"
 )

@@ -40,6 +40,14 @@ void strict_tls() {
     SSL_CTX_set_min_proto_version(ctx, TLS1_3_VERSION);
 }
 
+void insecure_curl() {
+    CURL *curl = curl_easy_init();
+    // CRITICAL: Disables peer certificate verification
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    // CRITICAL: Disables hostname verification
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+}
+
 void weak_ciphers() {
     SSL_CTX *ctx = SSL_CTX_new(TLS_method());
     // HIGH: Weak OpenSSL ciphers

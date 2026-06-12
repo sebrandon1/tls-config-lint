@@ -1,6 +1,6 @@
 # Detected Patterns
 
-tls-config-lint detects 84 TLS anti-patterns across 6 languages. Severity levels:
+tls-config-lint detects 86 TLS anti-patterns across 6 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
@@ -66,7 +66,7 @@ tls-config-lint detects 84 TLS anti-patterns across 6 languages. Severity levels
 | `secure-protocol-weak` | HIGH | Weak TLS protocol in HTTPS options |
 | `min-version-tlsv13` | INFO | Forces TLS 1.3 |
 
-## C++ (10 patterns)
+## C++ (12 patterns)
 
 | ID | Severity | Description |
 |----|----------|-------------|
@@ -80,6 +80,8 @@ tls-config-lint detects 84 TLS anti-patterns across 6 languages. Severity levels
 | `weak-ciphersuites` | HIGH | Weak ciphers via `SSL_CTX_set_ciphersuites` |
 | `max-proto-tls12` | MEDIUM | Caps at TLS 1.2 |
 | `min-proto-tls13` | INFO | Forces TLS 1.3 |
+| `curl-ssl-verifypeer-off` | CRITICAL | `CURLOPT_SSL_VERIFYPEER` disabled (libcurl) |
+| `curl-ssl-verifyhost-off` | CRITICAL | `CURLOPT_SSL_VERIFYHOST` disabled (libcurl) |
 
 ## Java (16 patterns)
 
