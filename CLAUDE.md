@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A pure bash GitHub Action (composite, no Docker) that scans codebases for TLS configuration anti-patterns across Go, Python, Node.js/TypeScript, C++, and Java using grep-based regex pattern matching.
+A pure bash GitHub Action (composite, no Docker) that scans codebases for TLS configuration anti-patterns across Go, Python, Node.js/TypeScript, C++, Java, and Rust using grep-based regex pattern matching.
 
 ## Commands
 
@@ -19,6 +19,7 @@ bash tests/test_detect.sh
 bash tests/test_utils.sh
 bash tests/test_annotations.sh
 bash tests/test_summary.sh
+bash tests/test_sarif.sh
 
 # Check formatting (shfmt: go install mvdan.cc/sh/v3/cmd/shfmt@latest)
 shfmt -d -i 0 -ci .
@@ -41,7 +42,7 @@ Pipeline orchestrated by `entrypoint.sh`:
 
 Findings accumulate in a global `FINDINGS` array as pipe-delimited strings: `"id|severity|name|description|file|line|match"`
 
-Pattern files (`patterns/{go,python,nodejs,cpp,java}.sh`) define arrays of `"id|severity|name|description|regex"` entries. Severity levels: CRITICAL (cert verification disabled), HIGH (weak TLS versions), MEDIUM (prevents TLS 1.3), INFO (PQC, deprecated features).
+Pattern files (`patterns/{go,python,nodejs,cpp,java,rust}.sh`) define arrays of `"id|severity|name|description|regex"` entries. Severity levels: CRITICAL (cert verification disabled), HIGH (weak TLS versions), MEDIUM (prevents TLS 1.3), INFO (PQC, deprecated features).
 
 ## Conventions
 

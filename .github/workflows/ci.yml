@@ -26,10 +26,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
       - name: Install shfmt
-        run: |
-          go install mvdan.cc/sh/v3/cmd/shfmt@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+        run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
       - name: Check formatting
         run: shfmt -d -i 0 -ci .
 
@@ -38,10 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Install and run actionlint
-        run: |
-          bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-          ./actionlint
+      - name: Run actionlint
+        uses: rhysd/actionlint@v1.7.12
 
   unit-tests:
     name: Unit Tests (${{ matrix.os }})

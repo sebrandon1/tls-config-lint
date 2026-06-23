@@ -33,12 +33,7 @@ generate_sarif() {
 		seen_patterns+=("$pattern_id")
 
 		local sarif_level
-		case "$(normalize_severity "$severity")" in
-			critical | high) sarif_level="error" ;;
-			medium) sarif_level="warning" ;;
-			info) sarif_level="note" ;;
-			*) sarif_level="note" ;;
-		esac
+		sarif_level=$(severity_to_sarif_level "$severity")
 
 		rules_json=$(echo "$rules_json" | jq \
 			--arg id "$pattern_id" \
@@ -64,12 +59,7 @@ generate_sarif() {
 		IFS='|' read -r pattern_id severity name description file line_num match_text <<<"$finding"
 
 		local sarif_level
-		case "$(normalize_severity "$severity")" in
-			critical | high) sarif_level="error" ;;
-			medium) sarif_level="warning" ;;
-			info) sarif_level="note" ;;
-			*) sarif_level="note" ;;
-		esac
+		sarif_level=$(severity_to_sarif_level "$severity")
 
 		# Find rule index
 		local rule_index=0
