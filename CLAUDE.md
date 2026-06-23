@@ -63,3 +63,4 @@ Pattern files (`patterns/{go,python,nodejs,cpp,java,rust}.sh`) define arrays of 
 4. Add case for the patterns variable in `scan_language()`
 5. Create `testdata/<lang>/` with sample files triggering each pattern
 6. Add scanner and detection tests in `tests/`
+7. Add remediation entries in `docs/patterns.md` (summary table row + detail section with insecure/secure examples)
