@@ -55,6 +55,7 @@ assert_contains "Tool has informationUri" "github.com/sebrandon1/tls-config-lint
 
 # Test: Rules include helpUri
 assert_contains "Rules include helpUri" "docs/patterns.md" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].helpUri')"
+assert_contains "helpUri has pattern anchor" "#go-p-critical" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].helpUri')"
 
 # Test: SARIF schema reference
 assert_contains "SARIF has schema reference" "sarif-schema-2.1.0" "$(echo "$sarif_json" | jq -r '.["$schema"]')"

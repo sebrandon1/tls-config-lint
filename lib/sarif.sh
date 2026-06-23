@@ -3,6 +3,18 @@
 
 set -euo pipefail
 
+file_to_lang_prefix() {
+	case "$1" in
+		*.go) echo "go" ;;
+		*.py) echo "python" ;;
+		*.js | *.mjs | *.ts | *.mts) echo "nodejs" ;;
+		*.cpp | *.cc | *.cxx | *.h | *.hpp) echo "cpp" ;;
+		*.java) echo "java" ;;
+		*.rs) echo "rust" ;;
+		*) echo "" ;;
+	esac
+}
+
 # Generate SARIF 2.1.0 output
 generate_sarif() {
 	local output_file="$1"
@@ -17,7 +29,7 @@ generate_sarif() {
 	local seen_patterns=()
 
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r pattern_id severity name description _ _ _ <<<"$finding"
+		IFS='|' read -r pattern_id severity name description finding_file _ _ <<<"$finding"
 
 		# Skip if already seen
 		local already_seen=false
@@ -35,12 +47,16 @@ generate_sarif() {
 		local sarif_level
 		sarif_level=$(severity_to_sarif_level "$severity")
 
+		local lang_prefix
+		lang_prefix=$(file_to_lang_prefix "$finding_file")
+		local help_anchor="${lang_prefix:+${lang_prefix}-}${pattern_id}"
+
 		rules_json=$(echo "$rules_json" | jq \
 			--arg id "$pattern_id" \
 			--arg name "$name" \
 			--arg desc "$description" \
 			--arg level "$sarif_level" \
-			--arg helpUri "https://github.com/sebrandon1/tls-config-lint/blob/main/docs/patterns.md" \
+			--arg helpUri "https://github.com/sebrandon1/tls-config-lint/blob/main/docs/patterns.md#${help_anchor}" \
 			'. + [{
 				id: $id,
 				name: $name,
