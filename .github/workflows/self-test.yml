@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run TLS Config Lint against testdata
         id: lint
         uses: ./
@@ -42,7 +42,7 @@ jobs:
     name: Self Test (SARIF output)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run TLS Config Lint with SARIF
         uses: ./
         with:
@@ -65,7 +65,7 @@ jobs:
     name: Self Test (critical threshold)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run with critical threshold (should fail)
         id: lint-critical
         uses: ./
@@ -86,7 +86,7 @@ jobs:
     name: Self Test (exclude patterns)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run with excluded patterns
         id: lint-exclude
         uses: ./
@@ -120,7 +120,7 @@ jobs:
           - language: rust
             scan-path: testdata/rust
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run ${{ matrix.language }} scan
         id: lint
         uses: ./
@@ -146,7 +146,7 @@ jobs:
     name: Self Test (no findings - secure code)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Create secure-only scan directory
         run: |
           mkdir -p /tmp/secure-scan
@@ -174,7 +174,7 @@ jobs:
     name: Self Test (config file)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run scan with config file
         id: lint
         uses: ./
@@ -195,7 +195,7 @@ jobs:
     name: Self Test (exclude dirs)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run scan excluding python and nodejs dirs
         id: lint
         uses: ./
@@ -216,7 +216,7 @@ jobs:
     name: Self Test (info threshold)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run with info threshold (should fail - catches everything)
         id: lint-info
         uses: ./
