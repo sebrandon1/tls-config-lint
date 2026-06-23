@@ -58,7 +58,7 @@ jobs:
 
 | Guide | Description |
 |-------|-------------|
-| [Detected Patterns](docs/patterns.md) | All 82 patterns across 6 languages |
+| [Detected Patterns](docs/patterns.md) | All 86 patterns across 6 languages |
 | [Configuration](docs/configuration.md) | Config file, advanced usage examples, exit codes |
 | [Built-in Exclusions](docs/exclusions.md) | Default excluded directories and test files |
 

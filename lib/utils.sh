@@ -21,6 +21,15 @@ severity_level() {
 	esac
 }
 
+severity_to_sarif_level() {
+	case "$(normalize_severity "$1")" in
+		critical | high) echo "error" ;;
+		medium) echo "warning" ;;
+		info) echo "note" ;;
+		*) echo "note" ;;
+	esac
+}
+
 # Check if severity meets or exceeds threshold
 # Returns 0 (true) if finding_severity >= threshold_severity
 meets_threshold() {
