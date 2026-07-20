@@ -13,7 +13,7 @@ trap 'rm -f "$sarif_out"' RETURN
 
 # Test: Single finding produces correct rule and result
 FINDINGS=()
-FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables certificate verification|main.go|42|InsecureSkipVerify: true")
+FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables certificate verification|main.go|42|InsecureSkipVerify: true|5")
 generate_sarif "$sarif_out" 2>/dev/null
 sarif_json=$(cat "$sarif_out")
 
@@ -26,9 +26,9 @@ assert_equals "Result line matches" "42" "$(echo "$sarif_json" | jq '.runs[0].re
 
 # Test: Duplicate pattern IDs produce deduplicated rules
 FINDINGS=()
-FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables cert verification|main.go|10|code1")
-FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables cert verification|handler.go|25|code2")
-FINDINGS+=("weak-tls-version|HIGH|WeakTLS|Uses TLS 1.0|server.go|50|code3")
+FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables cert verification|main.go|10|code1|1")
+FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables cert verification|handler.go|25|code2|1")
+FINDINGS+=("weak-tls-version|HIGH|WeakTLS|Uses TLS 1.0|server.go|50|code3|1")
 generate_sarif "$sarif_out" 2>/dev/null
 sarif_json=$(cat "$sarif_out")
 
@@ -37,10 +37,10 @@ assert_equals "Deduplication: all 3 results present" "3" "$(echo "$sarif_json" |
 
 # Test: Severity mapping to SARIF levels
 FINDINGS=()
-FINDINGS+=("p-critical|CRITICAL|C|Desc|f.go|1|c")
-FINDINGS+=("p-high|HIGH|H|Desc|f.go|2|c")
-FINDINGS+=("p-medium|MEDIUM|M|Desc|f.go|3|c")
-FINDINGS+=("p-info|INFO|I|Desc|f.go|4|c")
+FINDINGS+=("p-critical|CRITICAL|C|Desc|f.go|1|c|1")
+FINDINGS+=("p-high|HIGH|H|Desc|f.go|2|c|1")
+FINDINGS+=("p-medium|MEDIUM|M|Desc|f.go|3|c|1")
+FINDINGS+=("p-info|INFO|I|Desc|f.go|4|c|1")
 generate_sarif "$sarif_out" 2>/dev/null
 sarif_json=$(cat "$sarif_out")
 
@@ -62,7 +62,94 @@ assert_contains "SARIF has schema reference" "sarif-schema-2.1.0" "$(echo "$sari
 
 # Test: Result snippet is preserved
 FINDINGS=()
-FINDINGS+=("test-pattern|HIGH|Test|Desc|app.go|99|tls.Config{MinVersion: 0}")
+FINDINGS+=("test-pattern|HIGH|Test|Desc|app.go|99|tls.Config{MinVersion: 0}|3")
 generate_sarif "$sarif_out" 2>/dev/null
 sarif_json=$(cat "$sarif_out")
 assert_equals "Snippet is preserved" "tls.Config{MinVersion: 0}" "$(echo "$sarif_json" | jq -r '.runs[0].results[0].locations[0].physicalLocation.region.snippet.text')"
+
+# Test: partialFingerprints present on results
+FINDINGS=()
+FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables cert verification|main.go|10|InsecureSkipVerify: true|5")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+
+has_fingerprint=$(echo "$sarif_json" | jq 'has("runs") and (.runs[0].results[0] | has("partialFingerprints"))')
+assert_equals "Result has partialFingerprints" "true" "$has_fingerprint"
+has_hash=$(echo "$sarif_json" | jq -r '.runs[0].results[0].partialFingerprints | has("primaryLocationLineHash")')
+assert_equals "partialFingerprints has primaryLocationLineHash" "true" "$has_hash"
+
+# Fingerprint is a 64-char hex string (sha256)
+fp_len=$(echo "$sarif_json" | jq -r '.runs[0].results[0].partialFingerprints.primaryLocationLineHash | length')
+assert_equals "Fingerprint is 64 chars (sha256)" "64" "$fp_len"
+
+# Same content produces same fingerprint
+FINDINGS=()
+FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables cert verification|main.go|10|InsecureSkipVerify: true|5")
+generate_sarif "$sarif_out" 2>/dev/null
+fp1=$(cat "$sarif_out" | jq -r '.runs[0].results[0].partialFingerprints.primaryLocationLineHash')
+FINDINGS=()
+FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables cert verification|main.go|99|InsecureSkipVerify: true|5")
+generate_sarif "$sarif_out" 2>/dev/null
+fp2=$(cat "$sarif_out" | jq -r '.runs[0].results[0].partialFingerprints.primaryLocationLineHash')
+assert_equals "Same content different line produces same fingerprint" "$fp1" "$fp2"
+
+# Different content produces different fingerprint
+FINDINGS=()
+FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables cert verification|main.go|10|different content here|5")
+generate_sarif "$sarif_out" 2>/dev/null
+fp3=$(cat "$sarif_out" | jq -r '.runs[0].results[0].partialFingerprints.primaryLocationLineHash')
+if [[ "$fp1" != "$fp3" ]]; then
+	assert_equals "Different content produces different fingerprint" "true" "true"
+else
+	assert_equals "Different content produces different fingerprint" "true" "false"
+fi
+
+# Test: startColumn and endColumn in region
+FINDINGS=()
+FINDINGS+=("test-col|HIGH|Test|Desc|app.go|42|some code here|5")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+
+assert_equals "startColumn matches column field" "5" "$(echo "$sarif_json" | jq '.runs[0].results[0].locations[0].physicalLocation.region.startColumn')"
+assert_equals "endColumn is startCol + snippet length" "19" "$(echo "$sarif_json" | jq '.runs[0].results[0].locations[0].physicalLocation.region.endColumn')"
+
+# Test: per-pattern tags
+FINDINGS=()
+FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Desc|f.go|1|c|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+
+assert_contains "Certificate pattern has certificate-validation tag" "certificate-validation" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].properties.tags[]')"
+
+FINDINGS=()
+FINDINGS+=("min-version-tls10|HIGH|WeakTLS|Desc|f.go|1|c|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+
+assert_contains "Version pattern has protocol-version tag" "protocol-version" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].properties.tags[]')"
+
+FINDINGS=()
+FINDINGS+=("weak-cipher-rc4|CRITICAL|RC4|Desc|f.go|1|c|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+
+assert_contains "Cipher pattern has cipher-suite tag" "cipher-suite" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].properties.tags[]')"
+
+FINDINGS=()
+FINDINGS+=("grpc-insecure|CRITICAL|gRPC insecure|Desc|f.go|1|c|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "gRPC pattern has transport-security tag" "transport-security" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].properties.tags[]')"
+
+FINDINGS=()
+FINDINGS+=("hardcoded-tls-config|INFO|TLS Config|Desc|f.go|1|c|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "Fallback pattern has configuration tag" "configuration" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].properties.tags[]')"
+
+# Test: column=1 when match starts at column 1
+FINDINGS=()
+FINDINGS+=("test-col1|HIGH|Test|Desc|app.go|1|no leading whitespace|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_equals "Column 1 for no leading whitespace" "1" "$(echo "$sarif_json" | jq '.runs[0].results[0].locations[0].physicalLocation.region.startColumn')"

@@ -15,6 +15,32 @@ file_to_lang_prefix() {
 	esac
 }
 
+pattern_tags() {
+	case "$1" in
+		*skip-verify* | *verify-false* | *verify-none* | *verify-peer* | *verifypeer* | *verifyhost* | *hostname-verif* | *check-hostname* | *cert-none* | *unverified* | *invalid-cert* | *invalid-hostname* | *trust-all* | *reject-unauthorized* | *tls-reject* | *dangerous-verifier* | *noop-hostname* | *allow-all-hostname*)
+			echo "certificate-validation"
+			;;
+		*version* | *tls1* | *tlsv1* | *sslv3* | *sslcontext* | *proto-tls*)
+			echo "protocol-version"
+			;;
+		*null-cipher* | *cipher* | *3des* | *rc4*)
+			echo "cipher-suite"
+			;;
+		*tls-profile*)
+			echo "tls-profile"
+			;;
+		*grpc-insecure*)
+			echo "transport-security"
+			;;
+		*pqc* | *ml-kem*)
+			echo "post-quantum"
+			;;
+		*)
+			echo "configuration"
+			;;
+	esac
+}
+
 # Generate SARIF 2.1.0 output
 generate_sarif() {
 	local output_file="$1"
@@ -29,7 +55,7 @@ generate_sarif() {
 	local seen_patterns=()
 
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r pattern_id severity name description finding_file _ _ <<<"$finding"
+		IFS='|' read -r pattern_id severity name description finding_file _ _ _ <<<"$finding"
 
 		# Skip if already seen
 		local already_seen=false
@@ -51,12 +77,16 @@ generate_sarif() {
 		lang_prefix=$(file_to_lang_prefix "$finding_file")
 		local help_anchor="${lang_prefix:+${lang_prefix}-}${pattern_id}"
 
+		local extra_tag
+		extra_tag=$(pattern_tags "$pattern_id")
+
 		rules_json=$(echo "$rules_json" | jq \
 			--arg id "$pattern_id" \
 			--arg name "$name" \
 			--arg desc "$description" \
 			--arg level "$sarif_level" \
 			--arg helpUri "https://github.com/sebrandon1/tls-config-lint/blob/main/docs/patterns.md#${help_anchor}" \
+			--arg extraTag "$extra_tag" \
 			'. + [{
 				id: $id,
 				name: $name,
@@ -64,7 +94,7 @@ generate_sarif() {
 				fullDescription: { text: $desc },
 				helpUri: $helpUri,
 				defaultConfiguration: { level: $level },
-				properties: { tags: ["security", "tls"] }
+				properties: { tags: ["security", "tls", $extraTag] }
 			}]')
 	done
 
@@ -72,7 +102,7 @@ generate_sarif() {
 	local results_json="[]"
 
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r pattern_id severity name description file line_num match_text <<<"$finding"
+		IFS='|' read -r pattern_id severity name description file line_num match_text col <<<"$finding"
 
 		local sarif_level
 		sarif_level=$(severity_to_sarif_level "$severity")
@@ -86,14 +116,23 @@ generate_sarif() {
 			fi
 		done
 
+		local fingerprint
+		fingerprint=$(printf '%s' "${pattern_id}:${file}:${match_text}" | sha256sum | cut -d' ' -f1)
+
+		local end_col
+		end_col=$((col + ${#match_text}))
+
 		results_json=$(echo "$results_json" | jq \
 			--arg id "$pattern_id" \
 			--arg msg "$description" \
 			--arg file "$file" \
 			--argjson line "$line_num" \
+			--argjson startCol "${col:-1}" \
+			--argjson endCol "$end_col" \
 			--arg level "$sarif_level" \
 			--argjson ruleIdx "$rule_index" \
 			--arg snippet "$match_text" \
+			--arg fingerprint "$fingerprint" \
 			'. + [{
 				ruleId: $id,
 				ruleIndex: $ruleIdx,
@@ -102,9 +141,10 @@ generate_sarif() {
 				locations: [{
 					physicalLocation: {
 						artifactLocation: { uri: $file, uriBaseId: "%SRCROOT%" },
-						region: { startLine: $line, snippet: { text: $snippet } }
+						region: { startLine: $line, startColumn: $startCol, endColumn: $endCol, snippet: { text: $snippet } }
 					}
-				}]
+				}],
+				partialFingerprints: { primaryLocationLineHash: $fingerprint }
 			}]')
 	done
 

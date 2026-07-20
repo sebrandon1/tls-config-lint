@@ -19,7 +19,7 @@ emit_annotations() {
 emit_annotations_gha() {
 	for finding in "${FINDINGS[@]}"; do
 		# shellcheck disable=SC2034  # match_text unused here but needed for field parsing
-		IFS='|' read -r pattern_id severity name description file line_num match_text <<<"$finding"
+		IFS='|' read -r pattern_id severity name description file line_num match_text _ <<<"$finding"
 
 		local annotation_type
 		annotation_type=$(severity_to_sarif_level "$severity")
@@ -38,7 +38,7 @@ emit_annotations_cli() {
 
 	for finding in "${FINDINGS[@]}"; do
 		# shellcheck disable=SC2034  # match_text unused here but needed for field parsing
-		IFS='|' read -r pattern_id severity name description file line_num match_text <<<"$finding"
+		IFS='|' read -r pattern_id severity name description file line_num match_text _ <<<"$finding"
 
 		local sev_lower color
 		sev_lower=$(normalize_severity "$severity")

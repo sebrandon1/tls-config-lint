@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Global findings storage
-# Each finding: "id|severity|name|description|file|line|match"
+# Each finding: "id|severity|name|description|file|line|match|col"
 FINDINGS=()
 CRITICAL_COUNT=0
 HIGH_COUNT=0
@@ -137,11 +137,13 @@ scan_pattern() {
 		# Strip leading ./ from file path
 		file="${file#./}"
 
-		# Trim match text for readability
-		match_text="${match_text#"${match_text%%[![:space:]]*}"}"
+		# Compute column offset before stripping whitespace
+		local leading="${match_text%%[![:space:]]*}"
+		local col=$((${#leading} + 1))
+		match_text="${match_text#"${leading}"}"
 		match_text="${match_text:0:200}"
 
-		FINDINGS+=("${pattern_id}|${severity}|${name}|${description}|${file}|${line_num}|${match_text}")
+		FINDINGS+=("${pattern_id}|${severity}|${name}|${description}|${file}|${line_num}|${match_text}|${col}")
 
 		# Update severity counters
 		case "$(normalize_severity "$severity")" in
@@ -163,7 +165,7 @@ filter_go_tls_config_noise() {
 	# Check if there are any "hardcoded-tls-config" findings
 	local has_tls_config=false
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r fid _ _ _ _ _ _ <<<"$finding"
+		IFS='|' read -r fid _ _ _ _ _ _ _ <<<"$finding"
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
 			has_tls_config=true
 			break
@@ -187,7 +189,7 @@ filter_go_tls_config_noise() {
 	# Filter findings: remove hardcoded-tls-config entries where file also references TLSSecurityProfile
 	local filtered_findings=()
 	for finding in "${FINDINGS[@]}"; do
-		IFS='|' read -r fid fsev _ _ ffile _ _ <<<"$finding"
+		IFS='|' read -r fid fsev _ _ ffile _ _ _ <<<"$finding"
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
 			local full_path="$scan_path/$ffile"
 			# Keep finding only if file does NOT reference TLSSecurityProfile
