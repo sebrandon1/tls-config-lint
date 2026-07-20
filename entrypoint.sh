@@ -86,7 +86,7 @@ main() {
 		# Check if any findings meet or exceed threshold
 		local should_fail=false
 		for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
-			IFS='|' read -r _ severity _ _ _ _ _ <<<"$finding"
+			IFS='|' read -r _ severity _ _ _ _ _ _ <<<"$finding"
 			if meets_threshold "$severity" "$SEVERITY_THRESHOLD"; then
 				should_fail=true
 				break
