@@ -3,6 +3,31 @@
 
 set -euo pipefail
 
+# CLI mode: auto-detect when running outside GitHub Actions
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+	CLI_MODE=false
+else
+	CLI_MODE=true
+fi
+
+# Terminal colors (only when stdout is a tty)
+# shellcheck disable=SC2034  # COLOR_* variables used by annotations.sh and summary.sh
+if [[ -t 1 ]] && [[ "$CLI_MODE" == "true" ]]; then
+	COLOR_RED='\033[0;31m'
+	COLOR_YELLOW='\033[0;33m'
+	COLOR_BLUE='\033[0;34m'
+	COLOR_BOLD='\033[1m'
+	COLOR_DIM='\033[2m'
+	COLOR_RESET='\033[0m'
+else
+	COLOR_RED=''
+	COLOR_YELLOW=''
+	COLOR_BLUE=''
+	COLOR_BOLD=''
+	COLOR_DIM=''
+	COLOR_RESET=''
+fi
+
 # Normalize severity string to lowercase
 normalize_severity() {
 	echo "$1" | tr '[:upper:]' '[:lower:]'
@@ -43,19 +68,37 @@ meets_threshold() {
 
 # Logging helpers
 log_info() {
-	echo "::notice::$*"
+	if [[ "$CLI_MODE" == "true" ]]; then
+		echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} $*"
+	else
+		echo "::notice::$*"
+	fi
 }
 
 log_warning() {
-	echo "::warning::$*"
+	if [[ "$CLI_MODE" == "true" ]]; then
+		echo -e "${COLOR_YELLOW}[WARN]${COLOR_RESET} $*"
+	else
+		echo "::warning::$*"
+	fi
 }
 
 log_error() {
-	echo "::error::$*"
+	if [[ "$CLI_MODE" == "true" ]]; then
+		echo -e "${COLOR_RED}[ERROR]${COLOR_RESET} $*"
+	else
+		echo "::error::$*"
+	fi
 }
 
 log_debug() {
-	echo "::debug::$*"
+	if [[ "$CLI_MODE" == "true" ]]; then
+		if [[ -n "${DEBUG:-}" ]]; then
+			echo -e "${COLOR_DIM}[DEBUG]${COLOR_RESET} $*"
+		fi
+	else
+		echo "::debug::$*"
+	fi
 }
 
 # Print to stderr for script diagnostics (not GitHub annotations)
