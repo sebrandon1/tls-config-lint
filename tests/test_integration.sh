@@ -17,6 +17,7 @@ run_entrypoint() {
 
 	local exit_code=0
 	env -i PATH="$PATH" HOME="$HOME" TERM="${TERM:-dumb}" \
+		GITHUB_ACTIONS=true \
 		GITHUB_OUTPUT="$output_file" \
 		GITHUB_STEP_SUMMARY="$summary_file" \
 		"$@" \
