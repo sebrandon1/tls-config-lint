@@ -43,6 +43,26 @@ severity-overrides:
 
 This is useful for org-specific policies where the default severity doesn't match your team's risk tolerance. The override applies everywhere the pattern matches — use `exceptions` if you need file-scoped control instead.
 
+### Inline Suppression Comments
+
+Add `tls-lint:ignore` in a trailing comment on any line to suppress the finding at the source:
+
+```go
+InsecureSkipVerify: true, // tls-lint:ignore
+```
+
+```python
+response = requests.get(url, verify=False)  # tls-lint:ignore
+```
+
+To suppress only a specific pattern, add the pattern ID:
+
+```go
+MinVersion: tls.VersionTLS10, // tls-lint:ignore:min-version-tls10
+```
+
+A bare `tls-lint:ignore` suppresses all patterns on that line. A targeted `tls-lint:ignore:pattern-id` suppresses only the named pattern, so other patterns matching the same line are still reported.
+
 See [`.tls-config-lint.example.yml`](../.tls-config-lint.example.yml) for a full example.
 
 ## Advanced Usage Examples

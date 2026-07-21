@@ -298,6 +298,132 @@ assert_equals "Non-overridden pattern retains original severity" "true" "$found_
 # shellcheck disable=SC2034  # Reset for subsequent tests
 SEVERITY_OVERRIDES=""
 
+# --- Inline Suppression Tests ---
+echo "  --- Inline Suppression Tests ---"
+
+# Reset state
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+# Test: is_line_suppressed with bare tls-lint:ignore
+if is_line_suppressed "insecure-skip-verify" "InsecureSkipVerify: true // tls-lint:ignore"; then
+	assert_equals "Bare ignore suppresses any pattern" "true" "true"
+else
+	assert_equals "Bare ignore suppresses any pattern" "true" "false"
+fi
+
+# Test: is_line_suppressed with targeted pattern
+if is_line_suppressed "insecure-skip-verify" "InsecureSkipVerify: true // tls-lint:ignore:insecure-skip-verify"; then
+	assert_equals "Targeted ignore suppresses matching pattern" "true" "true"
+else
+	assert_equals "Targeted ignore suppresses matching pattern" "true" "false"
+fi
+
+# Test: is_line_suppressed with non-matching targeted pattern
+if is_line_suppressed "insecure-skip-verify" "InsecureSkipVerify: true // tls-lint:ignore:min-version-tls10"; then
+	assert_equals "Targeted ignore does not suppress non-matching pattern" "false" "true"
+else
+	assert_equals "Targeted ignore does not suppress non-matching pattern" "false" "false"
+fi
+
+# Test: is_line_suppressed with no directive
+if is_line_suppressed "insecure-skip-verify" "InsecureSkipVerify: true"; then
+	assert_equals "No directive does not suppress" "false" "true"
+else
+	assert_equals "No directive does not suppress" "false" "false"
+fi
+
+# Test: is_line_suppressed targeted does not match prefix of longer pattern ID
+if is_line_suppressed "protocol-tlsv11" "ctx = ssl.PROTOCOL_TLSv1_1 # tls-lint:ignore:protocol-tlsv1"; then
+	assert_equals "Targeted ignore must not match prefix of longer ID" "false" "true"
+else
+	assert_equals "Targeted ignore must not match prefix of longer ID" "false" "false"
+fi
+
+# Test: is_line_suppressed with Python-style comment
+if is_line_suppressed "verify-false" "verify=False  # tls-lint:ignore"; then
+	assert_equals "Python comment suppresses" "true" "true"
+else
+	assert_equals "Python comment suppresses" "true" "false"
+fi
+
+# Test: Scan with inline suppression — suppressed lines excluded
+source "$ROOT_DIR/patterns/go.sh"
+# shellcheck disable=SC2034  # Reset for subsequent tests
+SEVERITY_OVERRIDES=""
+scan_language "$ROOT_DIR/testdata/go" "go" "" ""
+
+# The suppressed InsecureSkipVerify (blanket ignore) should not appear
+found_suppressed_blanket=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ _ _ fmatch _ <<<"$finding"
+	if [[ "$fid" == "insecure-skip-verify" ]] && [[ "$fmatch" == *"tls-lint:ignore"* ]]; then
+		found_suppressed_blanket=true
+		break
+	fi
+done
+assert_equals "Blanket inline suppression excluded from findings" "false" "$found_suppressed_blanket"
+
+# The suppressed min-version-tls10 (targeted ignore) should not appear
+found_suppressed_targeted=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ _ _ fmatch _ <<<"$finding"
+	if [[ "$fid" == "min-version-tls10" ]] && [[ "$fmatch" == *"tls-lint:ignore"* ]]; then
+		found_suppressed_targeted=true
+		break
+	fi
+done
+assert_equals "Targeted inline suppression excluded from findings" "false" "$found_suppressed_targeted"
+
+# Non-suppressed findings still present
+found_unsuppressed=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ _ _ _ _ <<<"$finding"
+	if [[ "$fid" == "insecure-skip-verify" ]]; then
+		found_unsuppressed=true
+		break
+	fi
+done
+assert_equals "Non-suppressed findings still present" "true" "$found_unsuppressed"
+
+# Blanket-suppressed pattern should have zero matches with tls-lint:ignore in match text
+blanket_leak=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ _ _ fmatch _ <<<"$finding"
+	if [[ "$fid" == "insecure-skip-verify" ]] && [[ "$fmatch" == *"tls-lint:ignore"* ]]; then
+		blanket_leak=true
+		break
+	fi
+done
+assert_equals "Blanket-suppressed pattern does not leak" "false" "$blanket_leak"
+
+# Python inline suppression integration test
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+source "$ROOT_DIR/patterns/python.sh"
+scan_language "$ROOT_DIR/testdata/python" "python" "" ""
+
+found_python_suppressed=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r _ _ _ _ _ _ fmatch _ <<<"$finding"
+	if [[ "$fmatch" == *"tls-lint:ignore"* ]]; then
+		found_python_suppressed=true
+		break
+	fi
+done
+assert_equals "Python inline suppression excluded from findings" "false" "$found_python_suppressed"
+
 # --- False Positive Tests ---
 # Scan secure code files that should NOT trigger critical/high findings.
 # Each secure file contains comments and strings mentioning insecure patterns

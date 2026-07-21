@@ -55,3 +55,6 @@ channel = grpc.insecure_channel("localhost:50051")
 # INFO: PQC/ML-KEM adoption
 import post_quantum
 mlkem_key = post_quantum.generate_mlkem_keypair()
+
+# Inline suppression — these should NOT produce findings
+suppressed_response = requests.get("https://example.com", verify=False)  # tls-lint:ignore
