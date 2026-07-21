@@ -64,6 +64,34 @@ merge_config
 assert_equals "Merge uses input severity when non-default" "medium" "$SEVERITY_THRESHOLD"
 assert_equals "Merge uses input languages when non-auto" "cpp" "$LANGUAGES"
 
+# Test: Parse exceptions from config
+TEMP_EXCEPTIONS=$(mktemp)
+cat >"$TEMP_EXCEPTIONS" <<'EOF'
+severity-threshold: high
+exceptions:
+  - insecure-skip-verify:test_helpers.go
+  - min-version-tls10:internal/legacy/
+EOF
+
+parse_config_file "$TEMP_EXCEPTIONS"
+assert_contains "Config parses exceptions (file entry)" "insecure-skip-verify:test_helpers.go" "$CFG_EXCEPTIONS"
+assert_contains "Config parses exceptions (dir entry)" "min-version-tls10:internal/legacy/" "$CFG_EXCEPTIONS"
+
+# Test: Exceptions are exported via merge_config
+export INPUT_SEVERITY_THRESHOLD="high"
+export INPUT_LANGUAGES="auto"
+export INPUT_EXCLUDE_DIRS=""
+export INPUT_EXCLUDE_PATTERNS=""
+export INPUT_CONFIG_FILE="$TEMP_EXCEPTIONS"
+export INPUT_SCAN_PATH="."
+export INPUT_FAIL_ON_FINDINGS="true"
+export INPUT_SARIF_OUTPUT=""
+
+merge_config
+assert_contains "Merge exports exceptions" "insecure-skip-verify:test_helpers.go" "$EXCEPTIONS"
+
+rm -f "$TEMP_EXCEPTIONS"
+
 # Cleanup
 rm -f "$TEMP_CONFIG"
 

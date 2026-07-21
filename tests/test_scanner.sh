@@ -135,6 +135,92 @@ for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 done
 assert_equals "Excluded pattern not found in results" "false" "$found_excluded"
 
+# --- Per-File Exception Tests ---
+echo "  --- Per-File Exception Tests ---"
+
+# Reset state
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+# Test: is_path_excluded with exact file match
+if is_path_excluded "insecure-skip-verify" "go/insecure.go" "insecure-skip-verify:go/insecure.go"; then
+	assert_equals "Exact file exception matches" "true" "true"
+else
+	assert_equals "Exact file exception matches" "true" "false"
+fi
+
+# Test: is_path_excluded with directory prefix
+if is_path_excluded "insecure-skip-verify" "go/insecure.go" "insecure-skip-verify:go/"; then
+	assert_equals "Directory exception matches" "true" "true"
+else
+	assert_equals "Directory exception matches" "true" "false"
+fi
+
+# Test: is_path_excluded does not match wrong pattern
+if is_path_excluded "min-version-tls10" "go/insecure.go" "insecure-skip-verify:go/insecure.go"; then
+	assert_equals "Wrong pattern does not match" "false" "true"
+else
+	assert_equals "Wrong pattern does not match" "false" "false"
+fi
+
+# Test: is_path_excluded does not match wrong file
+if is_path_excluded "insecure-skip-verify" "other.go" "insecure-skip-verify:go/insecure.go"; then
+	assert_equals "Wrong file does not match" "false" "true"
+else
+	assert_equals "Wrong file does not match" "false" "false"
+fi
+
+# Test: is_path_excluded with glob pattern
+if is_path_excluded "insecure-skip-verify" "go/insecure.go" "insecure-skip-verify:go/*.go"; then
+	assert_equals "Glob exception matches" "true" "true"
+else
+	assert_equals "Glob exception matches" "true" "false"
+fi
+
+# Test: is_path_excluded with empty exceptions
+if is_path_excluded "insecure-skip-verify" "go/insecure.go" ""; then
+	assert_equals "Empty exceptions do not match" "false" "true"
+else
+	assert_equals "Empty exceptions do not match" "false" "false"
+fi
+
+# Test: Scan with per-file exception suppresses finding in specified file only
+source "$ROOT_DIR/patterns/go.sh"
+# shellcheck disable=SC2034  # Used by scan_language via is_path_excluded
+EXCEPTIONS="insecure-skip-verify:go/insecure.go"
+scan_language "$ROOT_DIR/testdata/go" "go" "" ""
+
+# insecure-skip-verify should NOT appear for go/insecure.go
+found_in_excepted=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ ffile _ _ _ <<<"$finding"
+	if [[ "$fid" == "insecure-skip-verify" ]] && [[ "$ffile" == "go/insecure.go" ]]; then
+		found_in_excepted=true
+		break
+	fi
+done
+assert_equals "Exception suppresses pattern in specified file" "false" "$found_in_excepted"
+
+# insecure-skip-verify SHOULD still appear for config:prod.go (colon in filename)
+found_in_other=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ ffile _ _ _ <<<"$finding"
+	if [[ "$fid" == "insecure-skip-verify" ]] && [[ "$ffile" != "go/insecure.go" ]]; then
+		found_in_other=true
+		break
+	fi
+done
+assert_equals "Exception does not suppress pattern in other files" "true" "$found_in_other"
+
+# Cleanup
+# shellcheck disable=SC2034  # Reset for subsequent tests
+EXCEPTIONS=""
+
 # --- False Positive Tests ---
 # Scan secure code files that should NOT trigger critical/high findings.
 # Each secure file contains comments and strings mentioning insecure patterns

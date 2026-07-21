@@ -41,6 +41,14 @@ pattern_tags() {
 	esac
 }
 
+sha256_hash() {
+	if command -v sha256sum &>/dev/null; then
+		sha256sum | cut -d' ' -f1
+	else
+		shasum -a 256 | cut -d' ' -f1
+	fi
+}
+
 # Generate SARIF 2.1.0 output
 generate_sarif() {
 	local output_file="$1"
@@ -117,7 +125,7 @@ generate_sarif() {
 		done
 
 		local fingerprint
-		fingerprint=$(printf '%s' "${pattern_id}:${file}:${match_text}" | sha256sum | cut -d' ' -f1)
+		fingerprint=$(printf '%s' "${pattern_id}:${file}:${match_text}" | sha256_hash)
 
 		local end_col
 		end_col=$((col + ${#match_text}))
