@@ -103,6 +103,31 @@ is_path_excluded() {
 	return 1
 }
 
+is_line_suppressed() {
+	local pattern_id="$1"
+	local line="$2"
+
+	if [[ "$line" != *"tls-lint:ignore"* ]]; then
+		return 1
+	fi
+
+	# Targeted: tls-lint:ignore:pattern-id (anchored to avoid substring matches)
+	local directive="tls-lint:ignore:${pattern_id}"
+	if [[ "$line" == *"${directive}"* ]]; then
+		local after="${line#*"${directive}"}"
+		if [[ -z "$after" || "${after:0:1}" == [[:space:]] || "${after:0:1}" == "," ]]; then
+			return 0
+		fi
+	fi
+
+	# Blanket: tls-lint:ignore (not followed by :)
+	if [[ "$line" != *"tls-lint:ignore:"* ]]; then
+		return 0
+	fi
+
+	return 1
+}
+
 # Look up a severity override for a pattern ID
 get_severity_override() {
 	local pattern_id="$1"
@@ -204,6 +229,11 @@ scan_pattern() {
 
 		# Skip if this pattern+file is excepted
 		if is_path_excluded "$pattern_id" "$file" "${EXCEPTIONS:-}"; then
+			continue
+		fi
+
+		# Skip if line has inline suppression comment
+		if is_line_suppressed "$pattern_id" "$match_text"; then
 			continue
 		fi
 

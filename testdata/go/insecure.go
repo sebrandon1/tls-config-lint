@@ -78,3 +78,12 @@ func oldTLSProfile() {
 	customType := configv1.CustomType
 	_ = customType
 }
+
+func suppressedFindings() {
+	// These lines have inline suppression and should NOT produce findings
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // tls-lint:ignore
+	_ = tr
+
+	cfg := &tls.Config{MinVersion: tls.VersionTLS10} // tls-lint:ignore:min-version-tls10
+	_ = cfg
+}
