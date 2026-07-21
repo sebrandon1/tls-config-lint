@@ -158,7 +158,7 @@ generate_sarif() {
 
 	# Determine tool version from git tag
 	local tool_version
-	tool_version=$(git describe --tags --always 2>/dev/null || echo "unknown")
+	tool_version=$(get_tool_version)
 
 	# Assemble full SARIF document
 	local sarif_doc

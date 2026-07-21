@@ -28,6 +28,10 @@ else
 	COLOR_RESET=''
 fi
 
+get_tool_version() {
+	git describe --tags --always 2>/dev/null || echo "unknown"
+}
+
 # Normalize severity string to lowercase
 normalize_severity() {
 	echo "$1" | tr '[:upper:]' '[:lower:]'
