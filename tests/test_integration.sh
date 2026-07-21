@@ -225,3 +225,81 @@ assert_equals "Integration: multi-language scan exits 0" "0" "$rc"
 assert_greater_than "Integration: multi-language scan finds patterns" 10 "$(get_output_value findings-count)"
 
 cleanup_entrypoint
+
+# --- Test 13: fail-on-findings=true with findings below threshold exits 0 ---
+run_entrypoint rc \
+	INPUT_SCAN_PATH="$ROOT_DIR/testdata/go" \
+	INPUT_LANGUAGES="go" \
+	INPUT_SEVERITY_THRESHOLD="critical" \
+	INPUT_FAIL_ON_FINDINGS="true" \
+	INPUT_EXCLUDE_PATTERNS="insecure-skip-verify,grpc-insecure,grpc-insecure-creds,weak-cipher-null,weak-cipher-rc4" \
+	INPUT_CONFIG_FILE="/dev/null"
+
+crit_count=$(get_output_value critical-count)
+if [[ "$crit_count" == "0" ]]; then
+	assert_equals "Integration: below-threshold findings exit 0" "0" "$rc"
+else
+	assert_equals "Integration: below-threshold (criticals remain)" "1" "$rc"
+fi
+cleanup_entrypoint
+
+# --- Test 14: CSV report output ---
+csv_tmpdir=$(mktemp -d)
+csv_file="$csv_tmpdir/report.csv"
+
+run_entrypoint rc \
+	INPUT_SCAN_PATH="$ROOT_DIR/testdata/go" \
+	INPUT_LANGUAGES="go" \
+	INPUT_FAIL_ON_FINDINGS="false" \
+	INPUT_REPORT_OUTPUT="$csv_file" \
+	INPUT_CONFIG_FILE="/dev/null"
+
+assert_equals "Integration: CSV report scan exits 0" "0" "$rc"
+
+if [[ -f "$csv_file" ]]; then
+	csv_header=$(head -1 "$csv_file")
+	assert_contains "Integration: CSV report has header" "pattern_id" "$csv_header"
+	csv_lines=$(wc -l <"$csv_file" | tr -d ' ')
+	if [[ "$csv_lines" -gt 1 ]]; then
+		assert_equals "Integration: CSV report has data rows" "true" "true"
+	else
+		assert_equals "Integration: CSV report has data rows" "true" "false"
+	fi
+else
+	assert_equals "Integration: CSV report file created" "true" "false"
+fi
+
+output_content=$(cat "$LAST_OUTPUT_FILE")
+assert_contains "Integration: report-file in output" "report-file=" "$output_content"
+
+cleanup_entrypoint
+rm -rf "$csv_tmpdir"
+
+# --- Test 15: JSON report output (requires jq) ---
+if command -v jq >/dev/null 2>&1; then
+	json_tmpdir=$(mktemp -d)
+	json_file="$json_tmpdir/report.json"
+
+	run_entrypoint rc \
+		INPUT_SCAN_PATH="$ROOT_DIR/testdata/go" \
+		INPUT_LANGUAGES="go" \
+		INPUT_FAIL_ON_FINDINGS="false" \
+		INPUT_REPORT_OUTPUT="$json_file" \
+		INPUT_CONFIG_FILE="/dev/null"
+
+	assert_equals "Integration: JSON report scan exits 0" "0" "$rc"
+
+	if [[ -f "$json_file" ]]; then
+		json_valid="false"
+		if jq empty "$json_file" 2>/dev/null; then
+			json_valid="true"
+		fi
+		assert_equals "Integration: JSON report is valid JSON" "true" "$json_valid"
+		assert_contains "Integration: JSON report has tool name" "tls-config-lint" "$(jq -r '.metadata.tool' "$json_file")"
+	else
+		assert_equals "Integration: JSON report file created" "true" "false"
+	fi
+
+	cleanup_entrypoint
+	rm -rf "$json_tmpdir"
+fi

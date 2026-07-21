@@ -62,7 +62,7 @@ generate_sarif() {
 	local rules_json="[]"
 	local seen_patterns=()
 
-	for finding in "${FINDINGS[@]}"; do
+	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r pattern_id severity name description finding_file _ _ _ <<<"$finding"
 
 		# Skip if already seen
@@ -109,7 +109,7 @@ generate_sarif() {
 	# Build results array
 	local results_json="[]"
 
-	for finding in "${FINDINGS[@]}"; do
+	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r pattern_id severity name description file line_num match_text col <<<"$finding"
 
 		local sarif_level

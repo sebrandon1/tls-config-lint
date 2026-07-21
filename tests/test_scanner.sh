@@ -424,6 +424,199 @@ for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 done
 assert_equals "Python inline suppression excluded from findings" "false" "$found_python_suppressed"
 
+# --- is_pattern_excluded Direct Tests ---
+echo "  --- is_pattern_excluded Tests ---"
+
+if is_pattern_excluded "insecure-skip-verify" "insecure-skip-verify,min-version-tls10"; then
+	assert_equals "is_pattern_excluded matches in list" "true" "true"
+else
+	assert_equals "is_pattern_excluded matches in list" "true" "false"
+fi
+
+if is_pattern_excluded "verify-false" "insecure-skip-verify,min-version-tls10"; then
+	assert_equals "is_pattern_excluded rejects non-member" "false" "true"
+else
+	assert_equals "is_pattern_excluded rejects non-member" "false" "false"
+fi
+
+if is_pattern_excluded "insecure-skip-verify" ""; then
+	assert_equals "is_pattern_excluded with empty list" "false" "true"
+else
+	assert_equals "is_pattern_excluded with empty list" "false" "false"
+fi
+
+# --- build_* Helper Tests ---
+echo "  --- Build Helper Tests ---"
+
+# build_include_flags
+assert_contains "build_include_flags go" "--include=*.go" "$(build_include_flags "go")"
+assert_contains "build_include_flags python" "--include=*.py" "$(build_include_flags "python")"
+assert_contains "build_include_flags nodejs includes .ts" "--include=*.ts" "$(build_include_flags "nodejs")"
+assert_contains "build_include_flags cpp" "--include=*.cpp" "$(build_include_flags "cpp")"
+assert_contains "build_include_flags java" "--include=*.java" "$(build_include_flags "java")"
+assert_contains "build_include_flags rust" "--include=*.rs" "$(build_include_flags "rust")"
+
+# build_test_exclude_flags
+assert_contains "build_test_exclude_flags go" "--exclude=*_test.go" "$(build_test_exclude_flags "go")"
+assert_contains "build_test_exclude_flags python" "--exclude=*_test.py" "$(build_test_exclude_flags "python")"
+
+# build_lang_exclude_dirs
+assert_contains "build_lang_exclude_dirs nodejs" "node_modules" "$(build_lang_exclude_dirs "nodejs")"
+assert_contains "build_lang_exclude_dirs python" "__pycache__" "$(build_lang_exclude_dirs "python")"
+assert_equals "build_lang_exclude_dirs unknown returns empty" "" "$(build_lang_exclude_dirs "unknown")"
+
+# build_common_exclude_dirs
+common_flags=$(build_common_exclude_dirs "")
+assert_contains "build_common_exclude_dirs has vendor" "vendor" "$common_flags"
+assert_contains "build_common_exclude_dirs has .git" ".git" "$common_flags"
+assert_contains "build_common_exclude_dirs has testdata" "testdata" "$common_flags"
+
+extra_flags=$(build_common_exclude_dirs "custom1,custom2")
+assert_contains "build_common_exclude_dirs extra dirs (custom1)" "custom1" "$extra_flags"
+assert_contains "build_common_exclude_dirs extra dirs (custom2)" "custom2" "$extra_flags"
+
+# --- scan_pattern Column & Truncation Tests ---
+echo "  --- Column & Truncation Tests ---"
+
+# Reset state
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+# Create temp file with leading whitespace
+col_dir=$(mktemp -d)
+cat >"$col_dir/ws.go" <<'GOEOF'
+package main
+    InsecureSkipVerify: true,
+GOEOF
+
+source "$ROOT_DIR/patterns/go.sh"
+scan_language "$col_dir" "go" "" ""
+
+# Find the finding from ws.go
+ws_col=""
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ ffile _ _ fcol <<<"$finding"
+	if [[ "$ffile" == "ws.go" ]] && [[ "$fid" == "insecure-skip-verify" ]]; then
+		ws_col="$fcol"
+		break
+	fi
+done
+assert_equals "Column offset accounts for leading whitespace" "5" "$ws_col"
+rm -rf "$col_dir"
+
+# Test: 200-char truncation
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+trunc_dir=$(mktemp -d)
+long_line="InsecureSkipVerify: true$(printf '%0.s_' {1..250})"
+printf 'package main\n%s\n' "$long_line" >"$trunc_dir/long.go"
+
+scan_language "$trunc_dir" "go" "" ""
+
+trunc_len=""
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ ffile _ fmatch _ <<<"$finding"
+	if [[ "$ffile" == "long.go" ]]; then
+		trunc_len="${#fmatch}"
+		break
+	fi
+done
+if [[ -n "$trunc_len" ]] && [[ "$trunc_len" -le 200 ]]; then
+	assert_equals "Match text truncated to 200 chars" "true" "true"
+else
+	assert_equals "Match text truncated to 200 chars" "true" "false"
+fi
+rm -rf "$trunc_dir"
+
+# --- filter_go_tls_config_noise Tests ---
+echo "  --- filter_go_tls_config_noise Tests ---"
+
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+# Create testdata with TLSSecurityProfile reference alongside hardcoded-tls-config finding
+noise_dir=$(mktemp -d)
+cat >"$noise_dir/profile.go" <<'GOEOF'
+package main
+
+import "crypto/tls"
+
+func configure() *tls.Config {
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+}
+
+func profile() {
+	_ = configv1.TLSSecurityProfile{}
+}
+GOEOF
+
+source "$ROOT_DIR/patterns/go.sh"
+scan_language "$noise_dir" "go" "" ""
+
+found_noise=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ ffile _ _ _ <<<"$finding"
+	if [[ "$fid" == "hardcoded-tls-config" ]] && [[ "$ffile" == "profile.go" ]]; then
+		found_noise=true
+		break
+	fi
+done
+assert_equals "filter_go_tls_config_noise removes finding in file with TLSSecurityProfile" "false" "$found_noise"
+rm -rf "$noise_dir"
+
+# Test: hardcoded-tls-config kept when no TLSSecurityProfile
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+noprofile_dir=$(mktemp -d)
+cat >"$noprofile_dir/plain.go" <<'GOEOF'
+package main
+
+import "crypto/tls"
+
+func configure() *tls.Config {
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+}
+GOEOF
+
+scan_language "$noprofile_dir" "go" "" ""
+
+found_kept=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ _ _ _ _ <<<"$finding"
+	if [[ "$fid" == "hardcoded-tls-config" ]]; then
+		found_kept=true
+		break
+	fi
+done
+assert_equals "hardcoded-tls-config kept without TLSSecurityProfile" "true" "$found_kept"
+rm -rf "$noprofile_dir"
+
 # --- False Positive Tests ---
 # Scan secure code files that should NOT trigger critical/high findings.
 # Each secure file contains comments and strings mentioning insecure patterns

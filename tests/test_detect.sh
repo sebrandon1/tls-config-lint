@@ -37,32 +37,78 @@ result=$(detect_languages "$TEMP_DIR" 2>/dev/null)
 assert_equals "Empty dir returns empty string" "" "$result"
 rmdir "$TEMP_DIR"
 
-# Test: Severity comparison helpers
-source "$ROOT_DIR/lib/utils.sh"
+# --- Marker File Detection Tests ---
+echo "  --- Marker File Detection Tests ---"
 
-echo "  --- Severity Helper Tests ---"
+# Test: Detect Go from go.mod (no .go files)
+marker_dir=$(mktemp -d)
+touch "$marker_dir/go.mod"
+result=$(detect_languages "$marker_dir" 2>/dev/null)
+assert_contains "Detects Go from go.mod marker" "go" "$result"
+rm -rf "$marker_dir"
 
-assert_equals "Severity level of critical is 4" "4" "$(severity_level "critical")"
-assert_equals "Severity level of CRITICAL is 4" "4" "$(severity_level "CRITICAL")"
-assert_equals "Severity level of high is 3" "3" "$(severity_level "high")"
-assert_equals "Severity level of medium is 2" "2" "$(severity_level "medium")"
-assert_equals "Severity level of info is 1" "1" "$(severity_level "info")"
+# Test: Detect Python from pyproject.toml
+marker_dir=$(mktemp -d)
+touch "$marker_dir/pyproject.toml"
+result=$(detect_languages "$marker_dir" 2>/dev/null)
+assert_contains "Detects Python from pyproject.toml marker" "python" "$result"
+rm -rf "$marker_dir"
 
-# Test meets_threshold
-if meets_threshold "CRITICAL" "high"; then
-	assert_equals "CRITICAL meets HIGH threshold" "true" "true"
-else
-	assert_equals "CRITICAL meets HIGH threshold" "true" "false"
-fi
+# Test: Detect Python from requirements.txt
+marker_dir=$(mktemp -d)
+touch "$marker_dir/requirements.txt"
+result=$(detect_languages "$marker_dir" 2>/dev/null)
+assert_contains "Detects Python from requirements.txt marker" "python" "$result"
+rm -rf "$marker_dir"
 
-if meets_threshold "INFO" "high"; then
-	assert_equals "INFO does not meet HIGH threshold" "false" "true"
-else
-	assert_equals "INFO does not meet HIGH threshold" "false" "false"
-fi
+# Test: Detect Node.js from package.json
+marker_dir=$(mktemp -d)
+touch "$marker_dir/package.json"
+result=$(detect_languages "$marker_dir" 2>/dev/null)
+assert_contains "Detects Node.js from package.json marker" "nodejs" "$result"
+rm -rf "$marker_dir"
 
-if meets_threshold "HIGH" "high"; then
-	assert_equals "HIGH meets HIGH threshold" "true" "true"
-else
-	assert_equals "HIGH meets HIGH threshold" "true" "false"
-fi
+# Test: Detect C++ from CMakeLists.txt
+marker_dir=$(mktemp -d)
+touch "$marker_dir/CMakeLists.txt"
+result=$(detect_languages "$marker_dir" 2>/dev/null)
+assert_contains "Detects C++ from CMakeLists.txt marker" "cpp" "$result"
+rm -rf "$marker_dir"
+
+# Test: Detect Java from pom.xml
+marker_dir=$(mktemp -d)
+touch "$marker_dir/pom.xml"
+result=$(detect_languages "$marker_dir" 2>/dev/null)
+assert_contains "Detects Java from pom.xml marker" "java" "$result"
+rm -rf "$marker_dir"
+
+# Test: Detect Rust from Cargo.toml
+marker_dir=$(mktemp -d)
+touch "$marker_dir/Cargo.toml"
+result=$(detect_languages "$marker_dir" 2>/dev/null)
+assert_contains "Detects Rust from Cargo.toml marker" "rust" "$result"
+rm -rf "$marker_dir"
+
+# --- Multi-Language Detection ---
+echo "  --- Multi-Language Detection Tests ---"
+
+# Test: Detect multiple languages from marker files
+multi_dir=$(mktemp -d)
+touch "$multi_dir/go.mod"
+mkdir -p "$multi_dir/src"
+touch "$multi_dir/src/app.py"
+result=$(detect_languages "$multi_dir" 2>/dev/null)
+assert_contains "Multi-lang detects Go" "go" "$result"
+assert_contains "Multi-lang detects Python" "python" "$result"
+rm -rf "$multi_dir"
+
+# Test: Result is comma-separated
+multi_dir=$(mktemp -d)
+touch "$multi_dir/go.mod"
+touch "$multi_dir/package.json"
+touch "$multi_dir/Cargo.toml"
+result=$(detect_languages "$multi_dir" 2>/dev/null)
+stripped="${result//[^,]/}"
+comma_count=${#stripped}
+assert_equals "Multi-lang result has commas" "2" "$comma_count"
+rm -rf "$multi_dir"

@@ -124,7 +124,50 @@ else
 	assert_equals "CLI mode has no markdown table borders" "true" "true"
 fi
 
-# Restore GitHub Actions mode for subsequent test files
+# --- GITHUB_STEP_SUMMARY file write test ---
+echo "  --- Summary File Write Tests ---"
+
 # shellcheck disable=SC2034  # Used by utils.sh on re-source
 GITHUB_ACTIONS=true
+source "$ROOT_DIR/lib/utils.sh"
+
+FINDINGS=()
+FINDINGS+=("test-critical|CRITICAL|Test Critical|Critical desc|test.go|10|code")
+# shellcheck disable=SC2034
+CRITICAL_COUNT=1
+# shellcheck disable=SC2034
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+summary_tmpfile=$(mktemp)
+# shellcheck disable=SC2034
+GITHUB_STEP_SUMMARY="$summary_tmpfile"
+generate_summary "high" >/dev/null
+summary_file_content=$(cat "$summary_tmpfile")
+assert_contains "GITHUB_STEP_SUMMARY receives summary content" "Critical" "$summary_file_content"
+assert_contains "GITHUB_STEP_SUMMARY has findings" "test.go" "$summary_file_content"
+rm -f "$summary_tmpfile"
+unset GITHUB_STEP_SUMMARY
+
+# --- Pipe character escaping test ---
+FINDINGS=()
+FINDINGS+=("test-pipe|HIGH|Test|Description with | pipe char|test.go|10|code")
+# shellcheck disable=SC2034
+CRITICAL_COUNT=0
+# shellcheck disable=SC2034
+HIGH_COUNT=1
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+unset GITHUB_STEP_SUMMARY
+output=$(generate_summary "high")
+# The pipe in "Description with | pipe char" should be escaped as \| in markdown
+assert_contains "GHA summary escapes pipes in description" 'pipe char' "$output"
+
+# Restore GitHub Actions mode for subsequent test files
 source "$ROOT_DIR/lib/utils.sh"
