@@ -31,6 +31,18 @@ exceptions:
 
 Unlike `exclude-patterns` (which suppresses a pattern globally), exceptions only apply to the specified files or directories. The pattern still runs everywhere else.
 
+### Per-Pattern Severity Overrides
+
+Use `severity-overrides` to change the severity of individual patterns without modifying the built-in definitions. Each entry is `pattern-id:severity` where severity is one of `critical`, `high`, `medium`, or `info`.
+
+```yaml
+severity-overrides:
+  - hardcoded-tls-config:high
+  - prefer-server-cipher-suites:info
+```
+
+This is useful for org-specific policies where the default severity doesn't match your team's risk tolerance. The override applies everywhere the pattern matches — use `exceptions` if you need file-scoped control instead.
+
 See [`.tls-config-lint.example.yml`](../.tls-config-lint.example.yml) for a full example.
 
 ## Advanced Usage Examples

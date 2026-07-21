@@ -103,6 +103,30 @@ is_path_excluded() {
 	return 1
 }
 
+# Look up a severity override for a pattern ID
+get_severity_override() {
+	local pattern_id="$1"
+	local overrides="$2"
+
+	if [[ -z "$overrides" ]]; then
+		echo ""
+		return
+	fi
+
+	IFS=',' read -ra entries <<<"$overrides"
+	for entry in "${entries[@]}"; do
+		entry="${entry// /}"
+		local ovr_pattern="${entry%%:*}"
+		local ovr_severity="${entry#*:}"
+
+		if [[ "$ovr_pattern" == "$pattern_id" ]]; then
+			echo "$ovr_severity"
+			return
+		fi
+	done
+	echo ""
+}
+
 # Check if a pattern ID is excluded
 is_pattern_excluded() {
 	local pattern_id="$1"
@@ -155,6 +179,13 @@ scan_pattern() {
 
 	if [[ -z "$grep_output" ]]; then
 		return 0
+	fi
+
+	# Apply per-pattern severity override (once, before the match loop)
+	local override
+	override=$(get_severity_override "$pattern_id" "${SEVERITY_OVERRIDES:-}")
+	if [[ -n "$override" ]]; then
+		severity="$override"
 	fi
 
 	# Parse grep output lines: ./file:line:match

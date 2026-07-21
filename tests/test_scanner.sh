@@ -221,6 +221,83 @@ assert_equals "Exception does not suppress pattern in other files" "true" "$foun
 # shellcheck disable=SC2034  # Reset for subsequent tests
 EXCEPTIONS=""
 
+# --- Severity Override Tests ---
+echo "  --- Severity Override Tests ---"
+
+# Reset state
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+# Test: get_severity_override with matching pattern
+result=$(get_severity_override "insecure-skip-verify" "insecure-skip-verify:medium")
+assert_equals "Override returns matching severity" "medium" "$result"
+
+# Test: get_severity_override with no match
+result=$(get_severity_override "min-version-tls10" "insecure-skip-verify:medium")
+assert_equals "Override returns empty for non-matching pattern" "" "$result"
+
+# Test: get_severity_override with empty overrides
+result=$(get_severity_override "insecure-skip-verify" "")
+assert_equals "Override returns empty for empty overrides" "" "$result"
+
+# Test: get_severity_override with multiple entries
+result=$(get_severity_override "min-version-tls10" "insecure-skip-verify:medium,min-version-tls10:info")
+assert_equals "Override matches correct entry from multiple" "info" "$result"
+
+# Test: Scan with severity override changes finding severity
+source "$ROOT_DIR/patterns/go.sh"
+# shellcheck disable=SC2034  # Used by scan_pattern via get_severity_override
+SEVERITY_OVERRIDES="insecure-skip-verify:medium"
+scan_language "$ROOT_DIR/testdata/go" "go" "" ""
+
+# Verify overridden severity appears in findings
+found_overridden=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid fsev _ _ _ _ _ _ <<<"$finding"
+	if [[ "$fid" == "insecure-skip-verify" ]]; then
+		if [[ "$(normalize_severity "$fsev")" == "medium" ]]; then
+			found_overridden=true
+		fi
+		break
+	fi
+done
+assert_equals "Severity override applied in scan findings" "true" "$found_overridden"
+
+# Verify counter reflects override (insecure-skip-verify was CRITICAL, now MEDIUM)
+assert_equals "Override shifts count away from critical" "0" "$(
+	count=0
+	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+		IFS='|' read -r fid fsev _ _ _ _ _ _ <<<"$finding"
+		if [[ "$fid" == "insecure-skip-verify" ]] && [[ "$(normalize_severity "$fsev")" == "critical" ]]; then
+			count=$((count + 1))
+		fi
+	done
+	echo "$count"
+)"
+
+# Verify MEDIUM_COUNT incremented from overridden findings
+assert_greater_than "MEDIUM_COUNT reflects overridden severity" 0 "$MEDIUM_COUNT"
+
+# Verify non-overridden patterns retain original severity
+found_original=false
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid fsev _ _ _ _ _ _ <<<"$finding"
+	if [[ "$fid" == "min-version-tls10" ]] && [[ "$(normalize_severity "$fsev")" == "high" ]]; then
+		found_original=true
+		break
+	fi
+done
+assert_equals "Non-overridden pattern retains original severity" "true" "$found_original"
+
+# Cleanup
+# shellcheck disable=SC2034  # Reset for subsequent tests
+SEVERITY_OVERRIDES=""
+
 # --- False Positive Tests ---
 # Scan secure code files that should NOT trigger critical/high findings.
 # Each secure file contains comments and strings mentioning insecure patterns
