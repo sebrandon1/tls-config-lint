@@ -19,8 +19,14 @@ severity-threshold: high
 #   - examples/insecure
 #   - third_party
 
-# Pattern IDs to suppress
+# Pattern IDs to suppress globally
 # Run the action once to see pattern IDs in the output, then add IDs here
 # exclude-patterns:
 #   - insecure-skip-verify    # Intentional in test helpers
 #   - hardcoded-tls-config    # Using centralized TLS config
+
+# Per-file/directory exceptions (pattern-id:path)
+# Paths ending with / match as directory prefixes
+# exceptions:
+#   - insecure-skip-verify:test_helpers.go
+#   - min-version-tls10:internal/legacy/

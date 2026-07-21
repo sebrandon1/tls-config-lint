@@ -18,6 +18,19 @@ exclude-patterns:
 
 Action inputs override config file values. Lists (exclude-dirs, exclude-patterns) are merged (union).
 
+### Per-File/Directory Exceptions
+
+Use `exceptions` to suppress specific patterns for specific files or directories. Each entry is `pattern-id:path`. Paths ending with `/` match as directory prefixes; other paths match exactly.
+
+```yaml
+exceptions:
+  - insecure-skip-verify:test_helpers.go
+  - insecure-skip-verify:tests/
+  - min-version-tls10:internal/legacy/
+```
+
+Unlike `exclude-patterns` (which suppresses a pattern globally), exceptions only apply to the specified files or directories. The pattern still runs everywhere else.
+
 See [`.tls-config-lint.example.yml`](../.tls-config-lint.example.yml) for a full example.
 
 ## Advanced Usage Examples

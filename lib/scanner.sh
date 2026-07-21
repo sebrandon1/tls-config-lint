@@ -69,6 +69,40 @@ build_common_exclude_dirs() {
 	echo "$flags"
 }
 
+# Check if a pattern+file combination is excluded via per-path exceptions
+is_path_excluded() {
+	local pattern_id="$1"
+	local file="$2"
+	local exceptions="$3"
+
+	if [[ -z "$exceptions" ]]; then
+		return 1
+	fi
+
+	IFS=',' read -ra entries <<<"$exceptions"
+	for entry in "${entries[@]}"; do
+		entry="${entry// /}"
+		local exc_pattern="${entry%%:*}"
+		local exc_path="${entry#*:}"
+
+		if [[ "$exc_pattern" != "$pattern_id" ]]; then
+			continue
+		fi
+
+		# Directory prefix match (path ends with /)
+		if [[ "$exc_path" == */ ]] && [[ "$file" == "$exc_path"* ]]; then
+			return 0
+		fi
+
+		# Exact file match or glob match
+		# shellcheck disable=SC2053  # Unquoted RHS is intentional for glob matching
+		if [[ "$file" == $exc_path ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 # Check if a pattern ID is excluded
 is_pattern_excluded() {
 	local pattern_id="$1"
@@ -136,6 +170,11 @@ scan_pattern() {
 
 		# Strip leading ./ from file path
 		file="${file#./}"
+
+		# Skip if this pattern+file is excepted
+		if is_path_excluded "$pattern_id" "$file" "${EXCEPTIONS:-}"; then
+			continue
+		fi
 
 		# Compute column offset before stripping whitespace
 		local leading="${match_text%%[![:space:]]*}"

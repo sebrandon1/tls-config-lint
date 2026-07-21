@@ -5,7 +5,7 @@ set -euo pipefail
 
 # Parse .tls-config-lint.yml config file
 # Sets global variables: CFG_SEVERITY_THRESHOLD, CFG_LANGUAGES, CFG_EXCLUDE_DIRS,
-# CFG_EXCLUDE_PATTERNS
+# CFG_EXCLUDE_PATTERNS, CFG_EXCEPTIONS
 parse_config_file() {
 	local config_file="$1"
 
@@ -14,6 +14,7 @@ parse_config_file() {
 	CFG_LANGUAGES=""
 	CFG_EXCLUDE_DIRS=""
 	CFG_EXCLUDE_PATTERNS=""
+	CFG_EXCEPTIONS=""
 
 	if [[ ! -f "$config_file" ]]; then
 		log_debug "No config file found at $config_file"
@@ -61,6 +62,13 @@ parse_config_file() {
 						CFG_EXCLUDE_PATTERNS="$value"
 					fi
 					;;
+				exceptions)
+					if [[ -n "$CFG_EXCEPTIONS" ]]; then
+						CFG_EXCEPTIONS="$CFG_EXCEPTIONS,$value"
+					else
+						CFG_EXCEPTIONS="$value"
+					fi
+					;;
 			esac
 			continue
 		fi
@@ -80,13 +88,14 @@ parse_config_file() {
 						CFG_SEVERITY_THRESHOLD="$value"
 					fi
 					;;
-				languages | exclude-dirs | exclude-patterns)
+				languages | exclude-dirs | exclude-patterns | exceptions)
 					# If value is on same line (not a list), store it
 					if [[ -n "$value" ]]; then
 						case "$current_key" in
 							languages) CFG_LANGUAGES="$value" ;;
 							exclude-dirs) CFG_EXCLUDE_DIRS="$value" ;;
 							exclude-patterns) CFG_EXCLUDE_PATTERNS="$value" ;;
+							exceptions) CFG_EXCEPTIONS="$value" ;;
 						esac
 					fi
 					;;
@@ -151,10 +160,11 @@ merge_config() {
 	SCAN_PATH="$input_scan_path"
 	FAIL_ON_FINDINGS="$input_fail_on_findings"
 	SARIF_OUTPUT="$input_sarif_output"
+	EXCEPTIONS="${CFG_EXCEPTIONS:-}"
 
 	# Export for use in other scripts
 	export SEVERITY_THRESHOLD LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
-	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT
+	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT EXCEPTIONS
 
 	# Validate merged configuration
 	validate_config
