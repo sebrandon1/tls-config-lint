@@ -122,6 +122,66 @@ assert_contains "Merge exports severity overrides" "hardcoded-tls-config:high" "
 
 rm -f "$TEMP_OVERRIDES"
 
+# Test: Exclude-patterns merge (union of input + config)
+TEMP_MERGE_PAT=$(mktemp)
+cat >"$TEMP_MERGE_PAT" <<'EOF'
+exclude-patterns:
+  - verify-false
+  - cert-none
+EOF
+
+export INPUT_SEVERITY_THRESHOLD="high"
+export INPUT_LANGUAGES="auto"
+export INPUT_EXCLUDE_DIRS=""
+export INPUT_EXCLUDE_PATTERNS="insecure-skip-verify"
+export INPUT_CONFIG_FILE="$TEMP_MERGE_PAT"
+export INPUT_SCAN_PATH="."
+export INPUT_FAIL_ON_FINDINGS="true"
+export INPUT_SARIF_OUTPUT=""
+
+merge_config
+assert_contains "Merge unions exclude-patterns (input)" "insecure-skip-verify" "$EXCLUDE_PATTERNS"
+assert_contains "Merge unions exclude-patterns (config)" "verify-false" "$EXCLUDE_PATTERNS"
+assert_contains "Merge unions exclude-patterns (config 2)" "cert-none" "$EXCLUDE_PATTERNS"
+rm -f "$TEMP_MERGE_PAT"
+
+# Test: Inline key:value syntax in config
+TEMP_INLINE=$(mktemp)
+cat >"$TEMP_INLINE" <<'EOF'
+severity-threshold: medium
+languages: go,rust
+exclude-dirs: vendor,tmp
+EOF
+
+parse_config_file "$TEMP_INLINE"
+assert_equals "Inline syntax parses severity-threshold" "medium" "$CFG_SEVERITY_THRESHOLD"
+assert_contains "Inline syntax parses languages (go)" "go" "$CFG_LANGUAGES"
+assert_contains "Inline syntax parses languages (rust)" "rust" "$CFG_LANGUAGES"
+assert_contains "Inline syntax parses exclude-dirs (vendor)" "vendor" "$CFG_EXCLUDE_DIRS"
+assert_contains "Inline syntax parses exclude-dirs (tmp)" "tmp" "$CFG_EXCLUDE_DIRS"
+rm -f "$TEMP_INLINE"
+
+# Test: REPORT_OUTPUT pass-through via merge_config
+TEMP_RPT=$(mktemp)
+cat >"$TEMP_RPT" <<'EOF'
+severity-threshold: high
+EOF
+
+export INPUT_SEVERITY_THRESHOLD="high"
+export INPUT_LANGUAGES="auto"
+export INPUT_EXCLUDE_DIRS=""
+export INPUT_EXCLUDE_PATTERNS=""
+export INPUT_CONFIG_FILE="$TEMP_RPT"
+export INPUT_SCAN_PATH="."
+export INPUT_FAIL_ON_FINDINGS="true"
+export INPUT_SARIF_OUTPUT=""
+export INPUT_REPORT_OUTPUT="report.csv"
+
+merge_config
+assert_equals "Merge exports REPORT_OUTPUT" "report.csv" "$REPORT_OUTPUT"
+unset INPUT_REPORT_OUTPUT
+rm -f "$TEMP_RPT"
+
 # Cleanup
 rm -f "$TEMP_CONFIG"
 

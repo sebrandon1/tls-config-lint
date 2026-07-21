@@ -147,6 +147,75 @@ generate_sarif "$sarif_out" 2>/dev/null
 sarif_json=$(cat "$sarif_out")
 assert_contains "Fallback pattern has configuration tag" "configuration" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].properties.tags[]')"
 
+# Test: Empty FINDINGS produces valid SARIF with no results
+FINDINGS=()
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_equals "Empty findings produces valid SARIF" "0" "$(echo "$sarif_json" | jq '.runs[0].results | length')"
+assert_equals "Empty findings has zero rules" "0" "$(echo "$sarif_json" | jq '.runs[0].tool.driver.rules | length')"
+assert_equals "Empty findings has SARIF version" "2.1.0" "$(echo "$sarif_json" | jq -r '.version')"
+
+# Test: Non-Go file produces correct helpUri lang prefix
+FINDINGS=()
+FINDINGS+=("verify-false|CRITICAL|VerifyFalse|Disables verification|client.py|10|verify=False|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "Python helpUri has python prefix" "#python-verify-false" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].helpUri')"
+
+FINDINGS=()
+FINDINGS+=("tls-reject-unauth|CRITICAL|RejectUnauth|Desc|server.js|10|code|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "Node.js helpUri has nodejs prefix" "#nodejs-tls-reject-unauth" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].helpUri')"
+
+FINDINGS=()
+FINDINGS+=("ssl-verifypeer|CRITICAL|VerifyPeer|Desc|client.cpp|10|code|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "C++ helpUri has cpp prefix" "#cpp-ssl-verifypeer" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].helpUri')"
+
+FINDINGS=()
+FINDINGS+=("trust-all-certs|CRITICAL|TrustAll|Desc|Main.java|10|code|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "Java helpUri has java prefix" "#java-trust-all-certs" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].helpUri')"
+
+FINDINGS=()
+FINDINGS+=("dangerous-verifier|CRITICAL|Verifier|Desc|client.rs|10|code|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "Rust helpUri has rust prefix" "#rust-dangerous-verifier" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].helpUri')"
+
+# Test: Unknown extension has no lang prefix in helpUri
+FINDINGS=()
+FINDINGS+=("test-pattern|HIGH|Test|Desc|config.yml|10|code|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "Unknown ext helpUri has bare pattern" "#test-pattern" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].helpUri')"
+
+# Test: pattern_tags for tls-profile
+FINDINGS=()
+FINDINGS+=("old-tls-profile|HIGH|OldProfile|Desc|f.go|1|c|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "tls-profile pattern has tls-profile tag" "tls-profile" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].properties.tags[]')"
+
+# Test: pattern_tags for post-quantum
+FINDINGS=()
+FINDINGS+=("pqc-adoption|INFO|PQC|Desc|f.go|1|c|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_contains "PQC pattern has post-quantum tag" "post-quantum" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.rules[0].properties.tags[]')"
+
+# Test: ruleIndex correctness for multiple rules
+FINDINGS=()
+FINDINGS+=("insecure-skip-verify|CRITICAL|ISV|Desc|f.go|1|c|1")
+FINDINGS+=("min-version-tls10|HIGH|WeakTLS|Desc|f.go|2|c|1")
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_equals "First result ruleIndex is 0" "0" "$(echo "$sarif_json" | jq '.runs[0].results[0].ruleIndex')"
+assert_equals "Second result ruleIndex is 1" "1" "$(echo "$sarif_json" | jq '.runs[0].results[1].ruleIndex')"
+
 # Test: column=1 when match starts at column 1
 FINDINGS=()
 FINDINGS+=("test-col1|HIGH|Test|Desc|app.go|1|no leading whitespace|1")

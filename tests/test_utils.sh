@@ -99,6 +99,41 @@ output=$(log_debug "test message")
 assert_contains "CLI log_debug shows [DEBUG] with DEBUG=1" "[DEBUG]" "$output"
 unset DEBUG
 
+# --- severity_to_sarif_level tests ---
+echo "  --- severity_to_sarif_level Tests ---"
+
+assert_equals "sarif_level CRITICAL -> error" "error" "$(severity_to_sarif_level "CRITICAL")"
+assert_equals "sarif_level HIGH -> error" "error" "$(severity_to_sarif_level "HIGH")"
+assert_equals "sarif_level MEDIUM -> warning" "warning" "$(severity_to_sarif_level "MEDIUM")"
+assert_equals "sarif_level INFO -> note" "note" "$(severity_to_sarif_level "INFO")"
+assert_equals "sarif_level unknown -> note" "note" "$(severity_to_sarif_level "bogus")"
+
+# --- severity_level known values ---
+assert_equals "severity_level critical is 4" "4" "$(severity_level "critical")"
+assert_equals "severity_level high is 3" "3" "$(severity_level "high")"
+assert_equals "severity_level medium is 2" "2" "$(severity_level "medium")"
+assert_equals "severity_level info is 1" "1" "$(severity_level "info")"
+
+# --- get_tool_version ---
+tool_ver=$(get_tool_version)
+if [[ -n "$tool_ver" ]]; then
+	assert_equals "get_tool_version returns non-empty" "true" "true"
+else
+	assert_equals "get_tool_version returns non-empty" "true" "false"
+fi
+
+# --- log_msg writes to stderr ---
+output=$(log_msg "stderr test" 2>&1)
+assert_contains "log_msg writes to stderr" "[tls-config-lint]" "$output"
+assert_contains "log_msg includes message" "stderr test" "$output"
+
+# --- log_debug in GHA mode ---
+# shellcheck disable=SC2034  # Used by utils.sh on re-source
+GITHUB_ACTIONS=true
+source "$ROOT_DIR/lib/utils.sh"
+output=$(log_debug "gha debug test")
+assert_contains "GHA log_debug produces ::debug" "::debug::" "$output"
+
 # Restore GitHub Actions mode for subsequent test files
 # shellcheck disable=SC2034  # Used by utils.sh on re-source
 GITHUB_ACTIONS=true
