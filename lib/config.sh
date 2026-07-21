@@ -5,7 +5,7 @@ set -euo pipefail
 
 # Parse .tls-config-lint.yml config file
 # Sets global variables: CFG_SEVERITY_THRESHOLD, CFG_LANGUAGES, CFG_EXCLUDE_DIRS,
-# CFG_EXCLUDE_PATTERNS, CFG_EXCEPTIONS
+# CFG_EXCLUDE_PATTERNS, CFG_EXCEPTIONS, CFG_SEVERITY_OVERRIDES
 parse_config_file() {
 	local config_file="$1"
 
@@ -15,6 +15,7 @@ parse_config_file() {
 	CFG_EXCLUDE_DIRS=""
 	CFG_EXCLUDE_PATTERNS=""
 	CFG_EXCEPTIONS=""
+	CFG_SEVERITY_OVERRIDES=""
 
 	if [[ ! -f "$config_file" ]]; then
 		log_debug "No config file found at $config_file"
@@ -69,6 +70,13 @@ parse_config_file() {
 						CFG_EXCEPTIONS="$value"
 					fi
 					;;
+				severity-overrides)
+					if [[ -n "$CFG_SEVERITY_OVERRIDES" ]]; then
+						CFG_SEVERITY_OVERRIDES="$CFG_SEVERITY_OVERRIDES,$value"
+					else
+						CFG_SEVERITY_OVERRIDES="$value"
+					fi
+					;;
 			esac
 			continue
 		fi
@@ -88,7 +96,7 @@ parse_config_file() {
 						CFG_SEVERITY_THRESHOLD="$value"
 					fi
 					;;
-				languages | exclude-dirs | exclude-patterns | exceptions)
+				languages | exclude-dirs | exclude-patterns | exceptions | severity-overrides)
 					# If value is on same line (not a list), store it
 					if [[ -n "$value" ]]; then
 						case "$current_key" in
@@ -96,6 +104,7 @@ parse_config_file() {
 							exclude-dirs) CFG_EXCLUDE_DIRS="$value" ;;
 							exclude-patterns) CFG_EXCLUDE_PATTERNS="$value" ;;
 							exceptions) CFG_EXCEPTIONS="$value" ;;
+							severity-overrides) CFG_SEVERITY_OVERRIDES="$value" ;;
 						esac
 					fi
 					;;
@@ -161,10 +170,11 @@ merge_config() {
 	FAIL_ON_FINDINGS="$input_fail_on_findings"
 	SARIF_OUTPUT="$input_sarif_output"
 	EXCEPTIONS="${CFG_EXCEPTIONS:-}"
+	SEVERITY_OVERRIDES="${CFG_SEVERITY_OVERRIDES:-}"
 
 	# Export for use in other scripts
 	export SEVERITY_THRESHOLD LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
-	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT EXCEPTIONS
+	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT EXCEPTIONS SEVERITY_OVERRIDES
 
 	# Validate merged configuration
 	validate_config
@@ -210,6 +220,22 @@ validate_config() {
 			valid=false
 			;;
 	esac
+
+	# Validate severity-overrides
+	if [[ -n "${SEVERITY_OVERRIDES:-}" ]]; then
+		IFS=',' read -ra ovr_list <<<"$SEVERITY_OVERRIDES"
+		for ovr in "${ovr_list[@]}"; do
+			ovr="${ovr// /}"
+			local ovr_sev="${ovr#*:}"
+			case "$(normalize_severity "$ovr_sev")" in
+				critical | high | medium | info) ;;
+				*)
+					log_error "Invalid severity in severity-overrides: '$ovr' (severity must be critical, high, medium, or info)"
+					valid=false
+					;;
+			esac
+		done
+	fi
 
 	# Validate scan-path exists
 	if [[ ! -d "$SCAN_PATH" ]]; then

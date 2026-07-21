@@ -30,3 +30,9 @@ severity-threshold: high
 # exceptions:
 #   - insecure-skip-verify:test_helpers.go
 #   - min-version-tls10:internal/legacy/
+
+# Per-pattern severity overrides (pattern-id:severity)
+# Override the built-in severity for specific patterns
+# severity-overrides:
+#   - hardcoded-tls-config:high
+#   - prefer-server-cipher-suites:info

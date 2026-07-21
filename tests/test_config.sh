@@ -29,11 +29,13 @@ assert_equals "Config parses severity-threshold" "critical" "$CFG_SEVERITY_THRES
 assert_equals "Config parses languages" "go,python" "$CFG_LANGUAGES"
 assert_equals "Config parses exclude-dirs" "test/fixtures,examples/insecure" "$CFG_EXCLUDE_DIRS"
 assert_equals "Config parses exclude-patterns" "insecure-skip-verify,verify-false" "$CFG_EXCLUDE_PATTERNS"
+assert_equals "Config without severity-overrides returns empty" "" "$CFG_SEVERITY_OVERRIDES"
 
 # Test: Missing config file returns defaults
 parse_config_file "/nonexistent/file.yml"
 assert_equals "Missing config returns empty severity" "" "$CFG_SEVERITY_THRESHOLD"
 assert_equals "Missing config returns empty languages" "" "$CFG_LANGUAGES"
+assert_equals "Missing config returns empty severity-overrides" "" "$CFG_SEVERITY_OVERRIDES"
 
 # Test: Merge config with inputs
 export INPUT_SEVERITY_THRESHOLD="high"
@@ -92,6 +94,34 @@ assert_contains "Merge exports exceptions" "insecure-skip-verify:test_helpers.go
 
 rm -f "$TEMP_EXCEPTIONS"
 
+# Test: Parse severity-overrides from config
+TEMP_OVERRIDES=$(mktemp)
+cat >"$TEMP_OVERRIDES" <<'EOF'
+severity-threshold: high
+severity-overrides:
+  - hardcoded-tls-config:high
+  - prefer-server-cipher-suites:info
+EOF
+
+parse_config_file "$TEMP_OVERRIDES"
+assert_contains "Config parses severity-overrides (first entry)" "hardcoded-tls-config:high" "$CFG_SEVERITY_OVERRIDES"
+assert_contains "Config parses severity-overrides (second entry)" "prefer-server-cipher-suites:info" "$CFG_SEVERITY_OVERRIDES"
+
+# Test: Severity overrides are exported via merge_config
+export INPUT_SEVERITY_THRESHOLD="high"
+export INPUT_LANGUAGES="auto"
+export INPUT_EXCLUDE_DIRS=""
+export INPUT_EXCLUDE_PATTERNS=""
+export INPUT_CONFIG_FILE="$TEMP_OVERRIDES"
+export INPUT_SCAN_PATH="."
+export INPUT_FAIL_ON_FINDINGS="true"
+export INPUT_SARIF_OUTPUT=""
+
+merge_config
+assert_contains "Merge exports severity overrides" "hardcoded-tls-config:high" "$SEVERITY_OVERRIDES"
+
+rm -f "$TEMP_OVERRIDES"
+
 # Cleanup
 rm -f "$TEMP_CONFIG"
 
@@ -105,6 +135,7 @@ run_validate() {
 		LANGUAGES="$2"
 		FAIL_ON_FINDINGS="$3"
 		SCAN_PATH="$4"
+		SEVERITY_OVERRIDES="${5:-}"
 		validate_config 2>/dev/null
 	)
 }
@@ -135,6 +166,20 @@ if run_validate "high" "auto" "true" "/nonexistent/path"; then
 	assert_equals "Invalid scan path rejected" "should_fail" "passed"
 else
 	assert_equals "Invalid scan path rejected" "true" "true"
+fi
+
+# Test: Invalid severity override is rejected
+if run_validate "high" "auto" "true" "." "insecure-skip-verify:crtical"; then
+	assert_equals "Invalid severity override rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid severity override rejected" "true" "true"
+fi
+
+# Test: Valid severity override passes validation
+if run_validate "high" "auto" "true" "." "insecure-skip-verify:medium"; then
+	assert_equals "Valid severity override passes validation" "true" "true"
+else
+	assert_equals "Valid severity override passes validation" "true" "false"
 fi
 
 # Test: Valid config passes validation
