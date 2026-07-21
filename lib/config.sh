@@ -124,6 +124,7 @@ merge_config() {
 	local input_scan_path="${INPUT_SCAN_PATH:-.}"
 	local input_fail_on_findings="${INPUT_FAIL_ON_FINDINGS:-true}"
 	local input_sarif_output="${INPUT_SARIF_OUTPUT:-}"
+	local input_report_output="${INPUT_REPORT_OUTPUT:-}"
 
 	# Parse config file
 	parse_config_file "$input_config_file"
@@ -169,12 +170,14 @@ merge_config() {
 	SCAN_PATH="$input_scan_path"
 	FAIL_ON_FINDINGS="$input_fail_on_findings"
 	SARIF_OUTPUT="$input_sarif_output"
+	REPORT_OUTPUT="$input_report_output"
 	EXCEPTIONS="${CFG_EXCEPTIONS:-}"
 	SEVERITY_OVERRIDES="${CFG_SEVERITY_OVERRIDES:-}"
 
 	# Export for use in other scripts
 	export SEVERITY_THRESHOLD LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
-	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT EXCEPTIONS SEVERITY_OVERRIDES
+	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT REPORT_OUTPUT
+	export EXCEPTIONS SEVERITY_OVERRIDES
 
 	# Validate merged configuration
 	validate_config
@@ -235,6 +238,17 @@ validate_config() {
 					;;
 			esac
 		done
+	fi
+
+	# Validate report-output extension
+	if [[ -n "${REPORT_OUTPUT:-}" ]]; then
+		case "$REPORT_OUTPUT" in
+			*.json | *.csv) ;;
+			*)
+				log_error "Invalid report-output: '$REPORT_OUTPUT' (must have .json or .csv extension)"
+				valid=false
+				;;
+		esac
 	fi
 
 	# Validate scan-path exists

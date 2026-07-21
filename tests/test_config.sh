@@ -136,6 +136,7 @@ run_validate() {
 		FAIL_ON_FINDINGS="$3"
 		SCAN_PATH="$4"
 		SEVERITY_OVERRIDES="${5:-}"
+		REPORT_OUTPUT="${6:-}"
 		validate_config 2>/dev/null
 	)
 }
@@ -180,6 +181,26 @@ if run_validate "high" "auto" "true" "." "insecure-skip-verify:medium"; then
 	assert_equals "Valid severity override passes validation" "true" "true"
 else
 	assert_equals "Valid severity override passes validation" "true" "false"
+fi
+
+# Test: Invalid report-output extension is rejected
+if run_validate "high" "auto" "true" "." "" "report.txt"; then
+	assert_equals "Invalid report-output extension rejected" "should_fail" "passed"
+else
+	assert_equals "Invalid report-output extension rejected" "true" "true"
+fi
+
+# Test: Valid report-output extensions pass validation
+if run_validate "high" "auto" "true" "." "" "report.json"; then
+	assert_equals "Valid .json report-output passes" "true" "true"
+else
+	assert_equals "Valid .json report-output passes" "true" "false"
+fi
+
+if run_validate "high" "auto" "true" "." "" "report.csv"; then
+	assert_equals "Valid .csv report-output passes" "true" "true"
+else
+	assert_equals "Valid .csv report-output passes" "true" "false"
 fi
 
 # Test: Valid config passes validation

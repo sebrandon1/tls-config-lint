@@ -60,6 +60,17 @@ See [`.tls-config-lint.example.yml`](../.tls-config-lint.example.yml) for a full
   if: always()
 ```
 
+### CSV or JSON Report
+
+```yaml
+- uses: sebrandon1/tls-config-lint@v1
+  with:
+    report-output: tls-findings.json   # or tls-findings.csv
+    fail-on-findings: false
+```
+
+The format is inferred from the file extension: `.json` produces a structured JSON report with scan metadata and findings, `.csv` produces a flat CSV table. JSON requires `jq`.
+
 ### Specific Languages Only
 
 ```yaml

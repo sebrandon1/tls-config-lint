@@ -39,6 +39,10 @@ inputs:
     description: 'Path to write SARIF file (empty = disabled)'
     required: false
     default: ''
+  report-output:
+    description: 'Path to write CSV or JSON report (format inferred from extension, empty = disabled)'
+    required: false
+    default: ''
 
 outputs:
   findings-count:
@@ -59,6 +63,9 @@ outputs:
   sarif-file:
     description: 'Path to SARIF file (if generated)'
     value: ${{ steps.scan.outputs.sarif-file }}
+  report-file:
+    description: 'Path to report file (if generated)'
+    value: ${{ steps.scan.outputs.report-file }}
   scan-duration:
     description: 'Scan duration (e.g. 3s)'
     value: ${{ steps.scan.outputs.scan-duration }}
@@ -78,4 +85,5 @@ runs:
         INPUT_SCAN_PATH: ${{ inputs.scan-path }}
         INPUT_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
         INPUT_SARIF_OUTPUT: ${{ inputs.sarif-output }}
+        INPUT_REPORT_OUTPUT: ${{ inputs.report-output }}
       run: bash "${{ github.action_path }}/entrypoint.sh"
