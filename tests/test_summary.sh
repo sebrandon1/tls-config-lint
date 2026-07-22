@@ -48,6 +48,8 @@ assert_contains "Summary contains total count" "Total findings" "$output"
 assert_contains "Summary shows threshold" "high" "$output"
 assert_contains "Summary contains findings table" "test.go" "$output"
 assert_contains "Summary contains file reference" "test.py" "$output"
+assert_contains "Summary has Docs column header" "Docs" "$output"
+assert_contains "Summary has docs link" "docs/patterns.md" "$output"
 
 # --- CLI mode tests ---
 echo "  --- Summary Tests (CLI mode) ---"

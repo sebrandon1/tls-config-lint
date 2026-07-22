@@ -25,7 +25,9 @@ emit_annotations_gha() {
 		annotation_type=$(severity_to_sarif_level "$severity")
 		[[ "$annotation_type" == "note" ]] && annotation_type="notice"
 
-		local message="[${severity}] ${name}: ${description}"
+		local docs_url
+		docs_url=$(pattern_docs_url "$pattern_id" "$file")
+		local message="[${severity}] ${name}: ${description} (docs: ${docs_url})"
 		if [[ -n "${DEBUG:-}" ]]; then
 			message="${message} | match: ${match_text}"
 			local finding_regex="${FINDING_REGEXES[$i]:-}"
@@ -57,7 +59,10 @@ emit_annotations_cli() {
 			*) color="$COLOR_BLUE" ;;
 		esac
 
+		local docs_url
+		docs_url=$(pattern_docs_url "$pattern_id" "$file")
 		echo -e "  ${color}[${severity}]${COLOR_RESET} ${file}:${line_num} — ${COLOR_BOLD}${name}${COLOR_RESET}: ${description}"
+		echo -e "    ${COLOR_DIM}Docs: ${docs_url}${COLOR_RESET}"
 		if [[ -n "${DEBUG:-}" ]]; then
 			echo -e "    ${COLOR_DIM}Match: ${match_text}${COLOR_RESET}"
 			local finding_regex="${FINDING_REGEXES[$i]:-}"

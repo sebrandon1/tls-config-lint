@@ -3,18 +3,6 @@
 
 set -euo pipefail
 
-file_to_lang_prefix() {
-	case "$1" in
-		*.go) echo "go" ;;
-		*.py) echo "python" ;;
-		*.js | *.mjs | *.ts | *.mts) echo "nodejs" ;;
-		*.cpp | *.cc | *.cxx | *.h | *.hpp) echo "cpp" ;;
-		*.java) echo "java" ;;
-		*.rs) echo "rust" ;;
-		*) echo "" ;;
-	esac
-}
-
 pattern_tags() {
 	case "$1" in
 		*skip-verify* | *verify-false* | *verify-none* | *verify-peer* | *verifypeer* | *verifyhost* | *hostname-verif* | *check-hostname* | *cert-none* | *unverified* | *invalid-cert* | *invalid-hostname* | *trust-all* | *reject-unauthorized* | *tls-reject* | *dangerous-verifier* | *noop-hostname* | *allow-all-hostname*)
