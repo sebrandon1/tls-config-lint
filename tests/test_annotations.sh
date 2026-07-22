@@ -77,7 +77,61 @@ FINDINGS=()
 empty_output=$(emit_annotations)
 assert_equals "CLI empty findings produce no output" "" "$empty_output"
 
+# --- Debug Mode Tests ---
+echo "  --- Annotations Tests (Debug mode) ---"
+
+# Test: GHA debug mode includes match and regex in annotations
+# shellcheck disable=SC2034
+GITHUB_ACTIONS=true
+source "$ROOT_DIR/lib/utils.sh"
+
+FINDINGS=()
+FINDINGS+=("test-critical|CRITICAL|Test Critical|Critical finding|test.go|10|InsecureSkipVerify: true")
+# shellcheck disable=SC2034
+FINDING_REGEXES=()
+FINDING_REGEXES+=("InsecureSkipVerify[[:space:]]*:[[:space:]]*true")
+
+# shellcheck disable=SC2034
+DEBUG=1
+output=$(emit_annotations)
+assert_contains "GHA debug includes match text" "match: InsecureSkipVerify: true" "$output"
+assert_contains "GHA debug includes regex" "regex: InsecureSkipVerify" "$output"
+
+# Test: GHA non-debug does not include match/regex
+unset DEBUG
+output=$(emit_annotations)
+if echo "$output" | grep -q "regex:"; then
+	assert_equals "GHA non-debug excludes regex" "true" "false"
+else
+	assert_equals "GHA non-debug excludes regex" "true" "true"
+fi
+
+# Test: CLI debug mode includes match and regex
+unset GITHUB_ACTIONS
+source "$ROOT_DIR/lib/utils.sh"
+
+FINDINGS=()
+FINDINGS+=("test-critical|CRITICAL|Test Critical|Critical finding|test.go|10|InsecureSkipVerify: true")
+FINDING_REGEXES=()
+FINDING_REGEXES+=("InsecureSkipVerify[[:space:]]*:[[:space:]]*true")
+
+# shellcheck disable=SC2034
+DEBUG=1
+output=$(emit_annotations)
+assert_contains "CLI debug includes Match line" "Match: InsecureSkipVerify: true" "$output"
+assert_contains "CLI debug includes Regex line" "Regex: InsecureSkipVerify" "$output"
+
+# Test: CLI non-debug does not include Match/Regex
+unset DEBUG
+output=$(emit_annotations)
+if echo "$output" | grep -q "Regex:"; then
+	assert_equals "CLI non-debug excludes regex" "true" "false"
+else
+	assert_equals "CLI non-debug excludes regex" "true" "true"
+fi
+unset DEBUG
+
 # Restore GitHub Actions mode for subsequent test files
-# shellcheck disable=SC2034  # Used by utils.sh on re-source
+# shellcheck disable=SC2034
 GITHUB_ACTIONS=true
 source "$ROOT_DIR/lib/utils.sh"

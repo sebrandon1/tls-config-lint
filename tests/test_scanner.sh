@@ -135,6 +135,9 @@ for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 done
 assert_equals "Excluded pattern not found in results" "false" "$found_excluded"
 
+# Verify EXCLUDED_PATTERNS_USED tracking
+assert_contains "EXCLUDED_PATTERNS_USED tracks excluded pattern" "insecure-skip-verify" "$EXCLUDED_PATTERNS_USED"
+
 # --- Per-File Exception Tests ---
 echo "  --- Per-File Exception Tests ---"
 
@@ -220,6 +223,36 @@ assert_equals "Exception does not suppress pattern in other files" "true" "$foun
 # Cleanup
 # shellcheck disable=SC2034  # Reset for subsequent tests
 EXCEPTIONS=""
+
+# Test: EXCEPTIONS_USED tracking with matching path
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+# shellcheck disable=SC2034
+EXCEPTIONS_USED=""
+
+exc_dir=$(mktemp -d)
+cat >"$exc_dir/insecure.go" <<'GOEOF'
+package main
+import "crypto/tls"
+func f() { _ = &tls.Config{InsecureSkipVerify: true} }
+GOEOF
+
+source "$ROOT_DIR/patterns/go.sh"
+# shellcheck disable=SC2034
+EXCEPTIONS="insecure-skip-verify:insecure.go"
+scan_language "$exc_dir" "go" "" ""
+
+assert_contains "EXCEPTIONS_USED tracks excepted pattern" "insecure-skip-verify:" "$EXCEPTIONS_USED"
+# shellcheck disable=SC2034
+EXCEPTIONS=""
+# shellcheck disable=SC2034
+EXCEPTIONS_USED=""
+rm -rf "$exc_dir"
 
 # --- Severity Override Tests ---
 echo "  --- Severity Override Tests ---"
@@ -402,6 +435,9 @@ for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 done
 assert_equals "Blanket-suppressed pattern does not leak" "false" "$blanket_leak"
 
+# Verify INLINE_SUPPRESSION_COUNT tracking
+assert_greater_than "INLINE_SUPPRESSION_COUNT tracks suppressed lines" 0 "$INLINE_SUPPRESSION_COUNT"
+
 # Python inline suppression integration test
 FINDINGS=()
 CRITICAL_COUNT=0
@@ -580,6 +616,9 @@ for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 	fi
 done
 assert_equals "filter_go_tls_config_noise removes finding in file with TLSSecurityProfile" "false" "$found_noise"
+
+# Verify FINDING_REGEXES stays in sync with FINDINGS after filtering
+assert_equals "FINDING_REGEXES length matches FINDINGS after filter" "${#FINDINGS[@]}" "${#FINDING_REGEXES[@]}"
 rm -rf "$noise_dir"
 
 # Test: hardcoded-tls-config kept when no TLSSecurityProfile

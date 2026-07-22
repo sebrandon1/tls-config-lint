@@ -59,6 +59,11 @@ build_language_breakdown() {
 	fi
 }
 
+# Check if any exclusions are configured
+has_exclusion_config() {
+	[[ -n "${EXCLUDE_PATTERNS:-}" ]] || [[ -n "${EXCEPTIONS:-}" ]] || [[ "$INLINE_SUPPRESSION_COUNT" -gt 0 ]]
+}
+
 # Generate job summary
 generate_summary() {
 	if [[ "$CLI_MODE" == "true" ]]; then
@@ -100,6 +105,57 @@ generate_summary_cli() {
 	breakdown=$(build_language_breakdown)
 	if [[ -n "$breakdown" ]]; then
 		echo "  By language: $breakdown"
+	fi
+
+	if has_exclusion_config; then
+		echo ""
+		echo -e "  ${COLOR_BOLD}Exclusion audit:${COLOR_RESET}"
+		if [[ -n "${EXCLUDE_PATTERNS:-}" ]]; then
+			IFS=',' read -ra pats <<<"$EXCLUDE_PATTERNS"
+			for pat in "${pats[@]}"; do
+				pat="${pat// /}"
+				if in_csv_list "$pat" "${EXCLUDED_PATTERNS_USED:-}"; then
+					echo "    $pat — suppressed (skipped during scan)"
+				else
+					echo -e "    $pat — ${COLOR_YELLOW}unused${COLOR_RESET} (no matches to suppress)"
+				fi
+			done
+		fi
+		if [[ -n "${EXCEPTIONS:-}" ]]; then
+			IFS=',' read -ra excs <<<"$EXCEPTIONS"
+			for exc in "${excs[@]}"; do
+				exc="${exc// /}"
+				local exc_pattern="${exc%%:*}"
+				local exc_path="${exc#*:}"
+				local matched=false
+				IFS=',' read -ra used_entries <<<"${EXCEPTIONS_USED:-}"
+				for used in "${used_entries[@]+"${used_entries[@]}"}"; do
+					local used_pat="${used%%:*}"
+					local used_file="${used#*:}"
+					if [[ "$used_pat" != "$exc_pattern" ]]; then
+						continue
+					fi
+					# Directory prefix match or exact/glob match
+					if [[ "$exc_path" == */ ]] && [[ "$used_file" == "$exc_path"* ]]; then
+						matched=true
+						break
+					fi
+					# shellcheck disable=SC2053
+					if [[ "$used_file" == $exc_path ]]; then
+						matched=true
+						break
+					fi
+				done
+				if $matched; then
+					echo "    $exc — suppressed findings"
+				else
+					echo -e "    $exc — ${COLOR_YELLOW}unused${COLOR_RESET} (no matches to suppress)"
+				fi
+			done
+		fi
+		if [[ "$INLINE_SUPPRESSION_COUNT" -gt 0 ]]; then
+			echo "    Inline suppressions: $INLINE_SUPPRESSION_COUNT finding(s) suppressed"
+		fi
 	fi
 	echo ""
 }
@@ -157,6 +213,58 @@ generate_summary_gha() {
 			summary+="| $severity | $name | \`$file\` | $line_num | $description |\n"
 		done
 
+		summary+="\n"
+	fi
+
+	if has_exclusion_config; then
+		summary+="### Exclusion Audit\n\n"
+		summary+="| Type | Entry | Status |\n"
+		summary+="|------|-------|--------|\n"
+		if [[ -n "${EXCLUDE_PATTERNS:-}" ]]; then
+			IFS=',' read -ra pats <<<"$EXCLUDE_PATTERNS"
+			for pat in "${pats[@]}"; do
+				pat="${pat// /}"
+				if in_csv_list "$pat" "${EXCLUDED_PATTERNS_USED:-}"; then
+					summary+="| Excluded pattern | \`$pat\` | :white_check_mark: Suppressed |\n"
+				else
+					summary+="| Excluded pattern | \`$pat\` | :warning: Unused |\n"
+				fi
+			done
+		fi
+		if [[ -n "${EXCEPTIONS:-}" ]]; then
+			IFS=',' read -ra excs <<<"$EXCEPTIONS"
+			for exc in "${excs[@]}"; do
+				exc="${exc// /}"
+				local exc_pattern="${exc%%:*}"
+				local exc_path="${exc#*:}"
+				local matched=false
+				IFS=',' read -ra used_entries <<<"${EXCEPTIONS_USED:-}"
+				for used in "${used_entries[@]+"${used_entries[@]}"}"; do
+					local used_pat="${used%%:*}"
+					local used_file="${used#*:}"
+					if [[ "$used_pat" != "$exc_pattern" ]]; then
+						continue
+					fi
+					if [[ "$exc_path" == */ ]] && [[ "$used_file" == "$exc_path"* ]]; then
+						matched=true
+						break
+					fi
+					# shellcheck disable=SC2053
+					if [[ "$used_file" == $exc_path ]]; then
+						matched=true
+						break
+					fi
+				done
+				if $matched; then
+					summary+="| Exception | \`$exc\` | :white_check_mark: Suppressed |\n"
+				else
+					summary+="| Exception | \`$exc\` | :warning: Unused |\n"
+				fi
+			done
+		fi
+		if [[ "$INLINE_SUPPRESSION_COUNT" -gt 0 ]]; then
+			summary+="| Inline suppression | — | $INLINE_SUPPRESSION_COUNT finding(s) suppressed |\n"
+		fi
 		summary+="\n"
 	fi
 

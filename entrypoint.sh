@@ -40,6 +40,12 @@ main() {
 		fi
 	fi
 
+	# Enable debug mode if requested
+	if [[ "${INPUT_DEBUG:-false}" == "true" ]]; then
+		export DEBUG=1
+		log_msg "Debug mode enabled"
+	fi
+
 	log_msg "Configuration:"
 	log_msg "  Severity threshold: $SEVERITY_THRESHOLD"
 	log_msg "  Languages: $LANGUAGES"
