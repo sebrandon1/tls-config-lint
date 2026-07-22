@@ -108,6 +108,23 @@ The format is inferred from the file extension: `.json` produces a structured JS
     exclude-patterns: insecure-skip-verify,hardcoded-tls-config
 ```
 
+### Debug Mode
+
+Enable debug mode to see which regex matched for each finding, useful for diagnosing false positives:
+
+```yaml
+- uses: sebrandon1/tls-config-lint@v1
+  with:
+    debug: true
+    fail-on-findings: false
+```
+
+Each annotation will include the matched source text and the regex pattern. Debug log lines also show per-finding detail during scanning. For local CLI usage, set `DEBUG=1`:
+
+```bash
+DEBUG=1 bash entrypoint.sh
+```
+
 ### Custom Severity Threshold
 
 ```yaml

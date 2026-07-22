@@ -6,10 +6,17 @@ set -euo pipefail
 # Global findings storage
 # Each finding: "id|severity|name|description|file|line|match|col"
 FINDINGS=()
+# Parallel array: regex that matched each finding (same indices as FINDINGS)
+FINDING_REGEXES=()
 CRITICAL_COUNT=0
 HIGH_COUNT=0
 MEDIUM_COUNT=0
 INFO_COUNT=0
+
+# Exclusion audit tracking
+EXCLUDED_PATTERNS_USED=""
+EXCEPTIONS_USED=""
+INLINE_SUPPRESSION_COUNT=0
 
 # Build grep --include flags for a language
 build_include_flags() {
@@ -186,6 +193,11 @@ scan_pattern() {
 	# Skip excluded patterns
 	if is_pattern_excluded "$pattern_id" "$exclude_patterns"; then
 		log_debug "Skipping excluded pattern: $pattern_id"
+		if [[ -z "$EXCLUDED_PATTERNS_USED" ]]; then
+			EXCLUDED_PATTERNS_USED="$pattern_id"
+		elif [[ ",$EXCLUDED_PATTERNS_USED," != *",$pattern_id,"* ]]; then
+			EXCLUDED_PATTERNS_USED="${EXCLUDED_PATTERNS_USED},${pattern_id}"
+		fi
 		return 0
 	fi
 
@@ -229,11 +241,18 @@ scan_pattern() {
 
 		# Skip if this pattern+file is excepted
 		if is_path_excluded "$pattern_id" "$file" "${EXCEPTIONS:-}"; then
+			local exc_entry="${pattern_id}:${file}"
+			if [[ -z "$EXCEPTIONS_USED" ]]; then
+				EXCEPTIONS_USED="$exc_entry"
+			elif [[ ",$EXCEPTIONS_USED," != *",$exc_entry,"* ]]; then
+				EXCEPTIONS_USED="${EXCEPTIONS_USED},${exc_entry}"
+			fi
 			continue
 		fi
 
 		# Skip if line has inline suppression comment
 		if is_line_suppressed "$pattern_id" "$match_text"; then
+			INLINE_SUPPRESSION_COUNT=$((INLINE_SUPPRESSION_COUNT + 1))
 			continue
 		fi
 
@@ -244,6 +263,11 @@ scan_pattern() {
 		match_text="${match_text:0:200}"
 
 		FINDINGS+=("${pattern_id}|${severity}|${name}|${description}|${file}|${line_num}|${match_text}|${col}")
+		FINDING_REGEXES+=("$regex")
+
+		log_debug "Finding: $pattern_id in $file:$line_num"
+		log_debug "  Regex: $regex"
+		log_debug "  Match: $match_text"
 
 		# Update severity counters
 		case "$(normalize_severity "$severity")" in
@@ -288,6 +312,8 @@ filter_go_tls_config_noise() {
 
 	# Filter findings: remove hardcoded-tls-config entries where file also references TLSSecurityProfile
 	local filtered_findings=()
+	local filtered_regexes=()
+	local i=0
 	for finding in "${FINDINGS[@]}"; do
 		IFS='|' read -r fid fsev _ _ ffile _ _ _ <<<"$finding"
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
@@ -295,6 +321,7 @@ filter_go_tls_config_noise() {
 			# Keep finding only if file does NOT reference TLSSecurityProfile
 			if ! grep -qI "TLSSecurityProfile" "$full_path" 2>/dev/null; then
 				filtered_findings+=("$finding")
+				filtered_regexes+=("${FINDING_REGEXES[$i]}")
 			else
 				log_debug "Filtered tls.Config finding in $ffile (uses TLSSecurityProfile)"
 				# Decrement counter
@@ -307,10 +334,13 @@ filter_go_tls_config_noise() {
 			fi
 		else
 			filtered_findings+=("$finding")
+			filtered_regexes+=("${FINDING_REGEXES[$i]}")
 		fi
+		i=$((i + 1))
 	done
 
 	FINDINGS=("${filtered_findings[@]+"${filtered_findings[@]}"}")
+	FINDING_REGEXES=("${filtered_regexes[@]+"${filtered_regexes[@]}"}")
 }
 
 # Scan all patterns for a language

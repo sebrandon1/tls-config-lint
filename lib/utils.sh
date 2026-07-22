@@ -122,9 +122,12 @@ csv_to_list() {
 in_csv_list() {
 	local needle="$1"
 	local haystack="$2"
+	if [[ -z "$haystack" ]]; then
+		return 1
+	fi
 	local item
 	IFS=',' read -ra items <<<"$haystack"
-	for item in "${items[@]}"; do
+	for item in "${items[@]+"${items[@]}"}"; do
 		if [[ "$item" == "$needle" ]]; then
 			return 0
 		fi

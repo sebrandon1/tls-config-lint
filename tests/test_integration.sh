@@ -128,10 +128,11 @@ run_entrypoint rc \
 
 assert_equals "Integration: pattern exclusion scan exits 0" "0" "$rc"
 
-# The excluded pattern should not appear in summary
+# The excluded pattern should not appear in findings table (but may appear in exclusion audit)
 summary_content=$(cat "$LAST_SUMMARY_FILE")
-assert_equals "Integration: excluded pattern not in summary" "false" \
-	"$([[ "$summary_content" == *"insecure-skip-verify"* ]] && echo "true" || echo "false")"
+findings_section=$(echo "$summary_content" | sed -n '/### Findings/,/### Exclusion/p' | grep -v "Exclusion Audit")
+assert_equals "Integration: excluded pattern not in findings" "false" \
+	"$([[ "$findings_section" == *"insecure-skip-verify"* ]] && echo "true" || echo "false")"
 
 cleanup_entrypoint
 
@@ -303,3 +304,33 @@ if command -v jq >/dev/null 2>&1; then
 	cleanup_entrypoint
 	rm -rf "$json_tmpdir"
 fi
+
+# --- Test 16: Debug mode via INPUT_DEBUG ---
+debug_tmpdir=$(mktemp -d)
+debug_output="$debug_tmpdir/output"
+debug_summary="$debug_tmpdir/summary"
+touch "$debug_output" "$debug_summary"
+
+debug_exit=0
+env -i PATH="$PATH" HOME="$HOME" TERM="${TERM:-dumb}" \
+	GITHUB_ACTIONS=true \
+	GITHUB_OUTPUT="$debug_output" \
+	GITHUB_STEP_SUMMARY="$debug_summary" \
+	INPUT_SCAN_PATH="$ROOT_DIR/testdata/go" \
+	INPUT_LANGUAGES="go" \
+	INPUT_FAIL_ON_FINDINGS="false" \
+	INPUT_CONFIG_FILE="/dev/null" \
+	INPUT_DEBUG="true" \
+	bash "$ROOT_DIR/entrypoint.sh" >"$debug_tmpdir/stdout" 2>"$debug_tmpdir/stderr" || debug_exit=$?
+
+assert_equals "Integration: debug mode scan exits 0" "0" "$debug_exit"
+
+stderr_content=$(cat "$debug_tmpdir/stderr")
+assert_contains "Integration: debug mode logs enabled message" "Debug mode enabled" "$stderr_content"
+
+# In GHA mode, log_debug outputs ::debug:: to stdout
+stdout_content=$(cat "$debug_tmpdir/stdout")
+assert_contains "Integration: debug mode logs finding details" "Finding:" "$stdout_content"
+assert_contains "Integration: debug mode logs regex" "Regex:" "$stdout_content"
+
+rm -rf "$debug_tmpdir"
