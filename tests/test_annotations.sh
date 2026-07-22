@@ -39,6 +39,7 @@ assert_contains "INFO produces ::notice" "::notice" "$info_line"
 # Test: Annotations include file and line number
 assert_contains "Annotations include file path" "file=test.go" "$output"
 assert_contains "Annotations include line number" "line=10" "$output"
+assert_contains "GHA annotations include docs link" "docs/patterns.md#go-test-critical" "$output"
 
 # Test: Empty findings produce no output
 FINDINGS=()
@@ -64,6 +65,7 @@ assert_contains "CLI mode shows CRITICAL severity" "CRITICAL" "$output"
 assert_contains "CLI mode shows file:line format" "test.go:10" "$output"
 assert_contains "CLI mode shows finding name" "Test High" "$output"
 assert_contains "CLI mode shows INFO severity" "INFO" "$output"
+assert_contains "CLI annotations include docs link" "docs/patterns.md" "$output"
 
 # Verify no GitHub workflow commands in CLI output
 if echo "$output" | grep -q "^::"; then

@@ -134,6 +134,29 @@ source "$ROOT_DIR/lib/utils.sh"
 output=$(log_debug "gha debug test")
 assert_contains "GHA log_debug produces ::debug" "::debug::" "$output"
 
+# --- file_to_lang_prefix tests ---
+echo "  --- file_to_lang_prefix Tests ---"
+
+assert_equals "file_to_lang_prefix .go" "go" "$(file_to_lang_prefix "main.go")"
+assert_equals "file_to_lang_prefix .py" "python" "$(file_to_lang_prefix "app.py")"
+assert_equals "file_to_lang_prefix .js" "nodejs" "$(file_to_lang_prefix "server.js")"
+assert_equals "file_to_lang_prefix .ts" "nodejs" "$(file_to_lang_prefix "server.ts")"
+assert_equals "file_to_lang_prefix .cpp" "cpp" "$(file_to_lang_prefix "tls.cpp")"
+assert_equals "file_to_lang_prefix .java" "java" "$(file_to_lang_prefix "Main.java")"
+assert_equals "file_to_lang_prefix .rs" "rust" "$(file_to_lang_prefix "lib.rs")"
+assert_equals "file_to_lang_prefix unknown" "" "$(file_to_lang_prefix "config.yml")"
+
+# --- pattern_docs_url tests ---
+url=$(pattern_docs_url "insecure-skip-verify" "main.go")
+assert_contains "pattern_docs_url has base URL" "docs/patterns.md" "$url"
+assert_contains "pattern_docs_url has Go anchor" "#go-insecure-skip-verify" "$url"
+
+url=$(pattern_docs_url "verify-false" "app.py")
+assert_contains "pattern_docs_url has Python anchor" "#python-verify-false" "$url"
+
+url=$(pattern_docs_url "test-pattern" "config.yml")
+assert_contains "pattern_docs_url bare anchor for unknown ext" "#test-pattern" "$url"
+
 # Restore GitHub Actions mode for subsequent test files
 # shellcheck disable=SC2034  # Used by utils.sh on re-source
 GITHUB_ACTIONS=true

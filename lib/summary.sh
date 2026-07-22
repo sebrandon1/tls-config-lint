@@ -202,15 +202,17 @@ generate_summary_gha() {
 
 		# Findings table
 		summary+="### Findings\n\n"
-		summary+="| Severity | Pattern | File | Line | Description |\n"
-		summary+="|----------|---------|------|------|-------------|\n"
+		summary+="| Severity | Pattern | File | Line | Description | Docs |\n"
+		summary+="|----------|---------|------|------|-------------|------|\n"
 
 		for finding in "${FINDINGS[@]}"; do
 			# shellcheck disable=SC2034  # All fields needed for table row
 			IFS='|' read -r pattern_id severity name description file line_num match_text _ <<<"$finding"
 			# Escape pipe characters in description for markdown table
 			description="${description//|/\\|}"
-			summary+="| $severity | $name | \`$file\` | $line_num | $description |\n"
+			local docs_url
+			docs_url=$(pattern_docs_url "$pattern_id" "$file")
+			summary+="| $severity | $name | \`$file\` | $line_num | $description | [View]($docs_url) |\n"
 		done
 
 		summary+="\n"

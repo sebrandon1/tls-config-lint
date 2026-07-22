@@ -134,3 +134,26 @@ in_csv_list() {
 	done
 	return 1
 }
+
+# Map file extension to language prefix for docs anchors
+file_to_lang_prefix() {
+	case "$1" in
+		*.go) echo "go" ;;
+		*.py) echo "python" ;;
+		*.js | *.mjs | *.ts | *.mts) echo "nodejs" ;;
+		*.cpp | *.cc | *.cxx | *.h | *.hpp) echo "cpp" ;;
+		*.java) echo "java" ;;
+		*.rs) echo "rust" ;;
+		*) echo "" ;;
+	esac
+}
+
+# Build docs URL for a pattern finding
+pattern_docs_url() {
+	local pattern_id="$1"
+	local file="$2"
+	local lang_prefix
+	lang_prefix=$(file_to_lang_prefix "$file")
+	local anchor="${lang_prefix:+${lang_prefix}-}${pattern_id}"
+	echo "https://github.com/sebrandon1/tls-config-lint/blob/main/docs/patterns.md#${anchor}"
+}
