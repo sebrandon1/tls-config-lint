@@ -31,6 +31,29 @@ assert_equals "Config parses exclude-dirs" "test/fixtures,examples/insecure" "$C
 assert_equals "Config parses exclude-patterns" "insecure-skip-verify,verify-false" "$CFG_EXCLUDE_PATTERNS"
 assert_equals "Config without severity-overrides returns empty" "" "$CFG_SEVERITY_OVERRIDES"
 
+# Test: Unknown key produces warning with suggestion
+TEMP_UNKNOWN=$(mktemp)
+cat >"$TEMP_UNKNOWN" <<'EOF'
+sevrity-threshold: high
+languages:
+  - go
+EOF
+
+output=$(parse_config_file "$TEMP_UNKNOWN" 2>&1)
+assert_contains "Unknown key warns with suggestion" "did you mean" "$output"
+assert_contains "Unknown key suggests correct key" "severity-threshold" "$output"
+rm -f "$TEMP_UNKNOWN"
+
+# Test: Completely unknown key lists valid keys
+TEMP_BOGUS=$(mktemp)
+cat >"$TEMP_BOGUS" <<'EOF'
+foobar: true
+EOF
+
+output=$(parse_config_file "$TEMP_BOGUS" 2>&1)
+assert_contains "Unknown key lists valid keys" "valid keys:" "$output"
+rm -f "$TEMP_BOGUS"
+
 # Test: Missing config file returns defaults
 parse_config_file "/nonexistent/file.yml"
 assert_equals "Missing config returns empty severity" "" "$CFG_SEVERITY_THRESHOLD"

@@ -3,6 +3,31 @@
 
 set -euo pipefail
 
+# Known config keys for typo detection
+_VALID_KEYS="severity-threshold languages exclude-dirs exclude-patterns exceptions severity-overrides"
+
+_warn_unknown_key() {
+	local key="$1"
+	local best="" best_len=0
+	for valid in $_VALID_KEYS; do
+		# Find longest common prefix length
+		local i=0 len=${#key}
+		[[ ${#valid} -lt $len ]] && len=${#valid}
+		while [[ $i -lt $len ]] && [[ "${key:$i:1}" == "${valid:$i:1}" ]]; do
+			i=$((i + 1))
+		done
+		if [[ $i -gt $best_len ]]; then
+			best_len=$i
+			best="$valid"
+		fi
+	done
+	if [[ $best_len -ge 3 ]]; then
+		log_warning "Unknown config key '$key' — did you mean '$best'?"
+	else
+		log_warning "Unknown config key '$key' (valid keys: $_VALID_KEYS)"
+	fi
+}
+
 # Parse .tls-config-lint.yml config file
 # Sets global variables: CFG_SEVERITY_THRESHOLD, CFG_LANGUAGES, CFG_EXCLUDE_DIRS,
 # CFG_EXCLUDE_PATTERNS, CFG_EXCEPTIONS, CFG_SEVERITY_OVERRIDES
@@ -107,6 +132,10 @@ parse_config_file() {
 							severity-overrides) CFG_SEVERITY_OVERRIDES="$value" ;;
 						esac
 					fi
+					;;
+				*)
+					_warn_unknown_key "$current_key"
+					current_key=""
 					;;
 			esac
 		fi

@@ -17,7 +17,11 @@ A GitHub Action that scans your codebase for TLS configuration anti-patterns and
 - **Job Summary** — Markdown findings table in the GitHub Actions summary
 - **Composite Action** — No Docker build overhead
 
-## Quick Start
+## Getting Started
+
+### 1. Add the workflow
+
+Create `.github/workflows/tls-lint.yml` in your repository:
 
 ```yaml
 name: TLS Lint
@@ -28,6 +32,76 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: sebrandon1/tls-config-lint@v1
+```
+
+That's it — push the file and the action auto-detects your project languages and scans for TLS anti-patterns.
+
+### 2. Understand the output
+
+When findings are detected, they appear in three places:
+
+- **PR annotations** — Inline comments on the affected lines in your pull request
+- **Job summary** — A severity table and findings list in the Actions run summary
+- **Exit code** — The step fails (exit 1) if findings meet or exceed the severity threshold
+
+Each finding includes a link to its [remediation docs](docs/patterns.md) with insecure/secure code examples.
+
+### 3. Interpret severity levels
+
+| Level | Meaning | Examples |
+|-------|---------|----------|
+| **CRITICAL** | Verification disabled, NULL ciphers | `InsecureSkipVerify: true`, `verify=False` |
+| **HIGH** | Weak TLS versions, broken ciphers | TLS 1.0/1.1, RC4, 3DES |
+| **MEDIUM** | Prevents TLS 1.3 adoption | `MaxVersion: TLS 1.2` |
+| **INFO** | Post-quantum, deprecated features | PQC/ML-KEM, `PreferServerCipherSuites` |
+
+By default, the action fails on HIGH and above. Change the threshold:
+
+```yaml
+- uses: sebrandon1/tls-config-lint@v1
+  with:
+    severity-threshold: critical  # only fail on critical findings
+```
+
+### 4. Suppress false positives
+
+**Inline** — Add a comment on the affected line:
+
+```go
+InsecureSkipVerify: true, // tls-lint:ignore
+```
+
+**By pattern** — Exclude specific pattern IDs:
+
+```yaml
+- uses: sebrandon1/tls-config-lint@v1
+  with:
+    exclude-patterns: insecure-skip-verify,hardcoded-tls-config
+```
+
+**By file** — Create a `.tls-config-lint.yml` config file:
+
+```yaml
+exceptions:
+  - insecure-skip-verify:test_helpers.go
+  - min-version-tls10:internal/legacy/
+```
+
+See [Configuration](docs/configuration.md) for all options including severity overrides, report output, and debug mode.
+
+### 5. Enable GitHub Code Scanning (optional)
+
+Add SARIF output for findings in the Security tab:
+
+```yaml
+- uses: sebrandon1/tls-config-lint@v1
+  with:
+    sarif-output: tls-lint.sarif
+    fail-on-findings: false
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: tls-lint.sarif
+  if: always()
 ```
 
 ## Inputs
@@ -42,6 +116,8 @@ jobs:
 | `scan-path` | `.` | Directory to scan |
 | `fail-on-findings` | `true` | Whether to fail CI on findings above threshold |
 | `sarif-output` | _(empty)_ | Path to write SARIF file (empty = disabled) |
+| `report-output` | _(empty)_ | Path to write CSV or JSON report (format inferred from extension) |
+| `debug` | `false` | Show which regex matched for each finding |
 
 ## Outputs
 
@@ -53,6 +129,8 @@ jobs:
 | `medium-count` | Number of medium findings |
 | `info-count` | Number of info findings |
 | `sarif-file` | Path to SARIF file (if generated) |
+| `report-file` | Path to report file (if generated) |
+| `scan-duration` | Scan duration (e.g. `3s`) |
 
 ## Guides
 
