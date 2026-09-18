@@ -5,6 +5,9 @@
 # shellcheck disable=SC2034  # Array is used by scanner.sh via eval
 PYTHON_PATTERNS=(
 	"verify-false|CRITICAL|verify=False|Disables TLS certificate verification (MITM vulnerability)|verify[[:space:]]*=[[:space:]]*False"
+	"httpx-client-verify-false|CRITICAL|httpx Client verify=False|Disables certificate verification in an httpx client|httpx[.]Client[[:space:]]*[(].*verify[[:space:]]*=[[:space:]]*False"
+	"httpx-async-client-verify-false|CRITICAL|httpx AsyncClient verify=False|Disables certificate verification in an async httpx client|httpx[.]AsyncClient[[:space:]]*[(].*verify[[:space:]]*=[[:space:]]*False"
+	"httpx-request-verify-false|CRITICAL|httpx request verify=False|Disables certificate verification in an httpx request helper|httpx[.](get|post|put|patch|delete|head|request)[[:space:]]*[(].*verify[[:space:]]*=[[:space:]]*False"
 	"cert-none|CRITICAL|ssl.CERT_NONE|Disables certificate verification via ssl module|CERT_NONE"
 	"create-unverified-context|CRITICAL|_create_unverified_context|Creates SSL context without certificate verification|_create_unverified_context"
 	"check-hostname-false|CRITICAL|check_hostname = False|Disables hostname verification|check_hostname[[:space:]]*=[[:space:]]*False"

@@ -170,6 +170,22 @@ jobs:
           fi
           echo "Correctly found no critical/high findings in secure code"
 
+  self-test-httpx-python:
+    name: Self Test (Python httpx patterns)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run Python httpx scan
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata/python
+          languages: python
+          sarif-output: httpx-python.sarif
+          fail-on-findings: false
+      - name: Verify httpx rules are present
+        run: jq -e '.runs[0].results | any(.[]; .ruleId | startswith("httpx-"))' httpx-python.sarif
+
   self-test-config-file:
     name: Self Test (config file)
     runs-on: ubuntu-latest
