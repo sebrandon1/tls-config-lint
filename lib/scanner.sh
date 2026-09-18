@@ -14,6 +14,10 @@ MEDIUM_COUNT=0
 INFO_COUNT=0
 CUSTOM_PATTERN_IDS=""
 
+# Incremental mode state. CHANGED_FILES contains paths relative to scan_path.
+CHANGED_FILES=()
+LANG_SCAN_FILES=()
+
 # Exclusion audit tracking
 EXCLUDED_PATTERNS_USED=""
 EXCEPTIONS_USED=""
@@ -27,8 +31,12 @@ build_include_flags() {
 		python) echo "--include=*.py" ;;
 		nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
 		cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
+		csharp) echo "--include=*.cs" ;;
 		java) echo "--include=*.java" ;;
 		rust) echo "--include=*.rs" ;;
+		kotlin) echo "--include=*.kt" ;;
+		php) echo "--include=*.php" ;;
+		ruby) echo "--include=*.rb" ;;
 	esac
 }
 
@@ -40,8 +48,12 @@ build_test_exclude_flags() {
 		python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
 		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
 		cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
+		csharp) echo "--exclude=*_test.cs" ;;
 		java) echo "--exclude=*Test.java --exclude=*Tests.java --exclude=*IT.java" ;;
 		rust) echo "--exclude=*_test.rs --exclude=*_tests.rs" ;;
+		kotlin) echo "--exclude=*_test.kt" ;;
+		php) echo "--exclude=*_test.php --exclude=test_*.php" ;;
+		ruby) echo "--exclude=*_test.rb --exclude=test_*.rb" ;;
 	esac
 }
 
@@ -75,6 +87,126 @@ build_common_exclude_dirs() {
 	fi
 
 	echo "$flags"
+}
+
+# Populate CHANGED_FILES with tracked, added/copied/modified/renamed files in
+# the requested scan path. Deleted files are intentionally excluded.
+prepare_changed_files() {
+	local scan_path="$1"
+	local base_ref="$2"
+	local head_ref="$3"
+	local scan_abs repo_root scan_prefix diff_file file
+
+	if ! scan_abs=$(cd "$scan_path" && pwd); then
+		log_error "Cannot resolve scan path for incremental scan: '$scan_path'"
+		return 1
+	fi
+	if ! repo_root=$(git -C "$scan_abs" rev-parse --show-toplevel 2>/dev/null); then
+		log_error "Incremental scan requires scan-path '$scan_path' to be inside a Git worktree"
+		return 1
+	fi
+	scan_prefix=$(git -C "$scan_abs" rev-parse --show-prefix 2>/dev/null) || {
+		log_error "Unable to determine scan-path prefix for '$scan_path'"
+		return 1
+	}
+	scan_prefix="${scan_prefix%/}"
+	diff_file=$(mktemp)
+	if [[ -n "$scan_prefix" ]]; then
+		if ! git -C "$repo_root" diff --name-only -z --diff-filter=ACMR "$base_ref" "$head_ref" -- "$scan_prefix" >"$diff_file"; then
+			rm -f "$diff_file"
+			log_error "Unable to diff Git refs '$base_ref' and '$head_ref'"
+			return 1
+		fi
+	else
+		if ! git -C "$repo_root" diff --name-only -z --diff-filter=ACMR "$base_ref" "$head_ref" >"$diff_file"; then
+			rm -f "$diff_file"
+			log_error "Unable to diff Git refs '$base_ref' and '$head_ref'"
+			return 1
+		fi
+	fi
+
+	CHANGED_FILES=()
+	while IFS= read -r -d '' file; do
+		if [[ -n "$scan_prefix" ]]; then
+			file="${file#"$scan_prefix"/}"
+		fi
+		[[ -f "$scan_abs/$file" ]] && CHANGED_FILES+=("$file")
+	done <"$diff_file"
+	rm -f "$diff_file"
+	log_msg "Incremental scan selected ${#CHANGED_FILES[@]} changed file(s)"
+}
+
+file_matches_language() {
+	local lang="$1"
+	local file="$2"
+	case "$lang:$file" in
+		go:*.go | python:*.py | nodejs:*.js | nodejs:*.mjs | nodejs:*.ts | nodejs:*.mts | \
+			cpp:*.cpp | cpp:*.cc | cpp:*.cxx | cpp:*.h | cpp:*.hpp | java:*.java | rust:*.rs)
+			return 0
+			;;
+		*) return 1 ;;
+	esac
+}
+
+file_matches_test_exclusion() {
+	local lang="$1"
+	local file="$2"
+	local base="${file##*/}"
+	case "$lang:$base" in
+		go:*_test.go | python:*_test.py | python:test_*.py | python:conftest.py | \
+			nodejs:*.test.js | nodejs:*.spec.js | nodejs:*.test.mjs | nodejs:*.spec.mjs | \
+			nodejs:*.test.ts | nodejs:*.spec.ts | nodejs:*.test.mts | nodejs:*.spec.mts | \
+			cpp:*_test.cpp | cpp:*_test.cc | java:*Test.java | java:*Tests.java | java:*IT.java | \
+			rust:*_test.rs | rust:*_tests.rs)
+			return 0
+			;;
+		*) return 1 ;;
+	esac
+}
+
+file_matches_excluded_dir() {
+	local lang="$1"
+	local file="$2"
+	local extra_dirs="$3"
+	local component dir
+	local components=()
+	IFS='/' read -ra components <<<"$file"
+	for component in "${components[@]}"; do
+		case "$component" in
+			vendor | .git | testdata | mocks | test | tests | e2e | testing | mock | fakes | fixtures)
+				return 0
+				;;
+		esac
+		case "$lang:$component" in
+			python:__pycache__ | python:venv | python:.venv | java:target | java:build | java:.gradle | rust:target | rust:.cargo)
+				return 0
+				;;
+		esac
+		if [[ -n "$extra_dirs" ]]; then
+			local dirs=()
+			IFS=',' read -ra dirs <<<"$extra_dirs"
+			for dir in "${dirs[@]}"; do
+				dir="${dir// /}"
+				[[ -n "$dir" && "$component" == "$dir" ]] && return 0
+			done
+		fi
+	done
+	return 1
+}
+
+files_for_language() {
+	local lang="$1"
+	local exclude_dirs="$2"
+	LANG_SCAN_FILES=()
+	if [[ "${CHANGED_FILES_ONLY:-false}" != "true" ]]; then
+		return 0
+	fi
+	for file in "${CHANGED_FILES[@]}"; do
+		file_matches_language "$lang" "$file" || continue
+		file_matches_test_exclusion "$lang" "$file" && continue
+		file_matches_excluded_dir "$lang" "$file" "$exclude_dirs" && continue
+		LANG_SCAN_FILES+=("$file")
+	done
 }
 
 # Check if a pattern+file combination is excluded via per-path exceptions
@@ -211,9 +343,21 @@ scan_pattern() {
 
 	# Run grep from inside scan_path so --exclude-dir won't match the scan root itself
 	local grep_output
-	# shellcheck disable=SC2086
-	grep_output=$(cd "$scan_path" && grep -rnI $include_flags $exclude_test_flags $lang_exclude_dirs $common_exclude_dirs \
-		-E "$regex" . 2>/dev/null) || true
+	if [[ "${CHANGED_FILES_ONLY:-false}" == "true" ]]; then
+		if [[ ${#LANG_SCAN_FILES[@]} -eq 0 ]]; then
+			return 0
+		fi
+		local grep_files=()
+		local changed_file
+		for changed_file in "${LANG_SCAN_FILES[@]}"; do
+			grep_files+=("./$changed_file")
+		done
+		grep_output=$(cd "$scan_path" && grep -nHI -E "$regex" "${grep_files[@]}" 2>/dev/null) || true
+	else
+		# shellcheck disable=SC2086
+		grep_output=$(cd "$scan_path" && grep -rnI $include_flags $exclude_test_flags $lang_exclude_dirs $common_exclude_dirs \
+			-E "$regex" . 2>/dev/null) || true
+	fi
 
 	if [[ -z "$grep_output" ]]; then
 		return 0
@@ -352,6 +496,7 @@ scan_language() {
 	local exclude_patterns="$4"
 
 	log_msg "Scanning for $lang patterns..."
+	files_for_language "$lang" "$exclude_dirs"
 
 	# Source the pattern file
 	local action_path
@@ -374,8 +519,12 @@ scan_language() {
 		python) patterns_var="PYTHON_PATTERNS" ;;
 		nodejs) patterns_var="NODEJS_PATTERNS" ;;
 		cpp) patterns_var="CPP_PATTERNS" ;;
+		csharp) patterns_var="CSHARP_PATTERNS" ;;
 		java) patterns_var="JAVA_PATTERNS" ;;
 		rust) patterns_var="RUST_PATTERNS" ;;
+		kotlin) patterns_var="KOTLIN_PATTERNS" ;;
+		php) patterns_var="PHP_PATTERNS" ;;
+		ruby) patterns_var="RUBY_PATTERNS" ;;
 		*) return 0 ;;
 	esac
 

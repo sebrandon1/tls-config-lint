@@ -142,8 +142,12 @@ file_to_lang_prefix() {
 		*.py) echo "python" ;;
 		*.js | *.mjs | *.ts | *.mts) echo "nodejs" ;;
 		*.cpp | *.cc | *.cxx | *.h | *.hpp) echo "cpp" ;;
+		*.cs) echo "csharp" ;;
 		*.java) echo "java" ;;
 		*.rs) echo "rust" ;;
+		*.kt) echo "kotlin" ;;
+		*.php) echo "php" ;;
+		*.rb) echo "ruby" ;;
 		*) echo "" ;;
 	esac
 }
