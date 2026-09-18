@@ -44,10 +44,15 @@ FINDINGS=(
 	"verify-false|critical|Verification disabled|Use certificate verification|src/client.py|30|verify=False|1"
 	"new-rule|high|New rule|New finding|src/client.py|20|bad|1"
 )
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
 FINDING_REGEXES=("verify=False" "verify=False" "bad")
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
 CRITICAL_COUNT=2
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
 HIGH_COUNT=1
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
 MEDIUM_COUNT=0
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
 INFO_COUNT=0
 filter_baseline_findings
 
