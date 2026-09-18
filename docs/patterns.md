@@ -1,6 +1,6 @@
 # Detected Patterns
 
-tls-config-lint detects 104 TLS anti-patterns across 10 languages. Severity levels:
+tls-config-lint detects 107 TLS anti-patterns across 10 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
@@ -125,6 +125,13 @@ tls-config-lint detects 104 TLS anti-patterns across 10 languages. Severity leve
 
 ---
 
+## Python httpx (3 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`httpx-client-verify-false`](#python-httpx-client-verify-false) | CRITICAL | httpx Client disables verification |
+| [`httpx-async-client-verify-false`](#python-httpx-async-client-verify-false) | CRITICAL | httpx AsyncClient disables verification |
+| [`httpx-request-verify-false`](#python-httpx-request-verify-false) | CRITICAL | httpx request helper disables verification |
 ## Spring Boot / WebClient (4 patterns)
 
 | ID | Severity | Description |
@@ -1608,6 +1615,60 @@ SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
 
 > **Informational.** Post-Quantum Cryptography (ML-KEM / Kyber) usage detected. This indicates proactive adoption of quantum-resistant key encapsulation. No action required.
 
+## Python httpx
+
+<a id="python-httpx-client-verify-false"></a>
+
+### httpx Client verify=False
+
+**ID:** `httpx-client-verify-false` | **Severity:** CRITICAL
+
+Disabling verification on an httpx client permits untrusted server certificates.
+
+**Insecure:**
+```python
+client = httpx.Client(verify=False)
+```
+
+**Secure:**
+```python
+client = httpx.Client()
+```
+
+<a id="python-httpx-async-client-verify-false"></a>
+
+### httpx AsyncClient verify=False
+
+**ID:** `httpx-async-client-verify-false` | **Severity:** CRITICAL
+
+Async clients must retain certificate verification as well.
+
+**Insecure:**
+```python
+client = httpx.AsyncClient(verify=False)
+```
+
+**Secure:**
+```python
+client = httpx.AsyncClient()
+```
+
+<a id="python-httpx-request-verify-false"></a>
+
+### httpx request verify=False
+
+**ID:** `httpx-request-verify-false` | **Severity:** CRITICAL
+
+Top-level httpx request helpers also disable verification when passed `verify=False`.
+
+**Insecure:**
+```python
+response = httpx.get("https://example.com", verify=False)
+```
+
+**Secure:**
+```python
+response = httpx.get("https://example.com", verify=True)
 ## Spring Boot / WebClient
 
 <a id="java-spring-resttemplate-insecure"></a>

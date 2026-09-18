@@ -57,6 +57,14 @@ scan_language "$ROOT_DIR/testdata/python" "python" "" ""
 assert_greater_than "Python scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "Python scan finds total findings" 13 "$(get_findings_count)"
 
+httpx_ids=0
+for finding in "${FINDINGS[@]+${FINDINGS[@]}}"; do
+	if [[ "$finding" == httpx-* ]]; then
+		httpx_ids=$((httpx_ids + 1))
+	fi
+done
+assert_greater_than "Python scan detects httpx-specific findings" 2 "$httpx_ids"
+
 # Reset state for Node.js
 FINDINGS=()
 CRITICAL_COUNT=0
