@@ -125,6 +125,15 @@ tls-config-lint detects 91 TLS anti-patterns across 7 languages. Severity levels
 
 ---
 
+## PHP (5 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`curl-ssl-verifypeer-off`](#php-curl-ssl-verifypeer-off) | CRITICAL | cURL disables peer verification |
+| [`curl-ssl-verifyhost-off`](#php-curl-ssl-verifyhost-off) | CRITICAL | cURL disables hostname verification |
+| [`php-stream-verify-peer-false`](#php-php-stream-verify-peer-false) | CRITICAL | PHP streams disable peer verification |
+| [`php-stream-verify-name-false`](#php-php-stream-verify-name-false) | CRITICAL | PHP streams disable hostname verification |
+| [`guzzle-verify-false`](#php-guzzle-verify-false) | CRITICAL | Guzzle disables certificate verification |
 ## Ruby (5 patterns)
 
 | ID | Severity | Description |
@@ -1574,6 +1583,96 @@ SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
 
 > **Informational.** Post-Quantum Cryptography (ML-KEM / Kyber) usage detected. This indicates proactive adoption of quantum-resistant key encapsulation. No action required.
 
+## PHP
+
+<a id="php-curl-ssl-verifypeer-off"></a>
+
+### cURL peer verification disabled
+
+**ID:** `curl-ssl-verifypeer-off` | **Severity:** CRITICAL
+
+Disabling `CURLOPT_SSL_VERIFYPEER` permits untrusted certificates and man-in-the-middle attacks.
+
+**Insecure:**
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+```
+
+**Secure:**
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+```
+
+<a id="php-curl-ssl-verifyhost-off"></a>
+
+### cURL hostname verification disabled
+
+**ID:** `curl-ssl-verifyhost-off` | **Severity:** CRITICAL
+
+`CURLOPT_SSL_VERIFYHOST` must validate the peer hostname; zero disables that protection.
+
+**Insecure:**
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+```
+
+**Secure:**
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+```
+
+<a id="php-php-stream-verify-peer-false"></a>
+
+### PHP stream peer verification disabled
+
+**ID:** `php-stream-verify-peer-false` | **Severity:** CRITICAL
+
+Stream contexts with `verify_peer` disabled accept untrusted certificates.
+
+**Insecure:**
+```php
+$context = stream_context_create(['ssl' => ['verify_peer' => false]]);
+```
+
+**Secure:**
+```php
+$context = stream_context_create(['ssl' => ['verify_peer' => true]]);
+```
+
+<a id="php-php-stream-verify-name-false"></a>
+
+### PHP stream hostname verification disabled
+
+**ID:** `php-stream-verify-name-false` | **Severity:** CRITICAL
+
+Disabling `verify_peer_name` removes hostname validation from PHP streams.
+
+**Insecure:**
+```php
+$context = stream_context_create(['ssl' => ['verify_peer_name' => false]]);
+```
+
+**Secure:**
+```php
+$context = stream_context_create(['ssl' => ['verify_peer_name' => true]]);
+```
+
+<a id="php-guzzle-verify-false"></a>
+
+### Guzzle verification disabled
+
+**ID:** `guzzle-verify-false` | **Severity:** CRITICAL
+
+Guzzle's `verify` option must remain enabled so the client validates server certificates.
+
+**Insecure:**
+```php
+$client = new GuzzleHttp\Client(['verify' => false]);
+```
+
+**Secure:**
+```php
+$client = new GuzzleHttp\Client(['verify' => true]);
 ## Ruby
 
 <a id="ruby-net-http-verify-none"></a>

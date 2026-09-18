@@ -175,7 +175,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        language: [go, python, nodejs, cpp, java, rust, ruby]
+        language: [go, python, nodejs, cpp, java, rust, ruby, php]
         include:
           - language: go
             scan-path: testdata/go
@@ -191,6 +191,8 @@ jobs:
             scan-path: testdata/rust
           - language: ruby
             scan-path: testdata/ruby
+          - language: php
+            scan-path: testdata/php
     steps:
       - uses: actions/checkout@v7
       - name: Run ${{ matrix.language }} scan

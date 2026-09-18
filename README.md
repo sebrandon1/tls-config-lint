@@ -1,6 +1,6 @@
 # tls-config-lint
 
-A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, C++, Java, Rust, and Ruby projects.
+A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, C++, Java, Rust, Ruby, and PHP projects.
 
 > **See also:** [tls-compliance-operator](https://github.com/sebrandon1/tls-compliance-operator) — a Kubernetes operator that continuously monitors live TLS endpoints at runtime. Use **tls-config-lint** to catch issues in source code (shift-left) and **tls-compliance-operator** to verify runtime compliance in your cluster.
 >
@@ -109,7 +109,7 @@ Add SARIF output for findings in the Security tab:
 | Input | Default | Description |
 |-------|---------|-------------|
 | `severity-threshold` | `high` | Minimum severity to cause failure: `critical`, `high`, `medium`, `info` |
-| `languages` | `auto` | Comma-separated: `go,python,nodejs,cpp,java,rust,ruby` or `auto` to detect |
+| `languages` | `auto` | Comma-separated: `go,python,nodejs,cpp,java,rust,ruby,php` or `auto` to detect |
 | `exclude-dirs` | _(empty)_ | Additional dirs to exclude (comma-separated) |
 | `exclude-patterns` | _(empty)_ | Pattern IDs to suppress (comma-separated) |
 | `config-file` | `.tls-config-lint.yml` | Path to optional repo config file |
