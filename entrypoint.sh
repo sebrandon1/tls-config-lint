@@ -53,6 +53,7 @@ main() {
 	log_msg "  Fail on findings: $FAIL_ON_FINDINGS"
 	log_msg "  Exclude dirs: ${EXCLUDE_DIRS:-<none>}"
 	log_msg "  Exclude patterns: ${EXCLUDE_PATTERNS:-<none>}"
+	log_msg "  Extra patterns: $(if [[ -n "${EXTRA_PATTERNS:-}" ]]; then echo enabled; else echo '<none>'; fi)"
 	log_msg "  SARIF output: ${SARIF_OUTPUT:-<disabled>}"
 	log_msg "  Report output: ${REPORT_OUTPUT:-<disabled>}"
 

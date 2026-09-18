@@ -89,6 +89,8 @@ exceptions:
 
 See [Configuration](docs/configuration.md) for all options including severity overrides, report output, and debug mode.
 
+Organization-specific rules can be added with the [`extra-patterns` configuration](docs/configuration.md#custom-patterns).
+
 ### 5. Enable GitHub Code Scanning (optional)
 
 Add SARIF output for findings in the Security tab:

@@ -12,6 +12,7 @@ CRITICAL_COUNT=0
 HIGH_COUNT=0
 MEDIUM_COUNT=0
 INFO_COUNT=0
+CUSTOM_PATTERN_IDS=""
 
 # Exclusion audit tracking
 EXCLUDED_PATTERNS_USED=""
@@ -388,6 +389,21 @@ scan_language() {
 	eval 'for pattern_line in "${'"$patterns_var"'[@]}"; do
 		scan_pattern "$scan_path" "$lang" "$pattern_line" "$exclude_dirs" "$exclude_patterns"
 	done'
+
+	# Apply validated user-defined patterns to this language.
+	local custom_id custom_severity custom_name custom_description custom_regex custom_languages
+	while IFS=$'\t' read -r custom_id custom_severity custom_name custom_description custom_regex custom_languages; do
+		[[ -z "$custom_id" ]] && continue
+		if [[ -n "$custom_languages" ]] && ! in_csv_list "$lang" "$custom_languages"; then
+			continue
+		fi
+		if [[ -z "$CUSTOM_PATTERN_IDS" ]]; then
+			CUSTOM_PATTERN_IDS="$custom_id"
+		elif [[ ",$CUSTOM_PATTERN_IDS," != *",$custom_id,"* ]]; then
+			CUSTOM_PATTERN_IDS="$CUSTOM_PATTERN_IDS,$custom_id"
+		fi
+		scan_pattern "$scan_path" "$lang" "$custom_id|$custom_severity|$custom_name|$custom_description|$custom_regex" "$exclude_dirs" "$exclude_patterns"
+	done <<<"${EXTRA_PATTERNS:-}"
 
 	# Apply Go-specific noise reduction
 	if [[ "$lang" == "go" ]]; then

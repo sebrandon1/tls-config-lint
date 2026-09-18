@@ -18,6 +18,29 @@ exclude-patterns:
 
 Action inputs override config file values. Lists (exclude-dirs, exclude-patterns) are merged (union).
 
+### Custom Patterns
+
+Use `extra-patterns` to add organization-specific rules without changing the action. This is a
+narrow YAML list-of-maps schema; every entry requires `id`, `severity`, `name`, `description`, and
+`regex`. `languages` is optional: when omitted, the pattern runs for every selected language.
+
+```yaml
+extra-patterns:
+  - id: org-weak-cipher
+    severity: high
+    name: Organization banned cipher suite
+    description: Uses a cipher suite banned by organization policy
+    regex: 'TLS_RSA_WITH_AES_128_CBC_SHA'
+    languages: [go, java]
+```
+
+IDs must contain only letters, numbers, `.`, `_`, and `-`, and must be unique. Supported severities
+are `critical`, `high`, `medium`, and `info`; supported language scopes are `go`, `python`,
+`nodejs`, `cpp`, `java`, and `rust`. Regexes are line-oriented extended regular expressions and
+must not contain the scanner's pipe delimiter. Custom findings use normal exclusions, exceptions,
+severity overrides, inline suppression, reports, annotations, SARIF, and threshold behavior.
+Invalid custom-pattern configuration returns exit code 2 before scanning.
+
 ### Per-File/Directory Exceptions
 
 Use `exceptions` to suppress specific patterns for specific files or directories. Each entry is `pattern-id:path`. Paths ending with `/` match as directory prefixes; other paths match exactly.
