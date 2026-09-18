@@ -38,6 +38,76 @@ jobs:
             exit 1
           fi
 
+  self-test-baseline:
+    name: Self Test (SARIF baseline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create SARIF baseline
+        uses: ./
+        with:
+          scan-path: testdata/go
+          languages: go
+          sarif-output: baseline.sarif
+          fail-on-findings: false
+      - name: Re-scan against baseline
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata/go
+          languages: go
+          baseline: baseline.sarif
+          sarif-output: filtered.sarif
+          fail-on-findings: true
+      - name: Verify baseline suppresses existing findings
+        run: |
+          test "$(jq '.runs[0].results | length' filtered.sarif)" -eq 0
+
+  self-test-incremental:
+    name: Self Test (incremental scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create two-commit Git fixture
+        run: |
+          mkdir -p /tmp/tls-incremental
+          git -C /tmp/tls-incremental init -q
+          git -C /tmp/tls-incremental config user.email ci@example.invalid
+          git -C /tmp/tls-incremental config user.name ci
+          cat > /tmp/tls-incremental/unchanged.go <<'EOF'
+          package fixture
+          import "crypto/tls"
+          var unchanged = &tls.Config{InsecureSkipVerify: true}
+          EOF
+          cat > /tmp/tls-incremental/changed.go <<'EOF'
+          package fixture
+          import "crypto/tls"
+          var changed = &tls.Config{MinVersion: tls.VersionTLS13}
+          EOF
+          git -C /tmp/tls-incremental add .
+          git -C /tmp/tls-incremental commit -q -m base
+          cat > /tmp/tls-incremental/changed.go <<'EOF'
+          package fixture
+          import "crypto/tls"
+          var changed = &tls.Config{InsecureSkipVerify: true}
+          EOF
+          git -C /tmp/tls-incremental add changed.go
+          git -C /tmp/tls-incremental commit -q -m change
+      - name: Run incremental scan
+        id: lint
+        uses: ./
+        with:
+          scan-path: /tmp/tls-incremental
+          languages: go
+          changed-files-only: true
+          base-ref: HEAD~1
+          head-ref: HEAD
+          sarif-output: incremental.sarif
+          fail-on-findings: false
+      - name: Verify only changed file was scanned
+        run: |
+          jq -e '.runs[0].results | length > 0 and all(.[]; .locations[0].physicalLocation.artifactLocation.uri == "changed.go")' incremental.sarif
+
   self-test-sarif:
     name: Self Test (SARIF output)
     runs-on: ubuntu-latest
@@ -105,7 +175,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        language: [go, python, nodejs, cpp, java, rust]
+        language: [go, python, nodejs, cpp, java, rust, ruby, php, csharp, kotlin]
         include:
           - language: go
             scan-path: testdata/go
@@ -119,6 +189,14 @@ jobs:
             scan-path: testdata/java
           - language: rust
             scan-path: testdata/rust
+          - language: kotlin
+            scan-path: testdata/kotlin
+          - language: csharp
+            scan-path: testdata/csharp
+          - language: ruby
+            scan-path: testdata/ruby
+          - language: php
+            scan-path: testdata/php
     steps:
       - uses: actions/checkout@v7
       - name: Run ${{ matrix.language }} scan
@@ -206,6 +284,35 @@ jobs:
             echo "ERROR: Expected findings with config file"
             exit 1
           fi
+
+  self-test-custom-patterns:
+    name: Self Test (custom patterns)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create custom pattern config
+        run: |
+          cat > /tmp/tls-config-lint-custom.yml <<'EOF'
+          extra-patterns:
+            - id: ci-org-cipher
+              severity: high
+              name: CI organization cipher
+              description: CI custom rule detects a banned cipher
+              regex: 'TLS_RSA_WITH_3DES_EDE_CBC_SHA'
+              languages: [go]
+          EOF
+      - name: Run TLS Config Lint with custom pattern
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata/go
+          languages: go
+          config-file: /tmp/tls-config-lint-custom.yml
+          sarif-output: custom-pattern.sarif
+          fail-on-findings: false
+      - name: Verify custom SARIF result
+        run: |
+          jq -e '.runs[0].results | any(.[]; .ruleId == "ci-org-cipher")' custom-pattern.sarif
 
   self-test-exclude-dirs:
     name: Self Test (exclude dirs)

@@ -72,6 +72,10 @@ generate_sarif() {
 		local lang_prefix
 		lang_prefix=$(file_to_lang_prefix "$finding_file")
 		local help_anchor="${lang_prefix:+${lang_prefix}-}${pattern_id}"
+		local help_uri="https://github.com/sebrandon1/tls-config-lint/blob/main/docs/patterns.md#${help_anchor}"
+		if [[ ",${CUSTOM_PATTERN_IDS:-}," == *",$pattern_id,"* ]]; then
+			help_uri="https://github.com/sebrandon1/tls-config-lint/blob/main/docs/configuration.md#custom-patterns"
+		fi
 
 		local extra_tag
 		extra_tag=$(pattern_tags "$pattern_id")
@@ -81,7 +85,7 @@ generate_sarif() {
 			--arg name "$name" \
 			--arg desc "$description" \
 			--arg level "$sarif_level" \
-			--arg helpUri "https://github.com/sebrandon1/tls-config-lint/blob/main/docs/patterns.md#${help_anchor}" \
+			--arg helpUri "$help_uri" \
 			--arg extraTag "$extra_tag" \
 			'. + [{
 				id: $id,
