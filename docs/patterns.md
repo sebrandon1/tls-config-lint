@@ -1,6 +1,6 @@
 # Detected Patterns
 
-tls-config-lint detects 86 TLS anti-patterns across 6 languages. Severity levels:
+tls-config-lint detects 90 TLS anti-patterns across 6 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
@@ -124,6 +124,15 @@ tls-config-lint detects 86 TLS anti-patterns across 6 languages. Severity levels
 | [`pqc-ml-kem`](#rust-pqc-ml-kem) | INFO | Post-Quantum Cryptography adoption |
 
 ---
+
+## Spring Boot / WebClient (4 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`spring-resttemplate-insecure`](#java-spring-resttemplate-insecure) | CRITICAL | RestTemplate uses insecure custom TLS |
+| [`spring-webclient-insecure`](#java-spring-webclient-insecure) | CRITICAL | WebClient uses insecure SSL/trust manager configuration |
+| [`spring-security-weak-protocol`](#java-spring-security-weak-protocol) | HIGH | Spring Security enables weak TLS protocols |
+| [`spring-bean-trust-all`](#java-spring-bean-trust-all) | CRITICAL | Spring @Bean trusts all certificates |
 
 ## Remediation Reference
 
@@ -1563,6 +1572,81 @@ SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
 **ID:** `pqc-ml-kem` | **Severity:** INFO
 
 > **Informational.** Post-Quantum Cryptography (ML-KEM / Kyber) usage detected. This indicates proactive adoption of quantum-resistant key encapsulation. No action required.
+
+## Spring Boot / WebClient
+
+<a id="java-spring-resttemplate-insecure"></a>
+
+### Spring RestTemplate insecure TLS
+
+**ID:** `spring-resttemplate-insecure` | **Severity:** CRITICAL
+
+RestTemplate should use the platform's certificate and hostname validation rather than a trust-all SSL component.
+
+**Insecure:**
+```java
+RestTemplate restTemplate = new RestTemplate(NoopHostnameVerifier.INSTANCE);
+```
+
+**Secure:**
+```java
+RestTemplate restTemplate = new RestTemplate();
+```
+
+<a id="java-spring-webclient-insecure"></a>
+
+### Spring WebClient insecure TLS
+
+**ID:** `spring-webclient-insecure` | **Severity:** CRITICAL
+
+WebClient must not install an insecure trust manager or SSL context.
+
+**Insecure:**
+```java
+WebClient client = WebClient.builder()
+    .clientConnector(InsecureTrustManagerFactory.INSTANCE).build();
+```
+
+**Secure:**
+```java
+WebClient client = WebClient.builder().build();
+```
+
+<a id="java-spring-security-weak-protocol"></a>
+
+### Spring Security weak TLS protocol
+
+**ID:** `spring-security-weak-protocol` | **Severity:** HIGH
+
+Spring Security should not enable deprecated TLS 1.0 or TLS 1.1 protocols.
+
+**Insecure:**
+```java
+httpSecurity.setSSLProtocols("TLSv1", "TLSv1.1");
+```
+
+**Secure:**
+```java
+httpSecurity.setSSLProtocols("TLSv1.2", "TLSv1.3");
+```
+
+<a id="java-spring-bean-trust-all"></a>
+
+### Spring trust-all SSL bean
+
+**ID:** `spring-bean-trust-all` | **Severity:** CRITICAL
+
+Spring-managed SSL beans must retain certificate validation and must not expose a trust-all manager.
+
+**Insecure:**
+```java
+@Bean SSLSocketFactory factory() { return InsecureTrustManagerFactory.INSTANCE; }
+```
+
+**Secure:**
+```java
+@Bean SSLSocketFactory factory() { return defaultSslSocketFactory(); }
+```
 
 ## Rust
 

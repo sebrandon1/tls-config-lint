@@ -170,6 +170,22 @@ jobs:
           fi
           echo "Correctly found no critical/high findings in secure code"
 
+  self-test-spring-java:
+    name: Self Test (Spring Java patterns)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run Spring Java scan
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata/java
+          languages: java
+          sarif-output: spring-java.sarif
+          fail-on-findings: false
+      - name: Verify Spring rule is present
+        run: jq -e '.runs[0].results | any(.[]; .ruleId | startswith("spring-"))' spring-java.sarif
+
   self-test-config-file:
     name: Self Test (config file)
     runs-on: ubuntu-latest
