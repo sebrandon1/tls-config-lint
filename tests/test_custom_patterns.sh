@@ -16,19 +16,28 @@ cat >"$custom_dir/example.java" <<'EOF'
 class Example { String cipher = "TLS_RSA_WITH_AES_128_CBC_SHA"; }
 EOF
 
+# shellcheck disable=SC2034  # Used by scanner.sh
 EXTRA_PATTERNS=$'org-weak-cipher\tHIGH\tOrganization banned cipher suite\tUses a cipher banned by policy\tTLS_RSA_WITH_AES_128_CBC_SHA\tgo,java'
+# shellcheck disable=SC2034  # Used by scanner.sh
 CUSTOM_PATTERN_IDS=""
 # shellcheck disable=SC2034  # Used by scan_pattern via scanner.sh
 EXCLUDE_PATTERNS="weak-cipher-3des"
+# shellcheck disable=SC2034  # Used by scanner.sh
 EXCEPTIONS=""
+# shellcheck disable=SC2034  # Used by scanner.sh
 SEVERITY_OVERRIDES=""
 EXCLUDED_PATTERNS_USED=""
 
 FINDINGS=()
+# shellcheck disable=SC2034  # Used by scanner.sh
 FINDING_REGEXES=()
+# shellcheck disable=SC2034  # Used by scanner.sh
 CRITICAL_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 HIGH_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 INFO_COUNT=0
 scan_language "$custom_dir" "go" "" "$EXCLUDE_PATTERNS"
 assert_equals "Scoped custom pattern finds Go match" "1" "${#FINDINGS[@]}"
@@ -43,13 +52,20 @@ INFO_COUNT=0
 scan_language "$custom_dir" "java" "" ""
 assert_equals "Scoped custom pattern finds Java match" "1" "${#FINDINGS[@]}"
 
+# shellcheck disable=SC2034  # Used by scanner.sh
 EXTRA_PATTERNS=$'org-unscoped\tINFO\tOrganization marker\tOrganization marker found\tTLS_RSA_WITH_AES_128_CBC_SHA\t'
+# shellcheck disable=SC2034  # Used by scanner.sh
 CUSTOM_PATTERN_IDS=""
 FINDINGS=()
+# shellcheck disable=SC2034  # Used by scanner.sh
 FINDING_REGEXES=()
+# shellcheck disable=SC2034  # Used by scanner.sh
 CRITICAL_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 HIGH_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 INFO_COUNT=0
 scan_language "$custom_dir" "go" "" "org-unscoped"
 assert_equals "Excluded custom pattern produces no custom finding" "false" "$(printf '%s\n' "${FINDINGS[@]}" | grep -q '^org-unscoped|' && echo true || echo false)"
