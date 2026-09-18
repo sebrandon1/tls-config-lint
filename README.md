@@ -1,6 +1,6 @@
 # tls-config-lint
 
-A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, C++, Java, Rust, and Kotlin projects.
+A GitHub Action that scans your codebase for TLS configuration anti-patterns and security issues across Go, Python, Node.js/TypeScript, C++, Java, Rust, Ruby, PHP, C#, and Kotlin projects.
 
 > **See also:** [tls-compliance-operator](https://github.com/sebrandon1/tls-compliance-operator) — a Kubernetes operator that continuously monitors live TLS endpoints at runtime. Use **tls-config-lint** to catch issues in source code (shift-left) and **tls-compliance-operator** to verify runtime compliance in your cluster.
 >
@@ -8,7 +8,7 @@ A GitHub Action that scans your codebase for TLS configuration anti-patterns and
 
 ## Key Features
 
-- **91 TLS Anti-Patterns** — Across 7 languages with severity classification (critical, high, medium, info)
+- **100 TLS Anti-Patterns** — Across 10 languages with severity classification (critical, high, medium, info)
 - **Inline PR Annotations** — Findings appear directly on affected lines in pull requests
 - **SARIF Output** — Optional GitHub Code Scanning integration
 - **Auto-Detection** — Discovers project languages from file markers (go.mod, package.json, etc.)
@@ -109,7 +109,7 @@ Add SARIF output for findings in the Security tab:
 | Input | Default | Description |
 |-------|---------|-------------|
 | `severity-threshold` | `high` | Minimum severity to cause failure: `critical`, `high`, `medium`, `info` |
-| `languages` | `auto` | Comma-separated: `go,python,nodejs,cpp,java,rust,kotlin` or `auto` to detect |
+| `languages` | `auto` | Comma-separated: `go,python,nodejs,cpp,java,rust,ruby,php,csharp,kotlin` or `auto` to detect |
 | `exclude-dirs` | _(empty)_ | Additional dirs to exclude (comma-separated) |
 | `exclude-patterns` | _(empty)_ | Pattern IDs to suppress (comma-separated) |
 | `config-file` | `.tls-config-lint.yml` | Path to optional repo config file |
@@ -117,6 +117,10 @@ Add SARIF output for findings in the Security tab:
 | `fail-on-findings` | `true` | Whether to fail CI on findings above threshold |
 | `sarif-output` | _(empty)_ | Path to write SARIF file (empty = disabled) |
 | `report-output` | _(empty)_ | Path to write CSV or JSON report (format inferred from extension) |
+| `baseline` | _(empty)_ | Previous SARIF 2.1.0 file; matching findings within the line window are suppressed |
+| `changed-files-only` | `false` | Scan only tracked files changed between `base-ref` and `head-ref` |
+| `base-ref` | `HEAD~1` | Git base ref used by incremental mode |
+| `head-ref` | `HEAD` | Git head ref used by incremental mode |
 | `debug` | `false` | Show which regex matched for each finding |
 
 ## Outputs
@@ -136,7 +140,7 @@ Add SARIF output for findings in the Security tab:
 
 | Guide | Description |
 |-------|-------------|
-| [Detected Patterns](docs/patterns.md) | All 91 patterns across 7 languages |
+| [Detected Patterns](docs/patterns.md) | All 100 patterns across 10 languages |
 | [Configuration](docs/configuration.md) | Config file, advanced usage examples, exit codes |
 | [Built-in Exclusions](docs/exclusions.md) | Default excluded directories and test files |
 

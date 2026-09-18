@@ -1,5 +1,5 @@
 name: 'TLS Config Lint'
-description: 'Lint TLS configurations for security anti-patterns across Go, Python, Node.js/TypeScript, C++, Java, Rust, and Kotlin projects'
+description: 'Lint TLS configurations for security anti-patterns across Go, Python, Node.js/TypeScript, C++, Java, Rust, Ruby, PHP, C#, and Kotlin projects'
 author: 'sebrandon1'
 
 branding:
@@ -12,7 +12,7 @@ inputs:
     required: false
     default: 'high'
   languages:
-    description: 'Comma-separated languages to scan: go,python,nodejs,cpp,java,rust,kotlin or auto to detect'
+    description: 'Comma-separated languages to scan: go,python,nodejs,cpp,java,rust,ruby,php,csharp,kotlin or auto to detect'
     required: false
     default: 'auto'
   exclude-dirs:
@@ -43,6 +43,22 @@ inputs:
     description: 'Path to write CSV or JSON report (format inferred from extension, empty = disabled)'
     required: false
     default: ''
+  baseline:
+    description: 'Path to a previous SARIF 2.1.0 file; matching findings are suppressed'
+    required: false
+    default: ''
+  changed-files-only:
+    description: 'Scan only files changed between base-ref and head-ref'
+    required: false
+    default: 'false'
+  base-ref:
+    description: 'Git base ref for changed-files-only mode (default: HEAD~1)'
+    required: false
+    default: 'HEAD~1'
+  head-ref:
+    description: 'Git head ref for changed-files-only mode (default: HEAD)'
+    required: false
+    default: 'HEAD'
   debug:
     description: 'Show which regex matched for each finding (helps diagnose false positives)'
     required: false
@@ -90,5 +106,9 @@ runs:
         INPUT_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
         INPUT_SARIF_OUTPUT: ${{ inputs.sarif-output }}
         INPUT_REPORT_OUTPUT: ${{ inputs.report-output }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
+        INPUT_CHANGED_FILES_ONLY: ${{ inputs.changed-files-only }}
+        INPUT_BASE_REF: ${{ inputs.base-ref }}
+        INPUT_HEAD_REF: ${{ inputs.head-ref }}
         INPUT_DEBUG: ${{ inputs.debug }}
       run: bash "${{ github.action_path }}/entrypoint.sh"
