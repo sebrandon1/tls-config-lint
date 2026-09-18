@@ -118,6 +118,9 @@ Add SARIF output for findings in the Security tab:
 | `sarif-output` | _(empty)_ | Path to write SARIF file (empty = disabled) |
 | `report-output` | _(empty)_ | Path to write CSV or JSON report (format inferred from extension) |
 | `baseline` | _(empty)_ | Previous SARIF 2.1.0 file; matching findings within the line window are suppressed |
+| `changed-files-only` | `false` | Scan only tracked files changed between `base-ref` and `head-ref` |
+| `base-ref` | `HEAD~1` | Git base ref used by incremental mode |
+| `head-ref` | `HEAD` | Git head ref used by incremental mode |
 | `debug` | `false` | Show which regex matched for each finding |
 
 ## Outputs

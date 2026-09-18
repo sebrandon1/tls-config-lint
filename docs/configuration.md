@@ -117,6 +117,22 @@ produce zero findings everywhere.
     languages: go,python
 ```
 
+### Incremental Git-Diff Scans
+
+Use incremental mode to scan only tracked files changed between two Git refs. Deleted files,
+test files, and excluded directories are omitted. The scan path must be inside a Git worktree.
+
+```yaml
+- uses: sebrandon1/tls-config-lint@v1
+  with:
+    changed-files-only: true
+    base-ref: origin/main
+    head-ref: HEAD
+```
+
+The same settings can be supplied in `.tls-config-lint.yml`. Invalid refs or a non-Git scan path
+return exit code 2. With no eligible changed files, the action succeeds with zero findings.
+
 ### Exclude Directories and Patterns
 
 ```yaml

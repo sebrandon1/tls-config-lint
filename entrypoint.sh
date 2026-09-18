@@ -58,6 +58,10 @@ main() {
 	log_msg "  SARIF output: ${SARIF_OUTPUT:-<disabled>}"
 	log_msg "  Report output: ${REPORT_OUTPUT:-<disabled>}"
 	log_msg "  Baseline: ${BASELINE:-<disabled>}"
+	log_msg "  Changed files only: $CHANGED_FILES_ONLY"
+	if [[ "$CHANGED_FILES_ONLY" == "true" ]]; then
+		log_msg "  Git diff: $BASE_REF...$HEAD_REF"
+	fi
 
 	# Step 2: Auto-detect languages if needed
 	if [[ "$LANGUAGES" == "auto" ]]; then
@@ -71,6 +75,11 @@ main() {
 
 	# Step 3: Run scan
 	local scan_start=$SECONDS
+	if [[ "$CHANGED_FILES_ONLY" == "true" ]]; then
+		if ! prepare_changed_files "$SCAN_PATH" "$BASE_REF" "$HEAD_REF"; then
+			exit 2
+		fi
+	fi
 	if [[ -n "$BASELINE" ]]; then
 		if ! load_baseline "$BASELINE" "$SCAN_PATH"; then
 			exit 2
