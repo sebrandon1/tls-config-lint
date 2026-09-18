@@ -32,6 +32,11 @@ detect_languages() {
 		detected+=("cpp")
 	fi
 
+	# C#/.NET: check for *.cs files
+	if find "$scan_path" -maxdepth 3 -name '*.cs' -print -quit 2>/dev/null | grep -q .; then
+		detected+=("csharp")
+	fi
+
 	# Java: check for pom.xml, build.gradle, or *.java files
 	if [[ -f "$scan_path/pom.xml" ]] || [[ -f "$scan_path/build.gradle" ]] ||
 		find "$scan_path" -maxdepth 3 -name '*.java' -print -quit 2>/dev/null | grep -q .; then
@@ -51,9 +56,6 @@ detect_languages() {
 	fi
 	if find "$scan_path" -maxdepth 3 -name '*.php' -print -quit 2>/dev/null | grep -q .; then
 		unsupported+=("PHP")
-	fi
-	if find "$scan_path" -maxdepth 3 -name '*.cs' -print -quit 2>/dev/null | grep -q .; then
-		unsupported+=("C#")
 	fi
 	if find "$scan_path" -maxdepth 3 -name '*.swift' -print -quit 2>/dev/null | grep -q .; then
 		unsupported+=("Swift")

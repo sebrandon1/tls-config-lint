@@ -113,6 +113,21 @@ scan_language "$ROOT_DIR/testdata/rust" "rust" "" ""
 assert_greater_than "Rust scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "Rust scan finds total findings" 10 "$(get_findings_count)"
 
+# Reset state for C#
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+
+# Test: C# scanning finds expected patterns
+source "$ROOT_DIR/patterns/csharp.sh"
+scan_language "$ROOT_DIR/testdata/csharp" "csharp" "" ""
+
+assert_greater_than "C# scan finds critical findings" 1 "$CRITICAL_COUNT"
+assert_greater_than "C# scan finds high findings" 1 "$HIGH_COUNT"
+assert_greater_than "C# scan finds total findings" 3 "$(get_findings_count)"
+
 # Reset state for exclude patterns test
 FINDINGS=()
 CRITICAL_COUNT=0
@@ -747,4 +762,18 @@ source "$ROOT_DIR/patterns/rust.sh"
 scan_language "$fp_dir" "rust" "" ""
 assert_equals "Rust secure code: no critical findings" "0" "$CRITICAL_COUNT"
 assert_equals "Rust secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
+
+# C# secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/csharp/secure.cs" "$fp_dir/"
+source "$ROOT_DIR/patterns/csharp.sh"
+scan_language "$fp_dir" "csharp" "" ""
+assert_equals "C# secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "C# secure code: no high findings" "0" "$HIGH_COUNT"
 rm -rf "$fp_dir"

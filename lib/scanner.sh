@@ -26,6 +26,7 @@ build_include_flags() {
 		python) echo "--include=*.py" ;;
 		nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
 		cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
+		csharp) echo "--include=*.cs" ;;
 		java) echo "--include=*.java" ;;
 		rust) echo "--include=*.rs" ;;
 	esac
@@ -39,6 +40,7 @@ build_test_exclude_flags() {
 		python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
 		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
 		cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
+		csharp) echo "--exclude=*_test.cs" ;;
 		java) echo "--exclude=*Test.java --exclude=*Tests.java --exclude=*IT.java" ;;
 		rust) echo "--exclude=*_test.rs --exclude=*_tests.rs" ;;
 	esac
@@ -373,6 +375,7 @@ scan_language() {
 		python) patterns_var="PYTHON_PATTERNS" ;;
 		nodejs) patterns_var="NODEJS_PATTERNS" ;;
 		cpp) patterns_var="CPP_PATTERNS" ;;
+		csharp) patterns_var="CSHARP_PATTERNS" ;;
 		java) patterns_var="JAVA_PATTERNS" ;;
 		rust) patterns_var="RUST_PATTERNS" ;;
 		*) return 0 ;;
