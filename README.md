@@ -117,6 +117,7 @@ Add SARIF output for findings in the Security tab:
 | `fail-on-findings` | `true` | Whether to fail CI on findings above threshold |
 | `sarif-output` | _(empty)_ | Path to write SARIF file (empty = disabled) |
 | `report-output` | _(empty)_ | Path to write CSV or JSON report (format inferred from extension) |
+| `baseline` | _(empty)_ | Previous SARIF 2.1.0 file; matching findings within the line window are suppressed |
 | `debug` | `false` | Show which regex matched for each finding |
 
 ## Outputs

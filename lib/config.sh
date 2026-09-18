@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Known config keys for typo detection
-_VALID_KEYS="severity-threshold languages exclude-dirs exclude-patterns exceptions severity-overrides"
+_VALID_KEYS="severity-threshold languages exclude-dirs exclude-patterns exceptions severity-overrides baseline"
 
 _warn_unknown_key() {
 	local key="$1"
@@ -41,6 +41,7 @@ parse_config_file() {
 	CFG_EXCLUDE_PATTERNS=""
 	CFG_EXCEPTIONS=""
 	CFG_SEVERITY_OVERRIDES=""
+	CFG_BASELINE=""
 
 	if [[ ! -f "$config_file" ]]; then
 		log_debug "No config file found at $config_file"
@@ -121,6 +122,9 @@ parse_config_file() {
 						CFG_SEVERITY_THRESHOLD="$value"
 					fi
 					;;
+				baseline)
+					CFG_BASELINE="$value"
+					;;
 				languages | exclude-dirs | exclude-patterns | exceptions | severity-overrides)
 					# If value is on same line (not a list), store it
 					if [[ -n "$value" ]]; then
@@ -154,6 +158,7 @@ merge_config() {
 	local input_fail_on_findings="${INPUT_FAIL_ON_FINDINGS:-true}"
 	local input_sarif_output="${INPUT_SARIF_OUTPUT:-}"
 	local input_report_output="${INPUT_REPORT_OUTPUT:-}"
+	local input_baseline="${INPUT_BASELINE:-}"
 
 	# Parse config file
 	parse_config_file "$input_config_file"
@@ -200,12 +205,17 @@ merge_config() {
 	FAIL_ON_FINDINGS="$input_fail_on_findings"
 	SARIF_OUTPUT="$input_sarif_output"
 	REPORT_OUTPUT="$input_report_output"
+	if [[ -n "$input_baseline" ]]; then
+		BASELINE="$input_baseline"
+	else
+		BASELINE="${CFG_BASELINE:-}"
+	fi
 	EXCEPTIONS="${CFG_EXCEPTIONS:-}"
 	SEVERITY_OVERRIDES="${CFG_SEVERITY_OVERRIDES:-}"
 
 	# Export for use in other scripts
 	export SEVERITY_THRESHOLD LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
-	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT REPORT_OUTPUT
+	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT REPORT_OUTPUT BASELINE
 	export EXCEPTIONS SEVERITY_OVERRIDES
 
 	# Validate merged configuration
@@ -283,6 +293,12 @@ validate_config() {
 	# Validate scan-path exists
 	if [[ ! -d "$SCAN_PATH" ]]; then
 		log_error "Scan path does not exist: '$SCAN_PATH'"
+		valid=false
+	fi
+
+	# Validate baseline path when configured
+	if [[ -n "$BASELINE" && ! -f "$BASELINE" ]]; then
+		log_error "Baseline file does not exist: '$BASELINE'"
 		valid=false
 	fi
 
