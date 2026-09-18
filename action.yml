@@ -43,6 +43,10 @@ inputs:
     description: 'Path to write CSV or JSON report (format inferred from extension, empty = disabled)'
     required: false
     default: ''
+  baseline:
+    description: 'Path to a previous SARIF 2.1.0 file; matching findings are suppressed'
+    required: false
+    default: ''
   changed-files-only:
     description: 'Scan only files changed between base-ref and head-ref'
     required: false
@@ -102,6 +106,7 @@ runs:
         INPUT_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
         INPUT_SARIF_OUTPUT: ${{ inputs.sarif-output }}
         INPUT_REPORT_OUTPUT: ${{ inputs.report-output }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
         INPUT_CHANGED_FILES_ONLY: ${{ inputs.changed-files-only }}
         INPUT_BASE_REF: ${{ inputs.base-ref }}
         INPUT_HEAD_REF: ${{ inputs.head-ref }}

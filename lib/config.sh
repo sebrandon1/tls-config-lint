@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Known config keys for typo detection
-_VALID_KEYS="severity-threshold languages exclude-dirs exclude-patterns exceptions severity-overrides changed-files-only base-ref head-ref"
+_VALID_KEYS="severity-threshold languages exclude-dirs exclude-patterns exceptions severity-overrides baseline changed-files-only base-ref head-ref"
 
 _warn_unknown_key() {
 	local key="$1"
@@ -41,6 +41,7 @@ parse_config_file() {
 	CFG_EXCLUDE_PATTERNS=""
 	CFG_EXCEPTIONS=""
 	CFG_SEVERITY_OVERRIDES=""
+	CFG_BASELINE=""
 	CFG_CHANGED_FILES_ONLY=""
 	CFG_BASE_REF=""
 	CFG_HEAD_REF=""
@@ -124,6 +125,9 @@ parse_config_file() {
 						CFG_SEVERITY_THRESHOLD="$value"
 					fi
 					;;
+				baseline)
+					CFG_BASELINE="$value"
+					;;
 				changed-files-only)
 					CFG_CHANGED_FILES_ONLY="$value"
 					;;
@@ -166,6 +170,7 @@ merge_config() {
 	local input_fail_on_findings="${INPUT_FAIL_ON_FINDINGS:-true}"
 	local input_sarif_output="${INPUT_SARIF_OUTPUT:-}"
 	local input_report_output="${INPUT_REPORT_OUTPUT:-}"
+	local input_baseline="${INPUT_BASELINE:-}"
 	local input_changed_files_only="${INPUT_CHANGED_FILES_ONLY:-false}"
 	local input_base_ref="${INPUT_BASE_REF:-HEAD~1}"
 	local input_head_ref="${INPUT_HEAD_REF:-HEAD}"
@@ -215,6 +220,11 @@ merge_config() {
 	FAIL_ON_FINDINGS="$input_fail_on_findings"
 	SARIF_OUTPUT="$input_sarif_output"
 	REPORT_OUTPUT="$input_report_output"
+	if [[ -n "$input_baseline" ]]; then
+		BASELINE="$input_baseline"
+	else
+		BASELINE="${CFG_BASELINE:-}"
+	fi
 	if [[ "$input_changed_files_only" != "false" ]] && [[ -n "${CFG_CHANGED_FILES_ONLY:-}" ]]; then
 		CHANGED_FILES_ONLY="$input_changed_files_only"
 	else
@@ -235,7 +245,7 @@ merge_config() {
 
 	# Export for use in other scripts
 	export SEVERITY_THRESHOLD LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
-	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT REPORT_OUTPUT
+	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT REPORT_OUTPUT BASELINE
 	export CHANGED_FILES_ONLY BASE_REF HEAD_REF
 	export EXCEPTIONS SEVERITY_OVERRIDES
 
@@ -329,6 +339,12 @@ validate_config() {
 	# Validate scan-path exists
 	if [[ ! -d "$SCAN_PATH" ]]; then
 		log_error "Scan path does not exist: '$SCAN_PATH'"
+		valid=false
+	fi
+
+	# Validate baseline path when configured
+	if [[ -n "$BASELINE" && ! -f "$BASELINE" ]]; then
+		log_error "Baseline file does not exist: '$BASELINE'"
 		valid=false
 	fi
 
