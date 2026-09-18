@@ -99,6 +99,14 @@ scan_language "$ROOT_DIR/testdata/java" "java" "" ""
 assert_greater_than "Java scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "Java scan finds total findings" 15 "$(get_findings_count)"
 
+spring_ids=0
+for finding in "${FINDINGS[@]+${FINDINGS[@]}}"; do
+	if [[ "$finding" == spring-* ]]; then
+		spring_ids=$((spring_ids + 1))
+	fi
+done
+assert_greater_than "Java scan detects Spring-specific findings" 3 "$spring_ids"
+
 # Reset state for Rust
 FINDINGS=()
 CRITICAL_COUNT=0
