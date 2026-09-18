@@ -45,12 +45,19 @@ prepare_changed_files "$incremental_repo" "$base_ref" "$head_ref"
 assert_equals "Incremental diff selects changed source file" "changed.go" "${CHANGED_FILES[*]}"
 
 FINDINGS=()
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 FINDING_REGEXES=()
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 CRITICAL_COUNT=0
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 HIGH_COUNT=0
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 MEDIUM_COUNT=0
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 INFO_COUNT=0
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 EXCEPTIONS=""
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 SEVERITY_OVERRIDES=""
 source "$ROOT_DIR/patterns/go.sh"
 scan_language "$incremental_repo" "go" "" ""
@@ -67,10 +74,15 @@ assert_equals "Incremental scan excludes unchanged insecure file" "true" "$only_
 
 CHANGED_FILES_ONLY=false
 FINDINGS=()
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 FINDING_REGEXES=()
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 CRITICAL_COUNT=0
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 HIGH_COUNT=0
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 MEDIUM_COUNT=0
+# shellcheck disable=SC2034 # Consumed by scan_language in scanner.sh
 INFO_COUNT=0
 scan_language "$incremental_repo" "go" "" ""
 full_scan_files=()
@@ -94,6 +106,7 @@ CHANGED_FILES=(changed_test.go)
 files_for_language go ""
 assert_equals "Incremental file selection preserves test exclusions" "0" "${#LANG_SCAN_FILES[@]}"
 
+# shellcheck disable=SC2034 # Consumed by prepare_changed_files in scanner.sh
 CHANGED_FILES_ONLY=false
 CHANGED_FILES=()
 LANG_SCAN_FILES=()
