@@ -9,7 +9,7 @@ class InsecureTls {
         var handler = new HttpClientHandler {
             ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true
         };
-        var protocols = SslProtocols.Tls | SslProtocols.Tls11;
+        var protocols = SslProtocols.Tls11;
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11;
     }
 }

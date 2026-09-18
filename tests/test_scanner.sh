@@ -769,6 +769,7 @@ FINDINGS=()
 CRITICAL_COUNT=0
 HIGH_COUNT=0
 MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
 INFO_COUNT=0
 fp_dir=$(mktemp -d)
 cp "$ROOT_DIR/testdata/csharp/secure.cs" "$fp_dir/"
