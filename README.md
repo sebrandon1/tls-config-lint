@@ -117,6 +117,9 @@ Add SARIF output for findings in the Security tab:
 | `fail-on-findings` | `true` | Whether to fail CI on findings above threshold |
 | `sarif-output` | _(empty)_ | Path to write SARIF file (empty = disabled) |
 | `report-output` | _(empty)_ | Path to write CSV or JSON report (format inferred from extension) |
+| `changed-files-only` | `false` | Scan only tracked files changed between `base-ref` and `head-ref` |
+| `base-ref` | `HEAD~1` | Git base ref used by incremental mode |
+| `head-ref` | `HEAD` | Git head ref used by incremental mode |
 | `debug` | `false` | Show which regex matched for each finding |
 
 ## Outputs

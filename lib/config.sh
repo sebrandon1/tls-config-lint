@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Known config keys for typo detection
-_VALID_KEYS="severity-threshold languages exclude-dirs exclude-patterns exceptions severity-overrides"
+_VALID_KEYS="severity-threshold languages exclude-dirs exclude-patterns exceptions severity-overrides changed-files-only base-ref head-ref"
 
 _warn_unknown_key() {
 	local key="$1"
@@ -41,6 +41,9 @@ parse_config_file() {
 	CFG_EXCLUDE_PATTERNS=""
 	CFG_EXCEPTIONS=""
 	CFG_SEVERITY_OVERRIDES=""
+	CFG_CHANGED_FILES_ONLY=""
+	CFG_BASE_REF=""
+	CFG_HEAD_REF=""
 
 	if [[ ! -f "$config_file" ]]; then
 		log_debug "No config file found at $config_file"
@@ -121,6 +124,15 @@ parse_config_file() {
 						CFG_SEVERITY_THRESHOLD="$value"
 					fi
 					;;
+				changed-files-only)
+					CFG_CHANGED_FILES_ONLY="$value"
+					;;
+				base-ref)
+					CFG_BASE_REF="$value"
+					;;
+				head-ref)
+					CFG_HEAD_REF="$value"
+					;;
 				languages | exclude-dirs | exclude-patterns | exceptions | severity-overrides)
 					# If value is on same line (not a list), store it
 					if [[ -n "$value" ]]; then
@@ -154,6 +166,9 @@ merge_config() {
 	local input_fail_on_findings="${INPUT_FAIL_ON_FINDINGS:-true}"
 	local input_sarif_output="${INPUT_SARIF_OUTPUT:-}"
 	local input_report_output="${INPUT_REPORT_OUTPUT:-}"
+	local input_changed_files_only="${INPUT_CHANGED_FILES_ONLY:-false}"
+	local input_base_ref="${INPUT_BASE_REF:-HEAD~1}"
+	local input_head_ref="${INPUT_HEAD_REF:-HEAD}"
 
 	# Parse config file
 	parse_config_file "$input_config_file"
@@ -200,12 +215,28 @@ merge_config() {
 	FAIL_ON_FINDINGS="$input_fail_on_findings"
 	SARIF_OUTPUT="$input_sarif_output"
 	REPORT_OUTPUT="$input_report_output"
+	if [[ "$input_changed_files_only" != "false" ]] && [[ -n "${CFG_CHANGED_FILES_ONLY:-}" ]]; then
+		CHANGED_FILES_ONLY="$input_changed_files_only"
+	else
+		CHANGED_FILES_ONLY="${CFG_CHANGED_FILES_ONLY:-$input_changed_files_only}"
+	fi
+	if [[ "$input_base_ref" != "HEAD~1" ]] && [[ -n "${CFG_BASE_REF:-}" ]]; then
+		BASE_REF="$input_base_ref"
+	else
+		BASE_REF="${CFG_BASE_REF:-$input_base_ref}"
+	fi
+	if [[ "$input_head_ref" != "HEAD" ]] && [[ -n "${CFG_HEAD_REF:-}" ]]; then
+		HEAD_REF="$input_head_ref"
+	else
+		HEAD_REF="${CFG_HEAD_REF:-$input_head_ref}"
+	fi
 	EXCEPTIONS="${CFG_EXCEPTIONS:-}"
 	SEVERITY_OVERRIDES="${CFG_SEVERITY_OVERRIDES:-}"
 
 	# Export for use in other scripts
 	export SEVERITY_THRESHOLD LANGUAGES EXCLUDE_DIRS EXCLUDE_PATTERNS
 	export SCAN_PATH FAIL_ON_FINDINGS SARIF_OUTPUT REPORT_OUTPUT
+	export CHANGED_FILES_ONLY BASE_REF HEAD_REF
 	export EXCEPTIONS SEVERITY_OVERRIDES
 
 	# Validate merged configuration
@@ -252,6 +283,21 @@ validate_config() {
 			valid=false
 			;;
 	esac
+
+	# Validate incremental scan settings
+	case "$CHANGED_FILES_ONLY" in
+		true | false) ;;
+		*)
+			log_error "Invalid changed-files-only: '$CHANGED_FILES_ONLY' (must be true or false)"
+			valid=false
+			;;
+	esac
+	if [[ "$CHANGED_FILES_ONLY" == "true" ]]; then
+		if [[ -z "$BASE_REF" || -z "$HEAD_REF" ]]; then
+			log_error "base-ref and head-ref are required when changed-files-only is true"
+			valid=false
+		fi
+	fi
 
 	# Validate severity-overrides
 	if [[ -n "${SEVERITY_OVERRIDES:-}" ]]; then
