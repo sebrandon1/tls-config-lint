@@ -1,6 +1,6 @@
 # Detected Patterns
 
-tls-config-lint detects 86 TLS anti-patterns across 6 languages. Severity levels:
+tls-config-lint detects 91 TLS anti-patterns across 7 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
@@ -124,6 +124,16 @@ tls-config-lint detects 86 TLS anti-patterns across 6 languages. Severity levels
 | [`pqc-ml-kem`](#rust-pqc-ml-kem) | INFO | Post-Quantum Cryptography adoption |
 
 ---
+
+## Ruby (5 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`net-http-verify-none`](#ruby-net-http-verify-none) | CRITICAL | `Net::HTTP` uses `VERIFY_NONE` |
+| [`ruby-openssl-weak-protocol`](#ruby-ruby-openssl-weak-protocol) | HIGH | Ruby OpenSSL configuration uses SSLv3/TLS 1.0/1.1 |
+| [`faraday-verify-false`](#ruby-faraday-verify-false) | CRITICAL | Faraday disables certificate verification |
+| [`httparty-verify-false`](#ruby-httparty-verify-false) | CRITICAL | HTTParty disables certificate verification |
+| [`rest-client-verify-false`](#ruby-rest-client-verify-false) | CRITICAL | RestClient disables certificate verification |
 
 ## Remediation Reference
 
@@ -1563,6 +1573,99 @@ SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
 **ID:** `pqc-ml-kem` | **Severity:** INFO
 
 > **Informational.** Post-Quantum Cryptography (ML-KEM / Kyber) usage detected. This indicates proactive adoption of quantum-resistant key encapsulation. No action required.
+
+## Ruby
+
+<a id="ruby-net-http-verify-none"></a>
+
+### Net::HTTP VERIFY_NONE
+
+**ID:** `net-http-verify-none` | **Severity:** CRITICAL
+
+`VERIFY_NONE` disables certificate verification for Net::HTTP and permits man-in-the-middle attacks.
+
+**Insecure:**
+```ruby
+http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+```
+
+**Secure:**
+```ruby
+http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+```
+
+<a id="ruby-ruby-openssl-weak-protocol"></a>
+
+### Weak OpenSSL protocol
+
+**ID:** `ruby-openssl-weak-protocol` | **Severity:** HIGH
+
+SSLv3, TLS 1.0, and TLS 1.1 are deprecated and vulnerable. Use a modern TLS context with TLS 1.2 or newer.
+
+**Insecure:**
+```ruby
+context = OpenSSL::SSL::SSLContext.new(:TLSv1)
+```
+
+**Secure:**
+```ruby
+context = OpenSSL::SSL::SSLContext.new(:TLS)
+context.min_version = OpenSSL::SSL::TLS1_2_VERSION
+```
+
+<a id="ruby-faraday-verify-false"></a>
+
+### Faraday verification disabled
+
+**ID:** `faraday-verify-false` | **Severity:** CRITICAL
+
+Faraday's `verify: false` option disables server certificate validation.
+
+**Insecure:**
+```ruby
+Faraday.get("https://example.com", ssl: { verify: false })
+```
+
+**Secure:**
+```ruby
+Faraday.get("https://example.com", ssl: { verify: true })
+```
+
+<a id="ruby-httparty-verify-false"></a>
+
+### HTTParty verification disabled
+
+**ID:** `httparty-verify-false` | **Severity:** CRITICAL
+
+HTTParty's `verify: false` option disables server certificate validation.
+
+**Insecure:**
+```ruby
+HTTParty.get("https://example.com", verify: false)
+```
+
+**Secure:**
+```ruby
+HTTParty.get("https://example.com", verify: true)
+```
+
+<a id="ruby-rest-client-verify-false"></a>
+
+### RestClient verification disabled
+
+**ID:** `rest-client-verify-false` | **Severity:** CRITICAL
+
+RestClient's `verify_ssl: false` option disables server certificate validation.
+
+**Insecure:**
+```ruby
+RestClient::Resource.new("https://example.com", verify_ssl: false)
+```
+
+**Secure:**
+```ruby
+RestClient::Resource.new("https://example.com", verify_ssl: true)
+```
 
 ## Rust
 
