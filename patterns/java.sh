@@ -19,5 +19,9 @@ JAVA_PATTERNS=(
 	"okhttp-ssl-socket-factory|CRITICAL|OkHttp sslSocketFactory|OkHttp custom SSL socket factory may bypass verification|OkHttpClient.*sslSocketFactory\|\.sslSocketFactory\("
 	"apache-httpclient-custom-ssl|HIGH|Apache HttpClient custom SSLContext|Custom SSLContext in Apache HttpClient (review needed)|HttpClients\.custom.*setSSLContext\|HttpClientBuilder.*setSSLContext"
 	"ssl-connection-socket-factory|HIGH|SSLConnectionSocketFactory|Custom SSL connection socket factory (review needed)|SSLConnectionSocketFactory"
+	"spring-resttemplate-insecure|CRITICAL|Spring RestTemplate insecure TLS|RestTemplate uses a custom SSL component that may disable certificate verification|RestTemplate.*(NoopHostnameVerifier|TrustAll|Insecure|verify[[:space:]]*[:=][[:space:]]*false)"
+	"spring-webclient-insecure|CRITICAL|Spring WebClient insecure TLS|WebClient builder uses an insecure SSL context or trust manager|WebClient[.]builder.*(InsecureTrustManagerFactory|TrustAll|NoopHostnameVerifier|insecure|sslContext)"
+	"spring-security-weak-protocol|HIGH|Spring Security weak TLS protocol|Spring Security enables deprecated TLS 1.0 or TLS 1.1|setSSLProtocols.*(TLSv1[^.2-9]|TLSv1[.]1)|protocols.*(TLSv1[^.2-9]|TLSv1[.]1)"
+	"spring-bean-trust-all|CRITICAL|Spring trust-all SSL bean|Spring @Bean declares an SSL component that trusts all certificates|@Bean.*(TrustAll|X509TrustManager|NoopHostnameVerifier|InsecureTrustManagerFactory)"
 	"pqc-ml-kem|INFO|PQC/ML-KEM patterns|Post-Quantum Cryptography adoption (ML-KEM)|(MLKEM|ML-KEM|postQuantum|post-quantum)"
 )

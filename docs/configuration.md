@@ -18,6 +18,29 @@ exclude-patterns:
 
 Action inputs override config file values. Lists (exclude-dirs, exclude-patterns) are merged (union).
 
+### Custom Patterns
+
+Use `extra-patterns` to add organization-specific rules without changing the action. This is a
+narrow YAML list-of-maps schema; every entry requires `id`, `severity`, `name`, `description`, and
+`regex`. `languages` is optional: when omitted, the pattern runs for every selected language.
+
+```yaml
+extra-patterns:
+  - id: org-weak-cipher
+    severity: high
+    name: Organization banned cipher suite
+    description: Uses a cipher suite banned by organization policy
+    regex: 'TLS_RSA_WITH_AES_128_CBC_SHA'
+    languages: [go, java]
+```
+
+IDs must contain only letters, numbers, `.`, `_`, and `-`, and must be unique. Supported severities
+are `critical`, `high`, `medium`, and `info`; supported language scopes are `go`, `python`,
+`nodejs`, `cpp`, `java`, and `rust`. Regexes are line-oriented extended regular expressions and
+must not contain the scanner's pipe delimiter. Custom findings use normal exclusions, exceptions,
+severity overrides, inline suppression, reports, annotations, SARIF, and threshold behavior.
+Invalid custom-pattern configuration returns exit code 2 before scanning.
+
 ### Per-File/Directory Exceptions
 
 Use `exceptions` to suppress specific patterns for specific files or directories. Each entry is `pattern-id:path`. Paths ending with `/` match as directory prefixes; other paths match exactly.
@@ -91,6 +114,24 @@ See [`.tls-config-lint.example.yml`](../.tls-config-lint.example.yml) for a full
 
 The format is inferred from the file extension: `.json` produces a structured JSON report with scan metadata and findings, `.csv` produces a flat CSV table. JSON requires `jq`.
 
+### Baseline Comparison
+
+Set `baseline` to a previous SARIF 2.1.0 file to report only new findings. A finding is
+considered existing when its rule ID and normalized file path match and its line is within three
+lines of a baseline result. Duplicate baseline results do not change the outcome.
+
+```yaml
+- uses: sebrandon1/tls-config-lint@v1
+  with:
+    baseline: artifacts/tls-baseline.sarif
+    fail-on-findings: true
+```
+
+The baseline must be readable and contain SARIF results with rule IDs, artifact URIs, and start
+lines. Invalid or missing baselines return exit code 2. Baseline filtering happens before
+annotations, summaries, SARIF/report output, and threshold evaluation, so fully suppressed scans
+produce zero findings everywhere.
+
 ### Specific Languages Only
 
 ```yaml
@@ -98,6 +139,22 @@ The format is inferred from the file extension: `.json` produces a structured JS
   with:
     languages: go,python
 ```
+
+### Incremental Git-Diff Scans
+
+Use incremental mode to scan only tracked files changed between two Git refs. Deleted files,
+test files, and excluded directories are omitted. The scan path must be inside a Git worktree.
+
+```yaml
+- uses: sebrandon1/tls-config-lint@v1
+  with:
+    changed-files-only: true
+    base-ref: origin/main
+    head-ref: HEAD
+```
+
+The same settings can be supplied in `.tls-config-lint.yml`. Invalid refs or a non-Git scan path
+return exit code 2. With no eligible changed files, the action succeeds with zero findings.
 
 ### Exclude Directories and Patterns
 

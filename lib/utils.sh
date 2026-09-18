@@ -142,8 +142,12 @@ file_to_lang_prefix() {
 		*.py) echo "python" ;;
 		*.js | *.mjs | *.ts | *.mts) echo "nodejs" ;;
 		*.cpp | *.cc | *.cxx | *.h | *.hpp) echo "cpp" ;;
+		*.cs) echo "csharp" ;;
 		*.java) echo "java" ;;
 		*.rs) echo "rust" ;;
+		*.kt) echo "kotlin" ;;
+		*.php) echo "php" ;;
+		*.rb) echo "ruby" ;;
 		*) echo "" ;;
 	esac
 }
@@ -152,6 +156,10 @@ file_to_lang_prefix() {
 pattern_docs_url() {
 	local pattern_id="$1"
 	local file="$2"
+	if [[ ",${CUSTOM_PATTERN_IDS:-}," == *",$pattern_id,"* ]]; then
+		echo "https://github.com/sebrandon1/tls-config-lint/blob/main/docs/configuration.md#custom-patterns"
+		return
+	fi
 	local lang_prefix
 	lang_prefix=$(file_to_lang_prefix "$file")
 	local anchor="${lang_prefix:+${lang_prefix}-}${pattern_id}"

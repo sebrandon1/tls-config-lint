@@ -31,6 +31,22 @@ assert_equals "Config parses exclude-dirs" "test/fixtures,examples/insecure" "$C
 assert_equals "Config parses exclude-patterns" "insecure-skip-verify,verify-false" "$CFG_EXCLUDE_PATTERNS"
 assert_equals "Config without severity-overrides returns empty" "" "$CFG_SEVERITY_OVERRIDES"
 
+# Test: Parse custom extra-pattern records
+TEMP_CUSTOM=$(mktemp)
+cat >"$TEMP_CUSTOM" <<'EOF'
+extra-patterns:
+  - id: org-weak-cipher
+    severity: high
+    name: Organization banned cipher suite
+    description: Uses a cipher banned by policy
+    regex: 'TLS_RSA_WITH_AES_128_CBC_SHA'
+    languages: [go, java]
+EOF
+parse_config_file "$TEMP_CUSTOM"
+assert_contains "Config parses custom pattern ID" "org-weak-cipher" "$CFG_EXTRA_PATTERNS"
+assert_contains "Config parses custom pattern language scope" "go,java" "$CFG_EXTRA_PATTERNS"
+rm -f "$TEMP_CUSTOM"
+
 # Test: Unknown key produces warning with suggestion
 TEMP_UNKNOWN=$(mktemp)
 cat >"$TEMP_UNKNOWN" <<'EOF'

@@ -1,6 +1,6 @@
 # Detected Patterns
 
-tls-config-lint detects 89 TLS anti-patterns across 6 languages. Severity levels:
+tls-config-lint detects 107 TLS anti-patterns across 10 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
@@ -132,6 +132,49 @@ tls-config-lint detects 89 TLS anti-patterns across 6 languages. Severity levels
 | [`httpx-client-verify-false`](#python-httpx-client-verify-false) | CRITICAL | httpx Client disables verification |
 | [`httpx-async-client-verify-false`](#python-httpx-async-client-verify-false) | CRITICAL | httpx AsyncClient disables verification |
 | [`httpx-request-verify-false`](#python-httpx-request-verify-false) | CRITICAL | httpx request helper disables verification |
+## Spring Boot / WebClient (4 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`spring-resttemplate-insecure`](#java-spring-resttemplate-insecure) | CRITICAL | RestTemplate uses insecure custom TLS |
+| [`spring-webclient-insecure`](#java-spring-webclient-insecure) | CRITICAL | WebClient uses insecure SSL/trust manager configuration |
+| [`spring-security-weak-protocol`](#java-spring-security-weak-protocol) | HIGH | Spring Security enables weak TLS protocols |
+| [`spring-bean-trust-all`](#java-spring-bean-trust-all) | CRITICAL | Spring @Bean trusts all certificates |
+## Kotlin (5 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`kotlin-sslcontext-weak`](#kotlin-kotlin-sslcontext-weak) | HIGH | Kotlin SSLContext uses a weak protocol |
+| [`ktor-trust-manager-bypass`](#kotlin-ktor-trust-manager-bypass) | CRITICAL | Ktor uses a null/trust-all manager |
+| [`okhttp-hostname-verifier-bypass`](#kotlin-okhttp-hostname-verifier-bypass) | CRITICAL | OkHttp hostname verification is bypassed |
+| [`okhttp-ssl-socket-factory-bypass`](#kotlin-okhttp-ssl-socket-factory-bypass) | CRITICAL | OkHttp uses an insecure socket factory |
+| [`kotlin-trust-manager-all`](#kotlin-kotlin-trust-manager-all) | CRITICAL | Kotlin trust manager accepts all certificates |
+## C#/.NET (4 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`servicepointmanager-callback-true`](#csharp-servicepointmanager-callback-true) | CRITICAL | ServicePointManager accepts every certificate |
+| [`httpclienthandler-callback-true`](#csharp-httpclienthandler-callback-true) | CRITICAL | HttpClientHandler accepts every certificate |
+| [`sslstream-weak-protocol`](#csharp-sslstream-weak-protocol) | HIGH | SslStream enables TLS 1.0/1.1 |
+| [`securityprotocol-weak`](#csharp-securityprotocol-weak) | HIGH | SecurityProtocolType enables TLS 1.0/1.1 |
+## PHP (5 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`curl-ssl-verifypeer-off`](#php-curl-ssl-verifypeer-off) | CRITICAL | cURL disables peer verification |
+| [`curl-ssl-verifyhost-off`](#php-curl-ssl-verifyhost-off) | CRITICAL | cURL disables hostname verification |
+| [`php-stream-verify-peer-false`](#php-php-stream-verify-peer-false) | CRITICAL | PHP streams disable peer verification |
+| [`php-stream-verify-name-false`](#php-php-stream-verify-name-false) | CRITICAL | PHP streams disable hostname verification |
+| [`guzzle-verify-false`](#php-guzzle-verify-false) | CRITICAL | Guzzle disables certificate verification |
+## Ruby (5 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`net-http-verify-none`](#ruby-net-http-verify-none) | CRITICAL | `Net::HTTP` uses `VERIFY_NONE` |
+| [`ruby-openssl-weak-protocol`](#ruby-ruby-openssl-weak-protocol) | HIGH | Ruby OpenSSL configuration uses SSLv3/TLS 1.0/1.1 |
+| [`faraday-verify-false`](#ruby-faraday-verify-false) | CRITICAL | Faraday disables certificate verification |
+| [`httparty-verify-false`](#ruby-httparty-verify-false) | CRITICAL | HTTParty disables certificate verification |
+| [`rest-client-verify-false`](#ruby-rest-client-verify-false) | CRITICAL | RestClient disables certificate verification |
 
 ## Remediation Reference
 
@@ -1626,6 +1669,334 @@ response = httpx.get("https://example.com", verify=False)
 **Secure:**
 ```python
 response = httpx.get("https://example.com", verify=True)
+## Spring Boot / WebClient
+
+<a id="java-spring-resttemplate-insecure"></a>
+
+### Spring RestTemplate insecure TLS
+
+**ID:** `spring-resttemplate-insecure` | **Severity:** CRITICAL
+
+RestTemplate should use the platform's certificate and hostname validation rather than a trust-all SSL component.
+
+**Insecure:**
+```java
+RestTemplate restTemplate = new RestTemplate(NoopHostnameVerifier.INSTANCE);
+```
+
+**Secure:**
+```java
+RestTemplate restTemplate = new RestTemplate();
+```
+
+<a id="java-spring-webclient-insecure"></a>
+
+### Spring WebClient insecure TLS
+
+**ID:** `spring-webclient-insecure` | **Severity:** CRITICAL
+
+WebClient must not install an insecure trust manager or SSL context.
+
+**Insecure:**
+```java
+WebClient client = WebClient.builder()
+    .clientConnector(InsecureTrustManagerFactory.INSTANCE).build();
+```
+
+**Secure:**
+```java
+WebClient client = WebClient.builder().build();
+```
+
+<a id="java-spring-security-weak-protocol"></a>
+
+### Spring Security weak TLS protocol
+
+**ID:** `spring-security-weak-protocol` | **Severity:** HIGH
+
+Spring Security should not enable deprecated TLS 1.0 or TLS 1.1 protocols.
+
+**Insecure:**
+```java
+httpSecurity.setSSLProtocols("TLSv1", "TLSv1.1");
+```
+
+**Secure:**
+```java
+httpSecurity.setSSLProtocols("TLSv1.2", "TLSv1.3");
+```
+
+<a id="java-spring-bean-trust-all"></a>
+
+### Spring trust-all SSL bean
+
+**ID:** `spring-bean-trust-all` | **Severity:** CRITICAL
+
+Spring-managed SSL beans must retain certificate validation and must not expose a trust-all manager.
+
+**Insecure:**
+```java
+@Bean SSLSocketFactory factory() { return InsecureTrustManagerFactory.INSTANCE; }
+```
+
+**Secure:**
+```java
+@Bean SSLSocketFactory factory() { return defaultSslSocketFactory(); }
+## C#/.NET
+
+<a id="csharp-servicepointmanager-callback-true"></a>
+
+### ServicePointManager validation bypass
+
+**ID:** `servicepointmanager-callback-true` | **Severity:** CRITICAL
+
+Returning `true` from the global certificate callback accepts invalid server certificates.
+
+**Insecure:**
+```csharp
+ServicePointManager.ServerCertificateValidationCallback = (_, _, _, _) => true;
+```
+
+**Secure:**
+```csharp
+// Leave the platform certificate validation callback unchanged.
+```
+
+<a id="csharp-httpclienthandler-callback-true"></a>
+
+### HttpClientHandler validation bypass
+
+**ID:** `httpclienthandler-callback-true` | **Severity:** CRITICAL
+
+An always-true custom validation callback disables HttpClient certificate validation.
+
+**Insecure:**
+```csharp
+var handler = new HttpClientHandler {
+    ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+};
+```
+
+**Secure:**
+```csharp
+var handler = new HttpClientHandler();
+```
+
+<a id="csharp-sslstream-weak-protocol"></a>
+
+### SslStream weak protocol
+
+**ID:** `sslstream-weak-protocol` | **Severity:** HIGH
+
+TLS 1.0 and TLS 1.1 are deprecated. Restrict SslStream to TLS 1.2 or newer.
+
+**Insecure:**
+```csharp
+var protocols = SslProtocols.Tls | SslProtocols.Tls11;
+```
+
+**Secure:**
+```csharp
+var protocols = SslProtocols.Tls12;
+```
+
+<a id="csharp-securityprotocol-weak"></a>
+
+### Weak SecurityProtocolType
+
+**ID:** `securityprotocol-weak` | **Severity:** HIGH
+
+Global use of `Tls` or `Tls11` permits deprecated protocol versions.
+
+**Insecure:**
+```csharp
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11;
+```
+
+**Secure:**
+```csharp
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+## PHP
+
+<a id="php-curl-ssl-verifypeer-off"></a>
+
+### cURL peer verification disabled
+
+**ID:** `curl-ssl-verifypeer-off` | **Severity:** CRITICAL
+
+Disabling `CURLOPT_SSL_VERIFYPEER` permits untrusted certificates and man-in-the-middle attacks.
+
+**Insecure:**
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+```
+
+**Secure:**
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+```
+
+<a id="php-curl-ssl-verifyhost-off"></a>
+
+### cURL hostname verification disabled
+
+**ID:** `curl-ssl-verifyhost-off` | **Severity:** CRITICAL
+
+`CURLOPT_SSL_VERIFYHOST` must validate the peer hostname; zero disables that protection.
+
+**Insecure:**
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+```
+
+**Secure:**
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+```
+
+<a id="php-php-stream-verify-peer-false"></a>
+
+### PHP stream peer verification disabled
+
+**ID:** `php-stream-verify-peer-false` | **Severity:** CRITICAL
+
+Stream contexts with `verify_peer` disabled accept untrusted certificates.
+
+**Insecure:**
+```php
+$context = stream_context_create(['ssl' => ['verify_peer' => false]]);
+```
+
+**Secure:**
+```php
+$context = stream_context_create(['ssl' => ['verify_peer' => true]]);
+```
+
+<a id="php-php-stream-verify-name-false"></a>
+
+### PHP stream hostname verification disabled
+
+**ID:** `php-stream-verify-name-false` | **Severity:** CRITICAL
+
+Disabling `verify_peer_name` removes hostname validation from PHP streams.
+
+**Insecure:**
+```php
+$context = stream_context_create(['ssl' => ['verify_peer_name' => false]]);
+```
+
+**Secure:**
+```php
+$context = stream_context_create(['ssl' => ['verify_peer_name' => true]]);
+```
+
+<a id="php-guzzle-verify-false"></a>
+
+### Guzzle verification disabled
+
+**ID:** `guzzle-verify-false` | **Severity:** CRITICAL
+
+Guzzle's `verify` option must remain enabled so the client validates server certificates.
+
+**Insecure:**
+```php
+$client = new GuzzleHttp\Client(['verify' => false]);
+```
+
+**Secure:**
+```php
+$client = new GuzzleHttp\Client(['verify' => true]);
+## Ruby
+
+<a id="ruby-net-http-verify-none"></a>
+
+### Net::HTTP VERIFY_NONE
+
+**ID:** `net-http-verify-none` | **Severity:** CRITICAL
+
+`VERIFY_NONE` disables certificate verification for Net::HTTP and permits man-in-the-middle attacks.
+
+**Insecure:**
+```ruby
+http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+```
+
+**Secure:**
+```ruby
+http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+```
+
+<a id="ruby-ruby-openssl-weak-protocol"></a>
+
+### Weak OpenSSL protocol
+
+**ID:** `ruby-openssl-weak-protocol` | **Severity:** HIGH
+
+SSLv3, TLS 1.0, and TLS 1.1 are deprecated and vulnerable. Use a modern TLS context with TLS 1.2 or newer.
+
+**Insecure:**
+```ruby
+context = OpenSSL::SSL::SSLContext.new(:TLSv1)
+```
+
+**Secure:**
+```ruby
+context = OpenSSL::SSL::SSLContext.new(:TLS)
+context.min_version = OpenSSL::SSL::TLS1_2_VERSION
+```
+
+<a id="ruby-faraday-verify-false"></a>
+
+### Faraday verification disabled
+
+**ID:** `faraday-verify-false` | **Severity:** CRITICAL
+
+Faraday's `verify: false` option disables server certificate validation.
+
+**Insecure:**
+```ruby
+Faraday.get("https://example.com", ssl: { verify: false })
+```
+
+**Secure:**
+```ruby
+Faraday.get("https://example.com", ssl: { verify: true })
+```
+
+<a id="ruby-httparty-verify-false"></a>
+
+### HTTParty verification disabled
+
+**ID:** `httparty-verify-false` | **Severity:** CRITICAL
+
+HTTParty's `verify: false` option disables server certificate validation.
+
+**Insecure:**
+```ruby
+HTTParty.get("https://example.com", verify: false)
+```
+
+**Secure:**
+```ruby
+HTTParty.get("https://example.com", verify: true)
+```
+
+<a id="ruby-rest-client-verify-false"></a>
+
+### RestClient verification disabled
+
+**ID:** `rest-client-verify-false` | **Severity:** CRITICAL
+
+RestClient's `verify_ssl: false` option disables server certificate validation.
+
+**Insecure:**
+```ruby
+RestClient::Resource.new("https://example.com", verify_ssl: false)
+```
+
+**Secure:**
+```ruby
+RestClient::Resource.new("https://example.com", verify_ssl: true)
 ```
 
 ## Rust
