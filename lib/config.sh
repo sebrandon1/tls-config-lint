@@ -232,14 +232,14 @@ validate_config() {
 		for lang in "${lang_list[@]}"; do
 			lang="${lang// /}"
 			case "$lang" in
-				go | python | nodejs | cpp | java | rust) ;;
+				go | python | nodejs | cpp | java | rust | ruby) ;;
 				*)
 					invalid_langs+=("$lang")
 					;;
 			esac
 		done
 		if [[ ${#invalid_langs[@]} -gt 0 ]]; then
-			log_error "Invalid language(s): ${invalid_langs[*]} (supported: go, python, nodejs, cpp, java, rust)"
+			log_error "Invalid language(s): ${invalid_langs[*]} (supported: go, python, nodejs, cpp, java, rust, ruby)"
 			valid=false
 		fi
 	fi

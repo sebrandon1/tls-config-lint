@@ -28,6 +28,7 @@ build_include_flags() {
 		cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
 		java) echo "--include=*.java" ;;
 		rust) echo "--include=*.rs" ;;
+		ruby) echo "--include=*.rb" ;;
 	esac
 }
 
@@ -41,6 +42,7 @@ build_test_exclude_flags() {
 		cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
 		java) echo "--exclude=*Test.java --exclude=*Tests.java --exclude=*IT.java" ;;
 		rust) echo "--exclude=*_test.rs --exclude=*_tests.rs" ;;
+		ruby) echo "--exclude=*_test.rb --exclude=test_*.rb" ;;
 	esac
 }
 
@@ -375,6 +377,7 @@ scan_language() {
 		cpp) patterns_var="CPP_PATTERNS" ;;
 		java) patterns_var="JAVA_PATTERNS" ;;
 		rust) patterns_var="RUST_PATTERNS" ;;
+		ruby) patterns_var="RUBY_PATTERNS" ;;
 		*) return 0 ;;
 	esac
 
