@@ -269,6 +269,35 @@ jobs:
             exit 1
           fi
 
+  self-test-custom-patterns:
+    name: Self Test (custom patterns)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create custom pattern config
+        run: |
+          cat > /tmp/tls-config-lint-custom.yml <<'EOF'
+          extra-patterns:
+            - id: ci-org-cipher
+              severity: high
+              name: CI organization cipher
+              description: CI custom rule detects a banned cipher
+              regex: 'TLS_RSA_WITH_3DES_EDE_CBC_SHA'
+              languages: [go]
+          EOF
+      - name: Run TLS Config Lint with custom pattern
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata/go
+          languages: go
+          config-file: /tmp/tls-config-lint-custom.yml
+          sarif-output: custom-pattern.sarif
+          fail-on-findings: false
+      - name: Verify custom SARIF result
+        run: |
+          jq -e '.runs[0].results | any(.[]; .ruleId == "ci-org-cipher")' custom-pattern.sarif
+
   self-test-exclude-dirs:
     name: Self Test (exclude dirs)
     runs-on: ubuntu-latest
