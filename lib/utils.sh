@@ -144,6 +144,7 @@ file_to_lang_prefix() {
 		*.cpp | *.cc | *.cxx | *.h | *.hpp) echo "cpp" ;;
 		*.java) echo "java" ;;
 		*.rs) echo "rust" ;;
+		*.kt) echo "kotlin" ;;
 		*) echo "" ;;
 	esac
 }
