@@ -113,7 +113,22 @@ scan_language "$ROOT_DIR/testdata/rust" "rust" "" ""
 assert_greater_than "Rust scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "Rust scan finds total findings" 10 "$(get_findings_count)"
 
-# Reset state for PHP and Ruby
+# Reset state for C#, PHP, and Ruby
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+
+# Test: C# scanning finds expected patterns
+source "$ROOT_DIR/patterns/csharp.sh"
+scan_language "$ROOT_DIR/testdata/csharp" "csharp" "" ""
+
+assert_greater_than "C# scan finds critical findings" 1 "$CRITICAL_COUNT"
+assert_greater_than "C# scan finds high findings" 1 "$HIGH_COUNT"
+assert_greater_than "C# scan finds total findings" 3 "$(get_findings_count)"
+
+# Reset state for PHP
 FINDINGS=()
 CRITICAL_COUNT=0
 HIGH_COUNT=0
@@ -779,7 +794,22 @@ assert_equals "Rust secure code: no critical findings" "0" "$CRITICAL_COUNT"
 assert_equals "Rust secure code: no high findings" "0" "$HIGH_COUNT"
 rm -rf "$fp_dir"
 
-# PHP and Ruby secure code
+# C#, PHP, and Ruby secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/csharp/secure.cs" "$fp_dir/"
+source "$ROOT_DIR/patterns/csharp.sh"
+scan_language "$fp_dir" "csharp" "" ""
+assert_equals "C# secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "C# secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
+
+# PHP secure code
 FINDINGS=()
 CRITICAL_COUNT=0
 HIGH_COUNT=0

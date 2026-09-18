@@ -1,6 +1,6 @@
 # Detected Patterns
 
-tls-config-lint detects 91 TLS anti-patterns across 7 languages. Severity levels:
+tls-config-lint detects 95 TLS anti-patterns across 10 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
@@ -125,6 +125,14 @@ tls-config-lint detects 91 TLS anti-patterns across 7 languages. Severity levels
 
 ---
 
+## C#/.NET (4 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`servicepointmanager-callback-true`](#csharp-servicepointmanager-callback-true) | CRITICAL | ServicePointManager accepts every certificate |
+| [`httpclienthandler-callback-true`](#csharp-httpclienthandler-callback-true) | CRITICAL | HttpClientHandler accepts every certificate |
+| [`sslstream-weak-protocol`](#csharp-sslstream-weak-protocol) | HIGH | SslStream enables TLS 1.0/1.1 |
+| [`securityprotocol-weak`](#csharp-securityprotocol-weak) | HIGH | SecurityProtocolType enables TLS 1.0/1.1 |
 ## PHP (5 patterns)
 
 | ID | Severity | Description |
@@ -1583,6 +1591,80 @@ SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
 
 > **Informational.** Post-Quantum Cryptography (ML-KEM / Kyber) usage detected. This indicates proactive adoption of quantum-resistant key encapsulation. No action required.
 
+## C#/.NET
+
+<a id="csharp-servicepointmanager-callback-true"></a>
+
+### ServicePointManager validation bypass
+
+**ID:** `servicepointmanager-callback-true` | **Severity:** CRITICAL
+
+Returning `true` from the global certificate callback accepts invalid server certificates.
+
+**Insecure:**
+```csharp
+ServicePointManager.ServerCertificateValidationCallback = (_, _, _, _) => true;
+```
+
+**Secure:**
+```csharp
+// Leave the platform certificate validation callback unchanged.
+```
+
+<a id="csharp-httpclienthandler-callback-true"></a>
+
+### HttpClientHandler validation bypass
+
+**ID:** `httpclienthandler-callback-true` | **Severity:** CRITICAL
+
+An always-true custom validation callback disables HttpClient certificate validation.
+
+**Insecure:**
+```csharp
+var handler = new HttpClientHandler {
+    ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+};
+```
+
+**Secure:**
+```csharp
+var handler = new HttpClientHandler();
+```
+
+<a id="csharp-sslstream-weak-protocol"></a>
+
+### SslStream weak protocol
+
+**ID:** `sslstream-weak-protocol` | **Severity:** HIGH
+
+TLS 1.0 and TLS 1.1 are deprecated. Restrict SslStream to TLS 1.2 or newer.
+
+**Insecure:**
+```csharp
+var protocols = SslProtocols.Tls | SslProtocols.Tls11;
+```
+
+**Secure:**
+```csharp
+var protocols = SslProtocols.Tls12;
+```
+
+<a id="csharp-securityprotocol-weak"></a>
+
+### Weak SecurityProtocolType
+
+**ID:** `securityprotocol-weak` | **Severity:** HIGH
+
+Global use of `Tls` or `Tls11` permits deprecated protocol versions.
+
+**Insecure:**
+```csharp
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11;
+```
+
+**Secure:**
+```csharp
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 ## PHP
 
 <a id="php-curl-ssl-verifypeer-off"></a>

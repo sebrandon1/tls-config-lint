@@ -31,6 +31,9 @@ assert_contains "Detects Java from .java files" "java" "$result"
 result=$(detect_languages "$ROOT_DIR/testdata/rust" 2>/dev/null)
 assert_contains "Detects Rust from .rs files" "rust" "$result"
 
+# Test: Detect C# from testdata
+result=$(detect_languages "$ROOT_DIR/testdata/csharp" 2>/dev/null)
+assert_contains "Detects C# from .cs files" "csharp" "$result"
 # Test: Detect PHP from testdata
 result=$(detect_languages "$ROOT_DIR/testdata/php" 2>/dev/null)
 assert_contains "Detects PHP from .php files" "php" "$result"
