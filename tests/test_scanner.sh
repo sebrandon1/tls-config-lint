@@ -113,6 +113,20 @@ scan_language "$ROOT_DIR/testdata/rust" "rust" "" ""
 assert_greater_than "Rust scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "Rust scan finds total findings" 10 "$(get_findings_count)"
 
+# Reset state for PHP
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+
+# Test: PHP scanning finds expected patterns
+source "$ROOT_DIR/patterns/php.sh"
+scan_language "$ROOT_DIR/testdata/php" "php" "" ""
+
+assert_greater_than "PHP scan finds critical findings" 4 "$CRITICAL_COUNT"
+assert_greater_than "PHP scan finds total findings" 4 "$(get_findings_count)"
+
 # Reset state for exclude patterns test
 FINDINGS=()
 CRITICAL_COUNT=0
@@ -747,4 +761,18 @@ source "$ROOT_DIR/patterns/rust.sh"
 scan_language "$fp_dir" "rust" "" ""
 assert_equals "Rust secure code: no critical findings" "0" "$CRITICAL_COUNT"
 assert_equals "Rust secure code: no high findings" "0" "$HIGH_COUNT"
+rm -rf "$fp_dir"
+
+# PHP secure code
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+fp_dir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/php/secure.php" "$fp_dir/"
+source "$ROOT_DIR/patterns/php.sh"
+scan_language "$fp_dir" "php" "" ""
+assert_equals "PHP secure code: no critical findings" "0" "$CRITICAL_COUNT"
+assert_equals "PHP secure code: no high findings" "0" "$HIGH_COUNT"
 rm -rf "$fp_dir"

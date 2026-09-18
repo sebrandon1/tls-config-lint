@@ -44,13 +44,15 @@ detect_languages() {
 		detected+=("rust")
 	fi
 
+	# PHP: check for *.php files
+	if find "$scan_path" -maxdepth 3 -name '*.php' -print -quit 2>/dev/null | grep -q .; then
+		detected+=("php")
+	fi
+
 	# Check for unsupported languages and notify
 	local unsupported=()
 	if find "$scan_path" -maxdepth 3 -name '*.rb' -print -quit 2>/dev/null | grep -q .; then
 		unsupported+=("Ruby")
-	fi
-	if find "$scan_path" -maxdepth 3 -name '*.php' -print -quit 2>/dev/null | grep -q .; then
-		unsupported+=("PHP")
 	fi
 	if find "$scan_path" -maxdepth 3 -name '*.cs' -print -quit 2>/dev/null | grep -q .; then
 		unsupported+=("C#")
