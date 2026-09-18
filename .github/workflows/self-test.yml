@@ -38,6 +38,31 @@ jobs:
             exit 1
           fi
 
+  self-test-baseline:
+    name: Self Test (SARIF baseline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create SARIF baseline
+        uses: ./
+        with:
+          scan-path: testdata/go
+          languages: go
+          sarif-output: baseline.sarif
+          fail-on-findings: false
+      - name: Re-scan against baseline
+        id: lint
+        uses: ./
+        with:
+          scan-path: testdata/go
+          languages: go
+          baseline: baseline.sarif
+          sarif-output: filtered.sarif
+          fail-on-findings: true
+      - name: Verify baseline suppresses existing findings
+        run: |
+          test "$(jq '.runs[0].results | length' filtered.sarif)" -eq 0
+
   self-test-sarif:
     name: Self Test (SARIF output)
     runs-on: ubuntu-latest
