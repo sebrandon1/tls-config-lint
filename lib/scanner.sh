@@ -33,6 +33,7 @@ build_include_flags() {
 		csharp) echo "--include=*.cs" ;;
 		java) echo "--include=*.java" ;;
 		rust) echo "--include=*.rs" ;;
+		kotlin) echo "--include=*.kt" ;;
 		php) echo "--include=*.php" ;;
 		ruby) echo "--include=*.rb" ;;
 	esac
@@ -49,6 +50,7 @@ build_test_exclude_flags() {
 		csharp) echo "--exclude=*_test.cs" ;;
 		java) echo "--exclude=*Test.java --exclude=*Tests.java --exclude=*IT.java" ;;
 		rust) echo "--exclude=*_test.rs --exclude=*_tests.rs" ;;
+		kotlin) echo "--exclude=*_test.kt" ;;
 		php) echo "--exclude=*_test.php --exclude=test_*.php" ;;
 		ruby) echo "--exclude=*_test.rb --exclude=test_*.rb" ;;
 	esac
@@ -519,6 +521,7 @@ scan_language() {
 		csharp) patterns_var="CSHARP_PATTERNS" ;;
 		java) patterns_var="JAVA_PATTERNS" ;;
 		rust) patterns_var="RUST_PATTERNS" ;;
+		kotlin) patterns_var="KOTLIN_PATTERNS" ;;
 		php) patterns_var="PHP_PATTERNS" ;;
 		ruby) patterns_var="RUBY_PATTERNS" ;;
 		*) return 0 ;;

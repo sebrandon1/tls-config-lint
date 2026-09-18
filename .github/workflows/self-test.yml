@@ -175,7 +175,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        language: [go, python, nodejs, cpp, java, rust, ruby, php, csharp]
+        language: [go, python, nodejs, cpp, java, rust, ruby, php, csharp, kotlin]
         include:
           - language: go
             scan-path: testdata/go
@@ -189,6 +189,8 @@ jobs:
             scan-path: testdata/java
           - language: rust
             scan-path: testdata/rust
+          - language: kotlin
+            scan-path: testdata/kotlin
           - language: csharp
             scan-path: testdata/csharp
           - language: ruby

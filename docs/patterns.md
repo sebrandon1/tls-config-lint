@@ -1,6 +1,6 @@
 # Detected Patterns
 
-tls-config-lint detects 95 TLS anti-patterns across 10 languages. Severity levels:
+tls-config-lint detects 100 TLS anti-patterns across 10 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
@@ -125,6 +125,15 @@ tls-config-lint detects 95 TLS anti-patterns across 10 languages. Severity level
 
 ---
 
+## Kotlin (5 patterns)
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| [`kotlin-sslcontext-weak`](#kotlin-kotlin-sslcontext-weak) | HIGH | Kotlin SSLContext uses a weak protocol |
+| [`ktor-trust-manager-bypass`](#kotlin-ktor-trust-manager-bypass) | CRITICAL | Ktor uses a null/trust-all manager |
+| [`okhttp-hostname-verifier-bypass`](#kotlin-okhttp-hostname-verifier-bypass) | CRITICAL | OkHttp hostname verification is bypassed |
+| [`okhttp-ssl-socket-factory-bypass`](#kotlin-okhttp-ssl-socket-factory-bypass) | CRITICAL | OkHttp uses an insecure socket factory |
+| [`kotlin-trust-manager-all`](#kotlin-kotlin-trust-manager-all) | CRITICAL | Kotlin trust manager accepts all certificates |
 ## C#/.NET (4 patterns)
 
 | ID | Severity | Description |

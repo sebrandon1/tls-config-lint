@@ -145,6 +145,7 @@ file_to_lang_prefix() {
 		*.cs) echo "csharp" ;;
 		*.java) echo "java" ;;
 		*.rs) echo "rust" ;;
+		*.kt) echo "kotlin" ;;
 		*.php) echo "php" ;;
 		*.rb) echo "ruby" ;;
 		*) echo "" ;;

@@ -49,6 +49,11 @@ detect_languages() {
 		detected+=("rust")
 	fi
 
+	# Kotlin: check for *.kt files
+	if find "$scan_path" -maxdepth 3 -name '*.kt' -print -quit 2>/dev/null | grep -q .; then
+		detected+=("kotlin")
+	fi
+
 	# PHP: check for *.php files
 	if find "$scan_path" -maxdepth 3 -name '*.php' -print -quit 2>/dev/null | grep -q .; then
 		detected+=("php")
@@ -70,9 +75,6 @@ detect_languages() {
 	fi
 	if find "$scan_path" -maxdepth 3 -name '*.swift' -print -quit 2>/dev/null | grep -q .; then
 		unsupported+=("Swift")
-	fi
-	if find "$scan_path" -maxdepth 3 -name '*.kt' -print -quit 2>/dev/null | grep -q .; then
-		unsupported+=("Kotlin")
 	fi
 	if [[ ${#unsupported[@]} -gt 0 ]]; then
 		local unsup_list

@@ -273,14 +273,14 @@ validate_config() {
 		for lang in "${lang_list[@]}"; do
 			lang="${lang// /}"
 			case "$lang" in
-				go | python | nodejs | cpp | java | rust | ruby | php | csharp) ;;
+				go | python | nodejs | cpp | java | rust | ruby | php | csharp | kotlin) ;;
 				*)
 					invalid_langs+=("$lang")
 					;;
 			esac
 		done
 		if [[ ${#invalid_langs[@]} -gt 0 ]]; then
-			log_error "Invalid language(s): ${invalid_langs[*]} (supported: go, python, nodejs, cpp, java, rust, ruby, php, csharp)"
+			log_error "Invalid language(s): ${invalid_langs[*]} (supported: go, python, nodejs, cpp, java, rust, ruby, php, csharp, kotlin)"
 			valid=false
 		fi
 	fi
