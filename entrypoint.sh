@@ -15,6 +15,8 @@ source "$ACTION_PATH/lib/config.sh"
 source "$ACTION_PATH/lib/detect.sh"
 # shellcheck source=lib/scanner.sh
 source "$ACTION_PATH/lib/scanner.sh"
+# shellcheck source=lib/baseline.sh
+source "$ACTION_PATH/lib/baseline.sh"
 # shellcheck source=lib/annotations.sh
 source "$ACTION_PATH/lib/annotations.sh"
 # shellcheck source=lib/summary.sh
@@ -33,9 +35,9 @@ main() {
 	fi
 
 	# Validate jq availability early when SARIF or JSON report output is requested
-	if [[ -n "$SARIF_OUTPUT" ]] || [[ "${REPORT_OUTPUT:-}" == *.json ]]; then
+	if [[ -n "$SARIF_OUTPUT" ]] || [[ "${REPORT_OUTPUT:-}" == *.json ]] || [[ -n "${BASELINE:-}" ]]; then
 		if ! command -v jq &>/dev/null; then
-			log_error "jq is required for SARIF/JSON output but not found. Install jq or remove the output setting."
+			log_error "jq is required for SARIF, JSON report, or baseline comparison but not found. Install jq or remove the setting."
 			exit 2
 		fi
 	fi
@@ -55,6 +57,11 @@ main() {
 	log_msg "  Exclude patterns: ${EXCLUDE_PATTERNS:-<none>}"
 	log_msg "  SARIF output: ${SARIF_OUTPUT:-<disabled>}"
 	log_msg "  Report output: ${REPORT_OUTPUT:-<disabled>}"
+	log_msg "  Baseline: ${BASELINE:-<disabled>}"
+	log_msg "  Changed files only: $CHANGED_FILES_ONLY"
+	if [[ "$CHANGED_FILES_ONLY" == "true" ]]; then
+		log_msg "  Git diff: $BASE_REF...$HEAD_REF"
+	fi
 
 	# Step 2: Auto-detect languages if needed
 	if [[ "$LANGUAGES" == "auto" ]]; then
@@ -68,7 +75,20 @@ main() {
 
 	# Step 3: Run scan
 	local scan_start=$SECONDS
+	if [[ "$CHANGED_FILES_ONLY" == "true" ]]; then
+		if ! prepare_changed_files "$SCAN_PATH" "$BASE_REF" "$HEAD_REF"; then
+			exit 2
+		fi
+	fi
+	if [[ -n "$BASELINE" ]]; then
+		if ! load_baseline "$BASELINE" "$SCAN_PATH"; then
+			exit 2
+		fi
+	fi
 	run_scan "$SCAN_PATH" "$LANGUAGES" "$EXCLUDE_DIRS" "$EXCLUDE_PATTERNS"
+	if [[ -n "$BASELINE" ]]; then
+		filter_baseline_findings
+	fi
 	local scan_duration=$((SECONDS - scan_start))
 
 	# Step 4: Set outputs

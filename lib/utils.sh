@@ -145,6 +145,8 @@ file_to_lang_prefix() {
 		*.cs) echo "csharp" ;;
 		*.java) echo "java" ;;
 		*.rs) echo "rust" ;;
+		*.php) echo "php" ;;
+		*.rb) echo "ruby" ;;
 		*) echo "" ;;
 	esac
 }

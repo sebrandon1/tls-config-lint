@@ -34,6 +34,12 @@ assert_contains "Detects Rust from .rs files" "rust" "$result"
 # Test: Detect C# from testdata
 result=$(detect_languages "$ROOT_DIR/testdata/csharp" 2>/dev/null)
 assert_contains "Detects C# from .cs files" "csharp" "$result"
+# Test: Detect PHP from testdata
+result=$(detect_languages "$ROOT_DIR/testdata/php" 2>/dev/null)
+assert_contains "Detects PHP from .php files" "php" "$result"
+# Test: Detect Ruby from testdata
+result=$(detect_languages "$ROOT_DIR/testdata/ruby" 2>/dev/null)
+assert_contains "Detects Ruby from .rb files" "ruby" "$result"
 
 # Test: Empty directory returns nothing
 TEMP_DIR=$(mktemp -d)
