@@ -317,8 +317,11 @@ scan_pattern() {
 	local scan_path="$1"
 	local lang="$2"
 	local pattern_line="$3"
-	local exclude_dirs="$4"
-	local exclude_patterns="$5"
+	local exclude_patterns="$4"
+	local include_flags="$5"
+	local exclude_test_flags="$6"
+	local lang_exclude_dirs="$7"
+	local common_exclude_dirs="$8"
 
 	# Parse pattern: "id|severity|name|description|regex"
 	IFS='|' read -r pattern_id severity name description regex <<<"$pattern_line"
@@ -333,13 +336,6 @@ scan_pattern() {
 		fi
 		return 0
 	fi
-
-	# Build grep flags
-	local include_flags exclude_test_flags lang_exclude_dirs common_exclude_dirs
-	include_flags=$(build_include_flags "$lang")
-	exclude_test_flags=$(build_test_exclude_flags "$lang")
-	lang_exclude_dirs=$(build_lang_exclude_dirs "$lang")
-	common_exclude_dirs=$(build_common_exclude_dirs "$exclude_dirs")
 
 	# Run grep from inside scan_path so --exclude-dir won't match the scan root itself
 	local grep_output
@@ -427,9 +423,7 @@ scan_pattern() {
 # Go-specific: filter out tls.Config findings in files that use TLSSecurityProfile
 filter_go_tls_config_noise() {
 	local scan_path="$1"
-	local exclude_dirs="$2"
-	local common_exclude_dirs
-	common_exclude_dirs=$(build_common_exclude_dirs "$exclude_dirs")
+	local common_exclude_dirs="$2"
 
 	# Check if there are any "hardcoded-tls-config" findings
 	local has_tls_config=false
@@ -494,6 +488,11 @@ scan_language() {
 	local lang="$2"
 	local exclude_dirs="$3"
 	local exclude_patterns="$4"
+	local include_flags exclude_test_flags lang_exclude_dirs common_exclude_dirs
+	include_flags=$(build_include_flags "$lang")
+	exclude_test_flags=$(build_test_exclude_flags "$lang")
+	lang_exclude_dirs=$(build_lang_exclude_dirs "$lang")
+	common_exclude_dirs=$(build_common_exclude_dirs "$exclude_dirs")
 
 	log_msg "Scanning for $lang patterns..."
 	files_for_language "$lang" "$exclude_dirs"
@@ -536,7 +535,8 @@ scan_language() {
 
 	local pattern_line
 	eval 'for pattern_line in "${'"$patterns_var"'[@]}"; do
-		scan_pattern "$scan_path" "$lang" "$pattern_line" "$exclude_dirs" "$exclude_patterns"
+		scan_pattern "$scan_path" "$lang" "$pattern_line" "$exclude_patterns" \
+			"$include_flags" "$exclude_test_flags" "$lang_exclude_dirs" "$common_exclude_dirs"
 	done'
 
 	# Apply validated user-defined patterns to this language.
@@ -551,12 +551,13 @@ scan_language() {
 		elif [[ ",$CUSTOM_PATTERN_IDS," != *",$custom_id,"* ]]; then
 			CUSTOM_PATTERN_IDS="$CUSTOM_PATTERN_IDS,$custom_id"
 		fi
-		scan_pattern "$scan_path" "$lang" "$custom_id|$custom_severity|$custom_name|$custom_description|$custom_regex" "$exclude_dirs" "$exclude_patterns"
+		scan_pattern "$scan_path" "$lang" "$custom_id|$custom_severity|$custom_name|$custom_description|$custom_regex" \
+			"$exclude_patterns" "$include_flags" "$exclude_test_flags" "$lang_exclude_dirs" "$common_exclude_dirs"
 	done <<<"${EXTRA_PATTERNS:-}"
 
 	# Apply Go-specific noise reduction
 	if [[ "$lang" == "go" ]]; then
-		filter_go_tls_config_noise "$scan_path" "$exclude_dirs"
+		filter_go_tls_config_noise "$scan_path" "$common_exclude_dirs"
 	fi
 }
 
