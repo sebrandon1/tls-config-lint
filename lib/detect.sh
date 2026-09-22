@@ -8,72 +8,78 @@ set -euo pipefail
 detect_languages() {
 	local scan_path="$1"
 	local detected=()
+	local has_go=false
+	local has_python=false
+	local has_nodejs=false
+	local has_cpp=false
+	local has_csharp=false
+	local has_java=false
+	local has_rust=false
+	local has_kotlin=false
+	local has_php=false
+	local has_ruby=false
+	local has_unsupported_php=false
+	local has_unsupported_ruby=false
+	local has_unsupported_swift=false
 
-	# Go: check for go.mod or *.go files
-	if [[ -f "$scan_path/go.mod" ]] || find "$scan_path" -maxdepth 3 -name '*.go' -print -quit 2>/dev/null | grep -q .; then
-		detected+=("go")
-	fi
+	# Check marker files without walking the scan path.
+	[[ -f "$scan_path/go.mod" ]] && has_go=true
+	[[ -f "$scan_path/setup.py" || -f "$scan_path/pyproject.toml" || -f "$scan_path/requirements.txt" ]] && has_python=true
+	[[ -f "$scan_path/package.json" ]] && has_nodejs=true
+	[[ -f "$scan_path/CMakeLists.txt" ]] && has_cpp=true
+	[[ -f "$scan_path/pom.xml" || -f "$scan_path/build.gradle" ]] && has_java=true
+	[[ -f "$scan_path/Cargo.toml" ]] && has_rust=true
 
-	# Python: check for setup.py, pyproject.toml, requirements.txt, or *.py files
-	if [[ -f "$scan_path/setup.py" ]] || [[ -f "$scan_path/pyproject.toml" ]] || [[ -f "$scan_path/requirements.txt" ]] ||
-		find "$scan_path" -maxdepth 3 -name '*.py' -print -quit 2>/dev/null | grep -q .; then
-		detected+=("python")
-	fi
+	# Find all supported and unsupported source files in one traversal. The
+	# per-language checks above used to repeat this walk for every extension.
+	while IFS= read -r -d '' file; do
+		case "$file" in
+			*.go) has_go=true ;;
+			*.py) has_python=true ;;
+			*.js | *.ts) has_nodejs=true ;;
+			*.cpp | *.cc | *.hpp) has_cpp=true ;;
+			*.cs) has_csharp=true ;;
+			*.java) has_java=true ;;
+			*.rs) has_rust=true ;;
+			*.kt) has_kotlin=true ;;
+			*.php)
+				has_php=true
+				has_unsupported_php=true
+				;;
+			*.rb)
+				has_ruby=true
+				has_unsupported_ruby=true
+				;;
+			*.swift) has_unsupported_swift=true ;;
+		esac
+	done < <(find "$scan_path" -maxdepth 3 -type f \( \
+		-name '*.go' -o -name '*.py' -o -name '*.js' -o -name '*.ts' \
+		-o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.cs' \
+		-o -name '*.java' -o -name '*.rs' -o -name '*.kt' -o -name '*.php' \
+		-o -name '*.rb' -o -name '*.swift' \
+		\) -print0 2>/dev/null)
 
-	# Node.js/TypeScript: check for package.json or *.js/*.ts files
-	if [[ -f "$scan_path/package.json" ]] ||
-		find "$scan_path" -maxdepth 3 \( -name '*.js' -o -name '*.ts' \) -print -quit 2>/dev/null | grep -q .; then
-		detected+=("nodejs")
-	fi
-
-	# C++: check for CMakeLists.txt, Makefile with cpp, or *.cpp/*.cc/*.h/*.hpp files
-	if [[ -f "$scan_path/CMakeLists.txt" ]] ||
-		find "$scan_path" -maxdepth 3 \( -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' \) -print -quit 2>/dev/null | grep -q .; then
-		detected+=("cpp")
-	fi
-
-	# C#/.NET: check for *.cs files
-	if find "$scan_path" -maxdepth 3 -name '*.cs' -print -quit 2>/dev/null | grep -q .; then
-		detected+=("csharp")
-	fi
-
-	# Java: check for pom.xml, build.gradle, or *.java files
-	if [[ -f "$scan_path/pom.xml" ]] || [[ -f "$scan_path/build.gradle" ]] ||
-		find "$scan_path" -maxdepth 3 -name '*.java' -print -quit 2>/dev/null | grep -q .; then
-		detected+=("java")
-	fi
-
-	# Rust: check for Cargo.toml or *.rs files
-	if [[ -f "$scan_path/Cargo.toml" ]] ||
-		find "$scan_path" -maxdepth 3 -name '*.rs' -print -quit 2>/dev/null | grep -q .; then
-		detected+=("rust")
-	fi
-
-	# Kotlin: check for *.kt files
-	if find "$scan_path" -maxdepth 3 -name '*.kt' -print -quit 2>/dev/null | grep -q .; then
-		detected+=("kotlin")
-	fi
-
-	# PHP: check for *.php files
-	if find "$scan_path" -maxdepth 3 -name '*.php' -print -quit 2>/dev/null | grep -q .; then
-		detected+=("php")
-	fi
-
-	# Ruby: check for *.rb files
-	if find "$scan_path" -maxdepth 3 -name '*.rb' -print -quit 2>/dev/null | grep -q .; then
-		detected+=("ruby")
-	fi
+	$has_go && detected+=("go")
+	$has_python && detected+=("python")
+	$has_nodejs && detected+=("nodejs")
+	$has_cpp && detected+=("cpp")
+	$has_csharp && detected+=("csharp")
+	$has_java && detected+=("java")
+	$has_rust && detected+=("rust")
+	$has_kotlin && detected+=("kotlin")
+	$has_php && detected+=("php")
+	$has_ruby && detected+=("ruby")
 
 	# Check for unsupported languages and notify
 	local unsupported=()
-	if find "$scan_path" -maxdepth 3 -name '*.rb' -print -quit 2>/dev/null | grep -q .; then
+	if $has_unsupported_ruby; then
 		unsupported+=("Ruby")
 	fi
 
-	if find "$scan_path" -maxdepth 3 -name '*.php' -print -quit 2>/dev/null | grep -q .; then
+	if $has_unsupported_php; then
 		unsupported+=("PHP")
 	fi
-	if find "$scan_path" -maxdepth 3 -name '*.swift' -print -quit 2>/dev/null | grep -q .; then
+	if $has_unsupported_swift; then
 		unsupported+=("Swift")
 	fi
 	if [[ ${#unsupported[@]} -gt 0 ]]; then
