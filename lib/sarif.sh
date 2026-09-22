@@ -46,24 +46,33 @@ generate_sarif() {
 		return 1
 	fi
 
-	# Build rules array from unique pattern IDs
-	local rules_json="[]"
+	# Collect rule and result records for one final jq invocation. NUL-delimited
+	# records avoid ambiguity when fields contain spaces or shell metacharacters.
+	local temp_dir rules_file results_file
+	temp_dir=$(mktemp -d)
+	rules_file="$temp_dir/rules"
+	results_file="$temp_dir/results"
+	: >"$rules_file"
+	: >"$results_file"
+
 	local seen_patterns=()
+	local rule_index i
 
 	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r pattern_id severity name description finding_file _ _ _ <<<"$finding"
 
 		# Skip if already seen
-		local already_seen=false
-		for seen in "${seen_patterns[@]+"${seen_patterns[@]}"}"; do
-			if [[ "$seen" == "$pattern_id" ]]; then
-				already_seen=true
+		rule_index=-1
+		for i in "${!seen_patterns[@]}"; do
+			if [[ "${seen_patterns[$i]}" == "$pattern_id" ]]; then
+				rule_index="$i"
 				break
 			fi
 		done
-		if $already_seen; then
+		if ((rule_index >= 0)); then
 			continue
 		fi
+		rule_index=${#seen_patterns[@]}
 		seen_patterns+=("$pattern_id")
 
 		local sarif_level
@@ -80,26 +89,10 @@ generate_sarif() {
 		local extra_tag
 		extra_tag=$(pattern_tags "$pattern_id")
 
-		rules_json=$(echo "$rules_json" | jq \
-			--arg id "$pattern_id" \
-			--arg name "$name" \
-			--arg desc "$description" \
-			--arg level "$sarif_level" \
-			--arg helpUri "$help_uri" \
-			--arg extraTag "$extra_tag" \
-			'. + [{
-				id: $id,
-				name: $name,
-				shortDescription: { text: $name },
-				fullDescription: { text: $desc },
-				helpUri: $helpUri,
-				defaultConfiguration: { level: $level },
-				properties: { tags: ["security", "tls", $extraTag] }
-			}]')
+		printf '%s\037%s\037%s\037%s\037%s\037%s\000' \
+			"$pattern_id" "$sarif_level" "$name" "$description" "$help_uri" "$extra_tag" \
+			>>"$rules_file"
 	done
-
-	# Build results array
-	local results_json="[]"
 
 	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r pattern_id severity name description file line_num match_text col <<<"$finding"
@@ -107,8 +100,8 @@ generate_sarif() {
 		local sarif_level
 		sarif_level=$(severity_to_sarif_level "$severity")
 
-		# Find rule index
-		local rule_index=0
+		# Find the rule index assigned during rule collection.
+		rule_index=0
 		for i in "${!seen_patterns[@]}"; do
 			if [[ "${seen_patterns[$i]}" == "$pattern_id" ]]; then
 				rule_index=$i
@@ -122,30 +115,9 @@ generate_sarif() {
 		local end_col
 		end_col=$((col + ${#match_text}))
 
-		results_json=$(echo "$results_json" | jq \
-			--arg id "$pattern_id" \
-			--arg msg "$description" \
-			--arg file "$file" \
-			--argjson line "$line_num" \
-			--argjson startCol "${col:-1}" \
-			--argjson endCol "$end_col" \
-			--arg level "$sarif_level" \
-			--argjson ruleIdx "$rule_index" \
-			--arg snippet "$match_text" \
-			--arg fingerprint "$fingerprint" \
-			'. + [{
-				ruleId: $id,
-				ruleIndex: $ruleIdx,
-				level: $level,
-				message: { text: $msg },
-				locations: [{
-					physicalLocation: {
-						artifactLocation: { uri: $file, uriBaseId: "%SRCROOT%" },
-						region: { startLine: $line, startColumn: $startCol, endColumn: $endCol, snippet: { text: $snippet } }
-					}
-				}],
-				partialFingerprints: { primaryLocationLineHash: $fingerprint }
-			}]')
+		printf '%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\000' \
+			"$pattern_id" "$description" "$file" "$line_num" "${col:--1}" "$end_col" \
+			"$sarif_level" "$rule_index" "$match_text" "$fingerprint" >>"$results_file"
 	done
 
 	# Determine tool version from git tag
@@ -154,11 +126,45 @@ generate_sarif() {
 
 	# Assemble full SARIF document
 	local sarif_doc
-	sarif_doc=$(jq -n \
-		--argjson rules "$rules_json" \
-		--argjson results "$results_json" \
+	if ! sarif_doc=$(jq -n \
+		--rawfile rule_records "$rules_file" \
+		--rawfile result_records "$results_file" \
 		--arg version "$tool_version" \
-		'{
+		'
+		def records:
+			split("\u0000")
+			| map(select(length > 0) | split("\u001f"));
+
+		($rule_records | records) as $rule_data
+		| ($result_records | records) as $result_data
+		| [ $rule_data[] | {
+			id: .[0],
+			name: .[2],
+			shortDescription: { text: .[2] },
+			fullDescription: { text: .[3] },
+			helpUri: .[4],
+			defaultConfiguration: { level: .[1] },
+			properties: { tags: ["security", "tls", .[5]] }
+		} ] as $rules
+		| [ $result_data[] | {
+			ruleId: .[0],
+			ruleIndex: (.[7] | tonumber),
+			level: .[6],
+			message: { text: .[1] },
+			locations: [{
+				physicalLocation: {
+					artifactLocation: { uri: .[2], uriBaseId: "%SRCROOT%" },
+					region: {
+						startLine: (.[3] | tonumber),
+						startColumn: (.[4] | tonumber),
+						endColumn: (.[5] | tonumber),
+						snippet: { text: .[8] }
+					}
+				}
+			}],
+			partialFingerprints: { primaryLocationLineHash: .[9] }
+		} ] as $results
+		| {
 			"$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
 			version: "2.1.0",
 			runs: [{
@@ -172,7 +178,12 @@ generate_sarif() {
 				},
 				results: $results
 			}]
-		}')
+		}'); then
+		rm -rf "$temp_dir"
+		log_error "Failed to generate SARIF JSON"
+		return 1
+	fi
+	rm -rf "$temp_dir"
 
 	echo "$sarif_doc" >"$output_file"
 	log_msg "SARIF output written to $output_file"

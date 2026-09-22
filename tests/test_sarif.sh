@@ -9,12 +9,20 @@ source "$ROOT_DIR/lib/sarif.sh"
 echo "  --- SARIF Tests ---"
 
 sarif_out=$(mktemp)
-trap 'rm -f "$sarif_out"' RETURN
+jq_invocation_log=$(mktemp)
+trap 'rm -f "$sarif_out" "$jq_invocation_log"' RETURN
 
 # Test: Single finding produces correct rule and result
 FINDINGS=()
 FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify|Disables certificate verification|main.go|42|InsecureSkipVerify: true|5")
+jq() {
+	printf . >>"$jq_invocation_log"
+	command jq "$@"
+}
 generate_sarif "$sarif_out" 2>/dev/null
+unset -f jq
+jq_invocations=$(wc -c <"$jq_invocation_log" | tr -d ' ')
+assert_equals "SARIF generation uses one jq invocation" "1" "$jq_invocations"
 sarif_json=$(cat "$sarif_out")
 
 assert_equals "Single finding has one rule" "1" "$(echo "$sarif_json" | jq '.runs[0].tool.driver.rules | length')"
