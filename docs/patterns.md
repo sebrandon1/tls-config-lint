@@ -1,6 +1,6 @@
 # Detected Patterns
 
-tls-config-lint detects 107 TLS anti-patterns across 10 languages. Severity levels:
+tls-config-lint detects 112 TLS anti-patterns across 10 languages. Severity levels:
 
 - **CRITICAL** — Certificate verification disabled, NULL ciphers
 - **HIGH** — Weak TLS versions (1.0/1.1), broken ciphers
@@ -1669,6 +1669,8 @@ response = httpx.get("https://example.com", verify=False)
 **Secure:**
 ```python
 response = httpx.get("https://example.com", verify=True)
+```
+
 ## Spring Boot / WebClient
 
 <a id="java-spring-resttemplate-insecure"></a>
@@ -1742,6 +1744,109 @@ Spring-managed SSL beans must retain certificate validation and must not expose 
 **Secure:**
 ```java
 @Bean SSLSocketFactory factory() { return defaultSslSocketFactory(); }
+```
+
+## Kotlin
+
+<a id="kotlin-kotlin-sslcontext-weak"></a>
+
+### Weak Kotlin SSLContext protocol
+
+**ID:** `kotlin-sslcontext-weak` | **Severity:** HIGH
+
+SSLv3, TLS 1.0, and TLS 1.1 are deprecated and vulnerable. Request a modern protocol such as TLS 1.2 or newer.
+
+**Insecure:**
+```kotlin
+val context = SSLContext.getInstance("TLSv1")
+```
+
+**Secure:**
+```kotlin
+val context = SSLContext.getInstance("TLS")
+```
+
+<a id="kotlin-ktor-trust-manager-bypass"></a>
+
+### Ktor trust manager bypass
+
+**ID:** `ktor-trust-manager-bypass` | **Severity:** CRITICAL
+
+Ktor validates certificates with the platform trust store by default; overriding the trust manager with a null or trust-all implementation disables that validation.
+
+**Insecure:**
+```kotlin
+val client = HttpClient(CIO) {
+    engine { https { trustManager = null } }
+}
+```
+
+**Secure:**
+```kotlin
+val client = HttpClient(CIO)
+```
+
+<a id="kotlin-okhttp-hostname-verifier-bypass"></a>
+
+### OkHttp hostname verification bypass
+
+**ID:** `okhttp-hostname-verifier-bypass` | **Severity:** CRITICAL
+
+An always-true hostname verifier accepts certificates for any host, enabling man-in-the-middle attacks. OkHttp verifies hostnames by default.
+
+**Insecure:**
+```kotlin
+val client = OkHttpClient.Builder()
+    .hostnameVerifier { _, _ -> true }
+    .build()
+```
+
+**Secure:**
+```kotlin
+val client = OkHttpClient.Builder().build()
+```
+
+<a id="kotlin-okhttp-ssl-socket-factory-bypass"></a>
+
+### OkHttp SSL socket factory bypass
+
+**ID:** `okhttp-ssl-socket-factory-bypass` | **Severity:** CRITICAL
+
+Installing an SSL socket factory with a trust-all manager disables certificate validation. OkHttp uses the platform's factory and trust store by default.
+
+**Insecure:**
+```kotlin
+val client = OkHttpClient.Builder()
+    .sslSocketFactory(insecureFactory, TrustAllManager())
+    .build()
+```
+
+**Secure:**
+```kotlin
+val client = OkHttpClient.Builder().build()
+```
+
+<a id="kotlin-kotlin-trust-manager-all"></a>
+
+### Kotlin trust-all manager
+
+**ID:** `kotlin-trust-manager-all` | **Severity:** CRITICAL
+
+A trust manager with empty check methods accepts every server certificate. Use the platform default trust manager, which validates the chain against the system trust store.
+
+**Insecure:**
+```kotlin
+class TrustAllManager : X509TrustManager {
+    override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+    override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+}
+```
+
+**Secure:**
+```kotlin
+val context = SSLContext.getDefault()
+```
+
 ## C#/.NET
 
 <a id="csharp-servicepointmanager-callback-true"></a>
@@ -1816,6 +1921,8 @@ ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11;
 **Secure:**
 ```csharp
 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+```
+
 ## PHP
 
 <a id="php-curl-ssl-verifypeer-off"></a>
@@ -1906,6 +2013,8 @@ $client = new GuzzleHttp\Client(['verify' => false]);
 **Secure:**
 ```php
 $client = new GuzzleHttp\Client(['verify' => true]);
+```
+
 ## Ruby
 
 <a id="ruby-net-http-verify-none"></a>
