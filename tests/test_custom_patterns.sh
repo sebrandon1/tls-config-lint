@@ -71,4 +71,47 @@ scan_language "$custom_dir" "go" "" "org-unscoped"
 assert_equals "Excluded custom pattern produces no custom finding" "false" "$(printf '%s\n' "${FINDINGS[@]}" | grep -q '^org-unscoped|' && echo true || echo false)"
 assert_contains "Custom pattern exclusion is audited" "org-unscoped" "$EXCLUDED_PATTERNS_USED"
 
+# Newer languages accept scoped custom patterns end to end
+cp "$ROOT_DIR/testdata/ruby/insecure.rb" "$custom_dir/insecure.rb"
+cat >"$custom_dir/verify.go" <<'EOF'
+package example
+
+const mode = "VERIFY_NONE"
+EOF
+
+# shellcheck disable=SC2034  # Used by scanner.sh
+EXTRA_PATTERNS=$'org-ruby-verify\tMEDIUM\tRuby verify disabled\tverify_mode set to VERIFY_NONE\tVERIFY_NONE\truby'
+# shellcheck disable=SC2034  # Used by scanner.sh
+CUSTOM_PATTERN_IDS=""
+FINDINGS=()
+# shellcheck disable=SC2034  # Used by scanner.sh
+FINDING_REGEXES=()
+# shellcheck disable=SC2034  # Used by scanner.sh
+CRITICAL_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+HIGH_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+INFO_COUNT=0
+scan_language "$custom_dir" "ruby" "" ""
+assert_equals "Ruby-scoped custom pattern finds Ruby match" "true" "$(printf '%s\n' "${FINDINGS[@]}" | grep -q '^org-ruby-verify|' && echo true || echo false)"
+assert_contains "Ruby-scoped custom pattern is audited" "org-ruby-verify" "$CUSTOM_PATTERN_IDS"
+
+FINDINGS=()
+# shellcheck disable=SC2034  # Used by scanner.sh
+FINDING_REGEXES=()
+# shellcheck disable=SC2034  # Used by scanner.sh
+CRITICAL_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+HIGH_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034  # Used by scanner.sh
+INFO_COUNT=0
+scan_language "$custom_dir" "go" "" ""
+assert_equals "Ruby-scoped custom pattern skips out-of-scope language" "false" "$(printf '%s\n' "${FINDINGS[@]}" | grep -q '^org-ruby-verify|' && echo true || echo false)"
+
+# shellcheck disable=SC2034  # Used by scanner.sh
+EXTRA_PATTERNS=""
 rm -rf "$custom_dir"
