@@ -447,7 +447,7 @@ validate_config() {
 			IFS=',' read -ra custom_lang_list <<<"$custom_languages"
 			for custom_lang in "${custom_lang_list[@]}"; do
 				case "$custom_lang" in
-					go | python | nodejs | cpp | java | rust) ;;
+					go | python | nodejs | cpp | java | rust | ruby | php | csharp | kotlin) ;;
 					*)
 						log_error "Unsupported language '$custom_lang' for extra pattern '$custom_id'"
 						valid=false

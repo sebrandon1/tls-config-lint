@@ -47,6 +47,28 @@ assert_contains "Config parses custom pattern ID" "org-weak-cipher" "$CFG_EXTRA_
 assert_contains "Config parses custom pattern language scope" "go,java" "$CFG_EXTRA_PATTERNS"
 rm -f "$TEMP_CUSTOM"
 
+# Test: Parse new-language scopes in both list syntaxes
+TEMP_NEWLANG=$(mktemp)
+cat >"$TEMP_NEWLANG" <<'EOF'
+extra-patterns:
+  - id: org-rb-marker
+    severity: medium
+    name: Ruby marker
+    description: Ruby marker found
+    regex: 'VERIFY_NONE'
+    languages: [ruby, php]
+  - id: org-cs-marker
+    severity: medium
+    name: CSharp marker
+    description: CSharp marker found
+    regex: 'ServicePointManager'
+    languages: csharp, kotlin
+EOF
+parse_config_file "$TEMP_NEWLANG"
+assert_contains "Config parses bracketed new-language scope" "ruby,php" "$CFG_EXTRA_PATTERNS"
+assert_contains "Config parses bare new-language scope" "csharp,kotlin" "$CFG_EXTRA_PATTERNS"
+rm -f "$TEMP_NEWLANG"
+
 # Test: Unknown key produces warning with suggestion
 TEMP_UNKNOWN=$(mktemp)
 cat >"$TEMP_UNKNOWN" <<'EOF'
@@ -301,6 +323,34 @@ if run_validate "high" "auto" "true" "." "" "report.csv"; then
 else
 	assert_equals "Valid .csv report-output passes" "true" "false"
 fi
+
+# Test: Newer languages are valid extra-pattern scopes
+# shellcheck disable=SC2034  # Consumed by validate_config in config.sh
+EXTRA_PATTERNS=$'org-rb\tHIGH\tRuby marker\tRuby marker found\tVERIFY_NONE\truby'
+if run_validate "high" "auto" "true" "."; then
+	assert_equals "Extra pattern ruby scope validates" "true" "true"
+else
+	assert_equals "Extra pattern ruby scope validates" "true" "false"
+fi
+
+# shellcheck disable=SC2034  # Consumed by validate_config in config.sh
+EXTRA_PATTERNS=$'org-multi\tHIGH\tMulti marker\tMulti marker found\tVERIFY_NONE\tphp,csharp,kotlin'
+if run_validate "high" "auto" "true" "."; then
+	assert_equals "Extra pattern php/csharp/kotlin scopes validate" "true" "true"
+else
+	assert_equals "Extra pattern php/csharp/kotlin scopes validate" "true" "false"
+fi
+
+# Test: Genuinely unsupported languages are still rejected
+# shellcheck disable=SC2034  # Consumed by validate_config in config.sh
+EXTRA_PATTERNS=$'org-bad\tHIGH\tBad marker\tBad marker found\tVERIFY_NONE\tsmalltalk'
+if run_validate "high" "auto" "true" "."; then
+	assert_equals "Extra pattern unknown language still rejected" "should_fail" "passed"
+else
+	assert_equals "Extra pattern unknown language still rejected" "true" "true"
+fi
+# shellcheck disable=SC2034  # Consumed by validate_config in config.sh
+EXTRA_PATTERNS=""
 
 # Test: Valid config passes validation
 if run_validate "high" "go,python" "true" "."; then

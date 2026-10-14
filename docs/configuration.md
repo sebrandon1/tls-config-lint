@@ -36,10 +36,10 @@ extra-patterns:
 
 IDs must contain only letters, numbers, `.`, `_`, and `-`, and must be unique. Supported severities
 are `critical`, `high`, `medium`, and `info`; supported language scopes are `go`, `python`,
-`nodejs`, `cpp`, `java`, and `rust`. Regexes are line-oriented extended regular expressions and
-must not contain the scanner's pipe delimiter. Custom findings use normal exclusions, exceptions,
-severity overrides, inline suppression, reports, annotations, SARIF, and threshold behavior.
-Invalid custom-pattern configuration returns exit code 2 before scanning.
+`nodejs`, `cpp`, `java`, `rust`, `ruby`, `php`, `csharp`, and `kotlin`. Regexes are line-oriented
+extended regular expressions and must not contain the scanner's pipe delimiter. Custom findings use
+normal exclusions, exceptions, severity overrides, inline suppression, reports, annotations, SARIF,
+and threshold behavior. Invalid custom-pattern configuration returns exit code 2 before scanning.
 
 ### Per-File/Directory Exceptions
 

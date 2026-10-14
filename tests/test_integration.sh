@@ -334,3 +334,29 @@ assert_contains "Integration: debug mode logs finding details" "Finding:" "$stdo
 assert_contains "Integration: debug mode logs regex" "Regex:" "$stdout_content"
 
 rm -rf "$debug_tmpdir"
+
+# --- Test 17: New-language extra-pattern scope through full pipeline ---
+newlang_config_tmpdir=$(mktemp -d)
+cat >"$newlang_config_tmpdir/config.yml" <<'YAML'
+extra-patterns:
+  - id: org-rb-verify
+    severity: medium
+    name: Ruby verify disabled
+    description: verify_mode set to VERIFY_NONE
+    regex: 'VERIFY_NONE'
+    languages: [ruby]
+YAML
+
+run_entrypoint rc \
+	INPUT_SCAN_PATH="$ROOT_DIR/testdata/ruby" \
+	INPUT_LANGUAGES="ruby" \
+	INPUT_FAIL_ON_FINDINGS="false" \
+	INPUT_CONFIG_FILE="$newlang_config_tmpdir/config.yml"
+
+assert_equals "Integration: ruby-scoped extra pattern exits 0 (not 2)" "0" "$rc"
+assert_greater_than "Integration: ruby scan with extra pattern reports findings" 0 "$(get_output_value findings-count)"
+summary_content=$(cat "$LAST_SUMMARY_FILE")
+assert_contains "Integration: ruby-scoped extra pattern reaches summary" "Ruby verify disabled" "$summary_content"
+
+cleanup_entrypoint
+rm -rf "$newlang_config_tmpdir"
