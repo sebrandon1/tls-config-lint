@@ -67,6 +67,49 @@ assert_greater_than() {
 	fi
 }
 
+assert_true() {
+	local description="$1"
+	shift
+	TOTAL=$((TOTAL + 1))
+
+	if "$@"; then
+		echo -e "  ${GREEN}PASS${RESET}: $description"
+		PASS=$((PASS + 1))
+	else
+		echo -e "  ${RED}FAIL${RESET}: $description"
+		echo "    Expected: command to succeed"
+		FAIL=$((FAIL + 1))
+	fi
+}
+
+assert_false() {
+	local description="$1"
+	shift
+	TOTAL=$((TOTAL + 1))
+
+	if "$@"; then
+		echo -e "  ${RED}FAIL${RESET}: $description"
+		echo "    Expected: command to fail"
+		FAIL=$((FAIL + 1))
+	else
+		echo -e "  ${GREEN}PASS${RESET}: $description"
+		PASS=$((PASS + 1))
+	fi
+}
+
+# Reset scanner globals consumed by lib/scanner.sh between test sections
+# shellcheck disable=SC2034
+reset_scan_state() {
+	FINDINGS=()
+	FINDING_REGEXES=()
+	CRITICAL_COUNT=0
+	HIGH_COUNT=0
+	MEDIUM_COUNT=0
+	INFO_COUNT=0
+	EXCEPTIONS=""
+	SEVERITY_OVERRIDES=""
+}
+
 echo "=== TLS Config Lint Test Suite ==="
 echo ""
 

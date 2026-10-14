@@ -141,7 +141,8 @@ file_matches_language() {
 	local file="$2"
 	case "$lang:$file" in
 		go:*.go | python:*.py | nodejs:*.js | nodejs:*.mjs | nodejs:*.ts | nodejs:*.mts | \
-			cpp:*.cpp | cpp:*.cc | cpp:*.cxx | cpp:*.h | cpp:*.hpp | java:*.java | rust:*.rs)
+			cpp:*.cpp | cpp:*.cc | cpp:*.cxx | cpp:*.h | cpp:*.hpp | java:*.java | rust:*.rs | \
+			csharp:*.cs | kotlin:*.kt | php:*.php | ruby:*.rb)
 			return 0
 			;;
 		*) return 1 ;;
@@ -157,7 +158,8 @@ file_matches_test_exclusion() {
 			nodejs:*.test.js | nodejs:*.spec.js | nodejs:*.test.mjs | nodejs:*.spec.mjs | \
 			nodejs:*.test.ts | nodejs:*.spec.ts | nodejs:*.test.mts | nodejs:*.spec.mts | \
 			cpp:*_test.cpp | cpp:*_test.cc | java:*Test.java | java:*Tests.java | java:*IT.java | \
-			rust:*_test.rs | rust:*_tests.rs)
+			rust:*_test.rs | rust:*_tests.rs | csharp:*_test.cs | kotlin:*_test.kt | \
+			php:*_test.php | php:test_*.php | ruby:*_test.rb | ruby:test_*.rb)
 			return 0
 			;;
 		*) return 1 ;;
