@@ -18,8 +18,6 @@ detect_languages() {
 	local has_kotlin=false
 	local has_php=false
 	local has_ruby=false
-	local has_unsupported_php=false
-	local has_unsupported_ruby=false
 	local has_unsupported_swift=false
 
 	# Check marker files without walking the scan path.
@@ -29,6 +27,13 @@ detect_languages() {
 	[[ -f "$scan_path/CMakeLists.txt" ]] && has_cpp=true
 	[[ -f "$scan_path/pom.xml" || -f "$scan_path/build.gradle" ]] && has_java=true
 	[[ -f "$scan_path/Cargo.toml" ]] && has_rust=true
+	[[ -f "$scan_path/build.gradle.kts" || -f "$scan_path/settings.gradle.kts" ]] && has_kotlin=true
+	# Project file names vary, so glob for csharp markers instead of [[ -f ]].
+	if compgen -G "$scan_path/*.csproj" >/dev/null || compgen -G "$scan_path/*.sln" >/dev/null; then
+		has_csharp=true
+	fi
+	[[ -f "$scan_path/Gemfile" ]] && has_ruby=true
+	[[ -f "$scan_path/composer.json" ]] && has_php=true
 
 	# Find all supported and unsupported source files in one traversal. The
 	# per-language checks above used to repeat this walk for every extension.
@@ -42,14 +47,8 @@ detect_languages() {
 			*.java) has_java=true ;;
 			*.rs) has_rust=true ;;
 			*.kt) has_kotlin=true ;;
-			*.php)
-				has_php=true
-				has_unsupported_php=true
-				;;
-			*.rb)
-				has_ruby=true
-				has_unsupported_ruby=true
-				;;
+			*.php) has_php=true ;;
+			*.rb) has_ruby=true ;;
 			*.swift) has_unsupported_swift=true ;;
 		esac
 	done < <(find "$scan_path" -maxdepth 3 -type f \( \
@@ -70,25 +69,8 @@ detect_languages() {
 	$has_php && detected+=("php")
 	$has_ruby && detected+=("ruby")
 
-	# Check for unsupported languages and notify
-	local unsupported=()
-	if $has_unsupported_ruby; then
-		unsupported+=("Ruby")
-	fi
-
-	if $has_unsupported_php; then
-		unsupported+=("PHP")
-	fi
 	if $has_unsupported_swift; then
-		unsupported+=("Swift")
-	fi
-	if [[ ${#unsupported[@]} -gt 0 ]]; then
-		local unsup_list
-		unsup_list=$(
-			IFS=', '
-			echo "${unsupported[*]}"
-		)
-		log_msg "Note: detected unsupported language(s): $unsup_list (not scanned)"
+		log_msg "Note: detected unsupported language(s): Swift (not scanned)"
 	fi
 
 	if [[ ${#detected[@]} -eq 0 ]]; then
