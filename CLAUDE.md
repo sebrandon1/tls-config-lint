@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A pure bash GitHub Action (composite, no Docker) that scans codebases for TLS configuration anti-patterns across Go, Python, Node.js/TypeScript, C++, Java, and Rust using grep-based regex pattern matching.
+A pure bash GitHub Action (composite, no Docker) that scans codebases for TLS configuration anti-patterns across Go, Python, Node.js/TypeScript, C++, Java, Rust, Ruby, PHP, C#, and Kotlin using grep-based regex pattern matching.
 
 ## Commands
 
