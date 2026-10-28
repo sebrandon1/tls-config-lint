@@ -87,3 +87,35 @@ func suppressedFindings() {
 	cfg := &tls.Config{MinVersion: tls.VersionTLS10} // tls-lint:ignore:min-version-tls10
 	_ = cfg
 }
+
+func rc4CipherSuitesSingleLine() *tls.Config {
+	// CRITICAL: RC4 assigned to CipherSuites on one line
+	return &tls.Config{CipherSuites: []uint16{tls.TLS_RSA_WITH_RC4_128_SHA}}
+}
+
+func rc4CipherSuitesMultiLine() *tls.Config {
+	// CRITICAL: RC4 constant alone on a line inside a slice literal
+	return &tls.Config{
+		CipherSuites: []uint16{
+			tls.TLS_RSA_WITH_RC4_128_SHA,
+		},
+	}
+}
+
+func rc4CipherNamesMultiLine() *tls.Config {
+	// CRITICAL: RC4 suite name string alone on a line inside a slice literal
+	return &tls.Config{
+		CipherSuites: []string{
+			"TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+		},
+	}
+}
+
+func cbcCipherSuites() *tls.Config {
+	// HIGH: CBC suite assigned to CipherSuites
+	return &tls.Config{
+		CipherSuites: []uint16{
+			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		},
+	}
+}
