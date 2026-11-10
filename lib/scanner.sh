@@ -203,7 +203,7 @@ files_for_language() {
 	if [[ "${CHANGED_FILES_ONLY:-false}" != "true" ]]; then
 		return 0
 	fi
-	for file in "${CHANGED_FILES[@]}"; do
+	for file in "${CHANGED_FILES[@]+"${CHANGED_FILES[@]}"}"; do
 		file_matches_language "$lang" "$file" || continue
 		file_matches_test_exclusion "$lang" "$file" && continue
 		file_matches_excluded_dir "$lang" "$file" "$exclude_dirs" && continue
@@ -429,7 +429,7 @@ filter_go_tls_config_noise() {
 
 	# Check if there are any "hardcoded-tls-config" findings
 	local has_tls_config=false
-	for finding in "${FINDINGS[@]}"; do
+	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r fid _ _ _ _ _ _ _ <<<"$finding"
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
 			has_tls_config=true
@@ -455,7 +455,7 @@ filter_go_tls_config_noise() {
 	local filtered_findings=()
 	local filtered_regexes=()
 	local i=0
-	for finding in "${FINDINGS[@]}"; do
+	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r fid fsev _ _ ffile _ _ _ <<<"$finding"
 		if [[ "$fid" == "hardcoded-tls-config" ]]; then
 			local full_path="$scan_path/$ffile"

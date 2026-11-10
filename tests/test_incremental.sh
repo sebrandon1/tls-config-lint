@@ -82,6 +82,24 @@ CHANGED_FILES_ONLY=true
 prepare_changed_files "$incremental_repo" "$head_ref" "$head_ref"
 assert_equals "Incremental scan accepts an empty diff" "0" "${#CHANGED_FILES[@]}"
 
+# An empty diff must scan cleanly: bash 3.2 aborts on an unguarded empty
+# CHANGED_FILES expansion even though this is the no-op success path.
+reset_scan_state
+scan_language "$incremental_repo" "go" "" ""
+assert_equals "Empty diff scan produces no findings" "0" "${#FINDINGS[@]}"
+
+empty_inc_exit=0
+env -i PATH="$PATH" HOME="$HOME" TERM=dumb \
+	GITHUB_ACTIONS=false \
+	INPUT_SCAN_PATH="$incremental_repo" \
+	INPUT_CHANGED_FILES_ONLY=true \
+	INPUT_BASE_REF="$head_ref" \
+	INPUT_HEAD_REF="$head_ref" \
+	INPUT_FAIL_ON_FINDINGS=true \
+	INPUT_CONFIG_FILE="/dev/null" \
+	"$BASH" "$ROOT_DIR/entrypoint.sh" >/dev/null 2>&1 || empty_inc_exit=$?
+assert_equals "Entrypoint exits 0 on an empty incremental diff" "0" "$empty_inc_exit"
+
 if prepare_changed_files "$incremental_repo" "missing-ref" "$head_ref"; then
 	assert_equals "Invalid Git ref is rejected" "false" "true"
 else

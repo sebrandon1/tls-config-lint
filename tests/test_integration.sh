@@ -5,6 +5,9 @@ echo "  --- Integration Tests ---"
 
 # Helper: run entrypoint in a subshell with controlled environment
 # Usage: run_entrypoint exit_code_var [ENV_VAR=value ...]
+# Uses "$BASH" (not plain "bash") so the suite exercises the interpreter it is
+# running under; on macOS that is /bin/bash 3.2, where empty-array expansion
+# under "set -u" behaves differently from bash 5.x.
 run_entrypoint() {
 	local __exit_var="$1"
 	shift
@@ -21,7 +24,7 @@ run_entrypoint() {
 		GITHUB_OUTPUT="$output_file" \
 		GITHUB_STEP_SUMMARY="$summary_file" \
 		"$@" \
-		bash "$ROOT_DIR/entrypoint.sh" >/dev/null 2>&1 || exit_code=$?
+		"$BASH" "$ROOT_DIR/entrypoint.sh" >/dev/null 2>&1 || exit_code=$?
 
 	# Export temp paths for assertions
 	LAST_TMPDIR="$tmpdir"
@@ -321,7 +324,7 @@ env -i PATH="$PATH" HOME="$HOME" TERM="${TERM:-dumb}" \
 	INPUT_FAIL_ON_FINDINGS="false" \
 	INPUT_CONFIG_FILE="/dev/null" \
 	INPUT_DEBUG="true" \
-	bash "$ROOT_DIR/entrypoint.sh" >"$debug_tmpdir/stdout" 2>"$debug_tmpdir/stderr" || debug_exit=$?
+	"$BASH" "$ROOT_DIR/entrypoint.sh" >"$debug_tmpdir/stdout" 2>"$debug_tmpdir/stderr" || debug_exit=$?
 
 assert_equals "Integration: debug mode scan exits 0" "0" "$debug_exit"
 
@@ -360,3 +363,21 @@ assert_contains "Integration: ruby-scoped extra pattern reaches summary" "Ruby v
 
 cleanup_entrypoint
 rm -rf "$newlang_config_tmpdir"
+
+# --- Test 18: Clean Go scan exits 0 with fail-on-findings enabled ---
+# A clean scan is the success path for users; on bash 3.2 an unguarded empty
+# FINDINGS expansion aborted it with an unbound-variable error.
+clean_tmpdir=$(mktemp -d)
+cp "$ROOT_DIR/testdata/go/secure.go" "$clean_tmpdir/"
+
+run_entrypoint rc \
+	INPUT_SCAN_PATH="$clean_tmpdir" \
+	INPUT_FAIL_ON_FINDINGS="true" \
+	INPUT_CONFIG_FILE="/dev/null"
+
+assert_equals "Integration: clean Go scan exits 0" "0" "$rc"
+assert_equals "Integration: clean Go scan reports no critical findings" "0" "$(get_output_value critical-count)"
+assert_equals "Integration: clean Go scan reports no high findings" "0" "$(get_output_value high-count)"
+
+cleanup_entrypoint
+rm -rf "$clean_tmpdir"

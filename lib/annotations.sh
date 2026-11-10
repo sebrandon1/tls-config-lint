@@ -18,7 +18,7 @@ emit_annotations() {
 
 emit_annotations_gha() {
 	local i=0
-	for finding in "${FINDINGS[@]}"; do
+	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r pattern_id severity name description file line_num match_text _ <<<"$finding"
 
 		local annotation_type
@@ -47,7 +47,7 @@ emit_annotations_cli() {
 	echo ""
 
 	local i=0
-	for finding in "${FINDINGS[@]}"; do
+	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r pattern_id severity name description file line_num match_text _ <<<"$finding"
 
 		local sev_lower color
