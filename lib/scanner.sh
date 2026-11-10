@@ -350,11 +350,11 @@ scan_pattern() {
 		for changed_file in "${LANG_SCAN_FILES[@]}"; do
 			grep_files+=("./$changed_file")
 		done
-		grep_output=$(cd "$scan_path" && grep -nHI -E "$regex" "${grep_files[@]}" 2>/dev/null) || true
+		grep_output=$(cd "$scan_path" && grep -nHI --null -E "$regex" "${grep_files[@]}" 2>/dev/null | tr '\000' '\037') || true
 	else
 		# shellcheck disable=SC2086
-		grep_output=$(cd "$scan_path" && grep -rnI $include_flags $exclude_test_flags $lang_exclude_dirs $common_exclude_dirs \
-			-E "$regex" . 2>/dev/null) || true
+		grep_output=$(cd "$scan_path" && grep -rnI --null $include_flags $exclude_test_flags $lang_exclude_dirs $common_exclude_dirs \
+			-E "$regex" . 2>/dev/null | tr '\000' '\037') || true
 	fi
 
 	if [[ -z "$grep_output" ]]; then
@@ -368,10 +368,12 @@ scan_pattern() {
 		severity="$override"
 	fi
 
-	# Parse grep output lines: ./file:line:match
+	# Parse grep output lines: ./file<NUL>line:match (NUL translated to \037 above),
+	# so a match text containing ":N:" cannot be mistaken for the file separator.
+	local parse_re=$'^([^\037]*)\037([0-9]+):(.*)$'
 	while IFS= read -r match_line; do
 		local file line_num match_text
-		if [[ "$match_line" =~ ^(.*):([0-9]+):(.*)$ ]]; then
+		if [[ "$match_line" =~ $parse_re ]]; then
 			file="${BASH_REMATCH[1]}"
 			line_num="${BASH_REMATCH[2]}"
 			match_text="${BASH_REMATCH[3]}"

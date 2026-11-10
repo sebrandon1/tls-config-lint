@@ -650,6 +650,78 @@ else
 fi
 rm -rf "$trunc_dir"
 
+# --- Colon-in-Match Parsing Tests ---
+# grep output must be split on the file/line separator grep itself emitted, not
+# on the last ":<digits>:" in the line, so a match containing a timestamp keeps
+# its real file and line number (and inline suppressions still work).
+echo "  --- Colon-in-Match Parsing Tests ---"
+
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+
+colon_dir=$(mktemp -d)
+cat >"$colon_dir/a.go" <<'GOEOF'
+package main
+
+var c = &tls.Config{InsecureSkipVerify: true} // added 12:30:45
+GOEOF
+cat >"$colon_dir/b.go" <<'GOEOF'
+package main
+
+var d = &tls.Config{InsecureSkipVerify: true} // tls-lint:ignore 12:30:45
+GOEOF
+
+source "$ROOT_DIR/patterns/go.sh"
+scan_language "$colon_dir" "go" "" ""
+
+colon_file=""
+colon_line=""
+colon_match=""
+colon_count=0
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ ffile fline fmatch _ <<<"$finding"
+	if [[ "$fid" == "insecure-skip-verify" ]]; then
+		colon_count=$((colon_count + 1))
+		colon_file="$ffile"
+		colon_line="$fline"
+		colon_match="$fmatch"
+	fi
+done
+assert_equals "Colon-in-match reports the real file" "a.go" "$colon_file"
+assert_equals "Colon-in-match reports the real line number" "3" "$colon_line"
+assert_contains "Colon-in-match keeps the full match text" "12:30:45" "$colon_match"
+assert_equals "Inline ignore after a timestamp suppresses the finding" "1" "$colon_count"
+
+# Incremental mode uses a different grep invocation (-H --null) but the same parser
+reset_scan_state
+CHANGED_FILES_ONLY=true
+# shellcheck disable=SC2034  # Used by scanner.sh via scan_language
+CHANGED_FILES=("a.go")
+scan_language "$colon_dir" "go" "" ""
+
+inc_file=""
+inc_line=""
+for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
+	IFS='|' read -r fid _ _ _ ffile fline _ _ <<<"$finding"
+	if [[ "$fid" == "insecure-skip-verify" ]]; then
+		inc_file="$ffile"
+		inc_line="$fline"
+	fi
+done
+assert_equals "Incremental scan reports the real file for a colon-in-match line" "a.go" "$inc_file"
+assert_equals "Incremental scan reports the real line for a colon-in-match line" "3" "$inc_line"
+# shellcheck disable=SC2034  # Used by scanner.sh via scan_language
+CHANGED_FILES_ONLY=false
+# shellcheck disable=SC2034  # Used by scanner.sh via scan_language
+LANG_SCAN_FILES=()
+unset CHANGED_FILES
+rm -rf "$colon_dir"
+
 # --- filter_go_tls_config_noise Tests ---
 echo "  --- filter_go_tls_config_noise Tests ---"
 
