@@ -3,7 +3,9 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      # Full semver tags only (vX.Y.Z). The moving major tag (v1) is force-pushed
+      # by update-major-tag.yml and must not trigger a release.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
   contents: write
