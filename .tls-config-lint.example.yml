@@ -12,6 +12,12 @@ severity-threshold: high
 #   - python
 #   - nodejs
 #   - cpp
+#   - java
+#   - rust
+#   - ruby
+#   - php
+#   - csharp
+#   - kotlin
 
 # Directories to exclude from scanning (in addition to built-in exclusions)
 # exclude-dirs:
@@ -36,3 +42,23 @@ severity-threshold: high
 # severity-overrides:
 #   - hardcoded-tls-config:high
 #   - prefer-server-cipher-suites:info
+
+# Organization-specific patterns (YAML list of maps)
+# Each entry requires id, severity, name, description, and regex.
+# languages is optional; when omitted the pattern runs for every selected language.
+# extra-patterns:
+#   - id: org-weak-cipher
+#     severity: high
+#     name: Organization banned cipher suite
+#     description: Uses a cipher suite banned by organization policy
+#     regex: 'TLS_RSA_WITH_AES_128_CBC_SHA'
+#     languages: [go, java]
+
+# Baseline comparison against a previous SARIF 2.1.0 file (requires jq)
+# Findings already present in the baseline are suppressed
+# baseline: artifacts/tls-baseline.sarif
+
+# Incremental scan of only files changed between two Git refs
+# changed-files-only: true
+# base-ref: origin/main
+# head-ref: HEAD

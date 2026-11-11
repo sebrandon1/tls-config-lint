@@ -130,7 +130,8 @@ finding placed next to an existing one is still reported.
 ```
 
 The baseline must be readable and contain SARIF results with rule IDs, artifact URIs, and start
-lines. Invalid or missing baselines return exit code 2. Baseline filtering happens before
+lines. Baseline comparison requires `jq` (the action exits with code 2 if it is missing). Invalid or
+missing baselines return exit code 2. Baseline filtering happens before
 annotations, summaries, SARIF/report output, and threshold evaluation, so fully suppressed scans
 produce zero findings everywhere.
 

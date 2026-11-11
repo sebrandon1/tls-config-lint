@@ -13,6 +13,10 @@ The following directories are excluded from scanning by default:
 - **Node.js:** `*.test.js`, `*.spec.js` (and `.ts`/`.mjs`/`.mts` variants), `node_modules/`, `__tests__/`
 - **C++:** `*_test.cpp`, `*_test.cc`
 - **Java:** `*Test.java`, `*Tests.java`, `*IT.java`, `target/`, `build/`, `.gradle/`
+- **Kotlin:** `*_test.kt`
+- **C#/.NET:** `*_test.cs`
+- **PHP:** `*_test.php`, `test_*.php`
+- **Ruby:** `*_test.rb`, `test_*.rb`
 - **Rust:** `*_test.rs`, `*_tests.rs`, `target/`, `.cargo/`
 
 ## Go TLSSecurityProfile Noise Reduction

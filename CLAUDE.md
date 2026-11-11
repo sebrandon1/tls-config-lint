@@ -15,11 +15,17 @@ bash tests/run_tests.sh
 # Run individual test suites
 bash tests/test_scanner.sh
 bash tests/test_config.sh
+bash tests/test_custom_patterns.sh
 bash tests/test_detect.sh
+bash tests/test_incremental.sh
+bash tests/test_baseline.sh
 bash tests/test_utils.sh
 bash tests/test_annotations.sh
 bash tests/test_summary.sh
 bash tests/test_sarif.sh
+bash tests/test_report.sh
+bash tests/test_docs.sh
+bash tests/test_integration.sh
 
 # Check formatting (shfmt: go install mvdan.cc/sh/v3/cmd/shfmt@latest)
 shfmt -d -i 0 -ci .
@@ -37,12 +43,12 @@ Pipeline orchestrated by `entrypoint.sh`:
 
 1. **Config** (`lib/config.sh`) — Pure bash YAML parser; merges inputs > config file > defaults
 2. **Detect** (`lib/detect.sh`) — Auto-detects languages from file markers (go.mod, package.json, etc.)
-3. **Scan** (`lib/scanner.sh`) — Grep-based pattern matching using definitions from `patterns/*.sh`
-4. **Output** — GitHub annotations (`lib/annotations.sh`), job summary markdown (`lib/summary.sh`), SARIF JSON (`lib/sarif.sh`, requires `jq`)
+3. **Scan** (`lib/scanner.sh`) — Grep-based pattern matching using definitions from `patterns/*.sh`; optional baseline filtering (`lib/baseline.sh`) suppresses findings already present in a SARIF file
+4. **Output** — GitHub annotations (`lib/annotations.sh`), job summary markdown (`lib/summary.sh`), SARIF JSON (`lib/sarif.sh`, requires `jq`), CSV/JSON reports (`lib/report.sh`). Shared helpers live in `lib/utils.sh`.
 
 Findings accumulate in a global `FINDINGS` array as pipe-delimited strings: `"id|severity|name|description|file|line|match"`
 
-Pattern files (`patterns/{go,python,nodejs,cpp,java,rust}.sh`) define arrays of `"id|severity|name|description|regex"` entries. Severity levels: CRITICAL (cert verification disabled), HIGH (weak TLS versions), MEDIUM (prevents TLS 1.3), INFO (PQC, deprecated features).
+Pattern files (`patterns/{go,python,nodejs,cpp,java,rust,ruby,php,csharp,kotlin}.sh`) define arrays of `"id|severity|name|description|regex"` entries. Severity levels: CRITICAL (cert verification disabled), HIGH (weak TLS versions), MEDIUM (prevents TLS 1.3), INFO (PQC, deprecated features).
 
 ## Conventions
 
