@@ -118,7 +118,9 @@ The format is inferred from the file extension: `.json` produces a structured JS
 
 Set `baseline` to a previous SARIF 2.1.0 file to report only new findings. A finding is
 considered existing when its rule ID and normalized file path match and its line is within three
-lines of a baseline result. Duplicate baseline results do not change the outcome.
+lines of a baseline result. Each baseline result suppresses at most one finding: exact line
+matches are claimed first, then nearby findings take the nearest remaining result, so a new
+finding placed next to an existing one is still reported.
 
 ```yaml
 - uses: sebrandon1/tls-config-lint@v1
