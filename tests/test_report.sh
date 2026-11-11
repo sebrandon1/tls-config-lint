@@ -166,6 +166,16 @@ if command -v jq &>/dev/null; then
 	first_match=$(jq -r '.findings[0].match' "$json_file")
 	assert_equals "JSON finding has match" "InsecureSkipVerify: true" "$first_match"
 
+	# Test: schema shape is unchanged by the record-file rewrite
+	schema_ok=$(jq -r '
+		(.metadata | keys | sort) == ["languages", "scanPath", "severityThreshold", "tool", "version"] and
+		(.summary | keys | sort) == ["critical", "high", "info", "medium", "total"] and
+		(.findings[0] | keys | sort) == ["column", "description", "file", "line", "match", "name", "patternId", "severity"] and
+		(.findings[0].line | type) == "number" and
+		(.findings[0].column | type) == "number"
+	' "$json_file")
+	assert_equals "JSON report schema matches documented shape" "true" "$schema_ok"
+
 	rm -f "$json_file"
 
 	# Test: JSON with empty findings produces valid output
@@ -179,6 +189,42 @@ if command -v jq &>/dev/null; then
 	assert_equals "JSON empty findings has empty array" "0" "$empty_count"
 	empty_total=$(jq '.summary.total' "$json_file")
 	assert_equals "JSON empty findings has zero total" "0" "$empty_total"
+
+	rm -f "$json_file"
+
+	# Test: an empty column field falls back to column 1
+	FINDINGS=(
+		"test-pattern|HIGH|Test|Description|file.go|7|match|"
+	)
+	CRITICAL_COUNT=0
+	HIGH_COUNT=1
+
+	json_file=$(mktemp)
+	generate_json_report "$json_file" 2>/dev/null
+	default_col=$(jq '.findings[0].column' "$json_file")
+	assert_equals "JSON column defaults to 1 when missing" "1" "$default_col"
+	rm -f "$json_file"
+
+	# Test: large result sets do not hit the OS single-argument limit
+	FINDINGS=()
+	large_i=0
+	while [[ "$large_i" -lt 1000 ]]; do
+		FINDINGS+=("insecure-skip-verify|CRITICAL|InsecureSkipVerify: true|Disables TLS certificate verification|main.go|$((large_i + 1))|InsecureSkipVerify: true|5")
+		large_i=$((large_i + 1))
+	done
+	CRITICAL_COUNT=1000
+	HIGH_COUNT=0
+
+	json_file=$(mktemp)
+	if generate_json_report "$json_file" 2>/dev/null; then
+		assert_equals "Large JSON report is written" "true" "true"
+	else
+		assert_equals "Large JSON report is written" "true" "false"
+	fi
+	large_count=$(jq '.findings | length' "$json_file" 2>/dev/null)
+	assert_equals "Large JSON report contains every finding" "1000" "$large_count"
+	large_last_line=$(jq '.findings[999].line' "$json_file" 2>/dev/null)
+	assert_equals "Large JSON report keeps numeric line numbers" "1000" "$large_last_line"
 
 	rm -f "$json_file"
 else

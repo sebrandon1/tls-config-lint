@@ -50,32 +50,24 @@ generate_json_report() {
 	local total
 	total=$(get_findings_count)
 
-	local findings_json="[]"
+	# Write NUL-delimited records to a file and pass it with --rawfile: a single
+	# jq invocation, and no argument can grow past the OS limit on a large scan.
+	local temp_dir records_file
+	temp_dir=$(mktemp -d)
+	records_file="$temp_dir/findings"
+	: >"$records_file"
+
+	local finding pattern_id severity name description file line_num match_text col
 	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r pattern_id severity name description file line_num match_text col <<<"$finding"
-		findings_json=$(echo "$findings_json" | jq \
-			--arg pid "$pattern_id" \
-			--arg sev "$severity" \
-			--arg name "$name" \
-			--arg desc "$description" \
-			--arg file "$file" \
-			--argjson line "$line_num" \
-			--arg match "$match_text" \
-			--argjson col "${col:-1}" \
-			'. + [{
-				patternId: $pid,
-				severity: $sev,
-				name: $name,
-				description: $desc,
-				file: $file,
-				line: $line,
-				match: $match,
-				column: $col
-			}]')
+		printf '%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\000' \
+			"$pattern_id" "$severity" "$name" "$description" "$file" "$line_num" "$match_text" "${col:-1}" \
+			>>"$records_file"
 	done
 
 	local report
-	report=$(jq -n \
+	if ! report=$(jq -n \
+		--rawfile finding_records "$records_file" \
 		--arg version "$tool_version" \
 		--arg scanPath "${SCAN_PATH:-.}" \
 		--arg languages "${LANGUAGES:-auto}" \
@@ -85,8 +77,13 @@ generate_json_report() {
 		--argjson high "$HIGH_COUNT" \
 		--argjson medium "$MEDIUM_COUNT" \
 		--argjson info "$INFO_COUNT" \
-		--argjson findings "$findings_json" \
-		'{
+		'
+		def records:
+			split("\u0000")
+			| map(select(length > 0) | split("\u001f"));
+
+		($finding_records | records) as $finding_data
+		| {
 			metadata: {
 				tool: "tls-config-lint",
 				version: $version,
@@ -101,8 +98,24 @@ generate_json_report() {
 				medium: $medium,
 				info: $info
 			},
-			findings: $findings
-		}')
+			findings: [
+				$finding_data[] | {
+					patternId: .[0],
+					severity: .[1],
+					name: .[2],
+					description: .[3],
+					file: .[4],
+					line: (.[5] | tonumber),
+					match: .[6],
+					column: (.[7] | tonumber)
+				}
+			]
+		}'); then
+		rm -rf "$temp_dir"
+		log_error "Failed to generate JSON report"
+		return 1
+	fi
+	rm -rf "$temp_dir"
 
 	echo "$report" >"$output_file"
 	log_msg "JSON report written to $output_file"
