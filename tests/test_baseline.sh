@@ -62,6 +62,114 @@ assert_equals "Baseline filter preserves new findings" "true" "$(printf '%s\n' "
 assert_equals "Baseline filter preserves different rule at same line" "true" "$(printf '%s\n' "${FINDINGS[@]}" | grep -q 'new-rule|' && echo true || echo false)"
 assert_equals "Baseline suppression count is tracked" "1" "$BASELINE_SUPPRESSED_COUNT"
 
+# One baseline entry must absorb at most one finding, even with several new ones nearby.
+single_baseline=$(mktemp)
+cat >"$single_baseline" <<'EOF'
+{
+  "version": "2.1.0",
+  "runs": [{
+    "tool": {"driver": {"name": "tls-config-lint"}},
+    "results": [
+      {
+        "ruleId": "verify-false",
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/client.py"}, "region": {"startLine": 2}}}]
+      }
+    ]
+  }]
+}
+EOF
+load_baseline "$single_baseline" "$ROOT_DIR"
+
+FINDINGS=(
+	"verify-false|critical|Verification disabled|Use certificate verification|src/client.py|2|verify=False|1"
+	"verify-false|critical|Verification disabled|Use certificate verification|src/client.py|3|verify=False|1"
+	"verify-false|critical|Verification disabled|Use certificate verification|src/client.py|4|verify=False|1"
+)
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+FINDING_REGEXES=("verify=False" "verify=False" "verify=False")
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+CRITICAL_COUNT=3
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+HIGH_COUNT=0
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+INFO_COUNT=0
+filter_baseline_findings
+
+assert_equals "Single baseline entry suppresses only one of three adjacent findings" "2" "${#FINDINGS[@]}"
+assert_equals "Single baseline entry decrements critical count once" "2" "$CRITICAL_COUNT"
+assert_equals "Single baseline entry counts one suppression" "1" "$BASELINE_SUPPRESSED_COUNT"
+
+# Exact line matches claim their entry before nearby findings do, so a new
+# finding below an existing one is reported even when listed first.
+load_baseline "$single_baseline" "$ROOT_DIR"
+FINDINGS=(
+	"verify-false|critical|Verification disabled|Use certificate verification|src/client.py|3|verify=False|1"
+	"verify-false|critical|Verification disabled|Use certificate verification|src/client.py|2|verify=False|1"
+)
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+FINDING_REGEXES=("verify=False" "verify=False")
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+CRITICAL_COUNT=2
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+HIGH_COUNT=0
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+INFO_COUNT=0
+filter_baseline_findings
+
+assert_equals "Exact baseline match wins over an earlier nearby finding" "1" "${#FINDINGS[@]}"
+assert_equals "New finding below an exact match is still reported" "true" \
+	"$(printf '%s\n' "${FINDINGS[@]}" | grep -q 'src/client.py|3|' && echo true || echo false)"
+
+# Among unused entries, the nearest one is claimed.
+nearest_baseline=$(mktemp)
+cat >"$nearest_baseline" <<'EOF'
+{
+  "version": "2.1.0",
+  "runs": [{
+    "tool": {"driver": {"name": "tls-config-lint"}},
+    "results": [
+      {
+        "ruleId": "verify-false",
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/client.py"}, "region": {"startLine": 10}}}]
+      },
+      {
+        "ruleId": "verify-false",
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/client.py"}, "region": {"startLine": 14}}}]
+      }
+    ]
+  }]
+}
+EOF
+load_baseline "$nearest_baseline" "$ROOT_DIR"
+baseline_claim_finding verify-false src/client.py 13 near
+assert_equals "Nearest baseline entry is claimed" "true" "${BASELINE_USED[1]:-false}"
+assert_equals "Farther baseline entry stays unused" "false" "${BASELINE_USED[0]:-false}"
+
+# Two identical baseline entries suppress exactly two findings.
+load_baseline "$baseline_file" "$ROOT_DIR"
+FINDINGS=(
+	"verify-false|critical|Verification disabled|Use certificate verification|src/client.py|10|verify=False|1"
+	"verify-false|critical|Verification disabled|Use certificate verification|src/client.py|11|verify=False|1"
+)
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+FINDING_REGEXES=("verify=False" "verify=False")
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+CRITICAL_COUNT=2
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+HIGH_COUNT=0
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034 # Consumed by filter_baseline_findings in baseline.sh
+INFO_COUNT=0
+filter_baseline_findings
+
+assert_equals "Two duplicate baseline entries suppress exactly two findings" "0" "${#FINDINGS[@]}"
+assert_equals "Two duplicate baseline entries are both consumed" "2" "$BASELINE_SUPPRESSED_COUNT"
+
 empty_baseline=$(mktemp)
 cat >"$empty_baseline" <<'EOF'
 {"version":"2.1.0","runs":[{"tool":{"driver":{"name":"tls-config-lint"}},"results":[]}]}
@@ -77,4 +185,4 @@ else
 	assert_equals "Malformed baseline is rejected" "true" "true"
 fi
 
-rm -f "$baseline_file" "$empty_baseline" "$invalid_baseline"
+rm -f "$baseline_file" "$single_baseline" "$nearest_baseline" "$empty_baseline" "$invalid_baseline"
