@@ -1,8 +1,11 @@
 name: Update Major Version Tag
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      # Trigger on the release tag itself. Releases created by release.yml use
+      # GITHUB_TOKEN, which does not emit a `release: published` event.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions: read-all
 
