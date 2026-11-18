@@ -41,20 +41,22 @@ detect_languages() {
 		case "$file" in
 			*.go) has_go=true ;;
 			*.py) has_python=true ;;
-			*.js | *.ts) has_nodejs=true ;;
-			*.cpp | *.cc | *.hpp) has_cpp=true ;;
+			*.js | *.ts | *.mjs | *.mts | *.cjs | *.cts | *.jsx | *.tsx) has_nodejs=true ;;
+			*.c | *.cpp | *.cc | *.hpp) has_cpp=true ;;
 			*.cs) has_csharp=true ;;
 			*.java) has_java=true ;;
 			*.rs) has_rust=true ;;
-			*.kt) has_kotlin=true ;;
+			*.kt | *.kts) has_kotlin=true ;;
 			*.php) has_php=true ;;
 			*.rb) has_ruby=true ;;
 			*.swift) has_unsupported_swift=true ;;
 		esac
 	done < <(find "$scan_path" -maxdepth 3 -type f \( \
 		-name '*.go' -o -name '*.py' -o -name '*.js' -o -name '*.ts' \
-		-o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.cs' \
-		-o -name '*.java' -o -name '*.rs' -o -name '*.kt' -o -name '*.php' \
+		-o -name '*.mjs' -o -name '*.mts' -o -name '*.cjs' -o -name '*.cts' \
+		-o -name '*.jsx' -o -name '*.tsx' \
+		-o -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.cs' \
+		-o -name '*.java' -o -name '*.rs' -o -name '*.kt' -o -name '*.kts' -o -name '*.php' \
 		-o -name '*.rb' -o -name '*.swift' \
 		\) -print0 2>/dev/null)
 

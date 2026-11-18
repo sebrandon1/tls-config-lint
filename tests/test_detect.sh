@@ -52,6 +52,32 @@ result=$(detect_languages "$TEMP_DIR" 2>/dev/null)
 assert_equals "Empty dir returns empty string" "" "$result"
 rmdir "$TEMP_DIR"
 
+# Test: Newly scanned extensions are detected without a marker file
+ext_dir=$(mktemp -d)
+touch "$ext_dir/only.c"
+result=$(detect_languages "$ext_dir" 2>/dev/null)
+assert_equals "Detects C++ from a lone .c file" "cpp" "$result"
+rm -rf "$ext_dir"
+
+ext_dir=$(mktemp -d)
+touch "$ext_dir/only.tsx"
+result=$(detect_languages "$ext_dir" 2>/dev/null)
+assert_equals "Detects Node.js from a lone .tsx file" "nodejs" "$result"
+rm -rf "$ext_dir"
+
+ext_dir=$(mktemp -d)
+touch "$ext_dir/only.cjs"
+result=$(detect_languages "$ext_dir" 2>/dev/null)
+assert_equals "Detects Node.js from a lone .cjs file" "nodejs" "$result"
+rm -rf "$ext_dir"
+
+ext_dir=$(mktemp -d)
+mkdir -p "$ext_dir/scripts"
+touch "$ext_dir/scripts/build.kts"
+result=$(detect_languages "$ext_dir" 2>/dev/null)
+assert_equals "Detects Kotlin from a lone .kts script" "kotlin" "$result"
+rm -rf "$ext_dir"
+
 # --- Marker File Detection Tests ---
 echo "  --- Marker File Detection Tests ---"
 

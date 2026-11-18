@@ -79,6 +79,9 @@ scan_language "$ROOT_DIR/testdata/nodejs" "nodejs" "" ""
 assert_greater_than "Node.js scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "Node.js scan finds total findings" 10 "$(get_findings_count)"
 
+nodejs_scanned_files=$(printf '%s\n' "${FINDINGS[@]+"${FINDINGS[@]}"}")
+assert_contains "Node.js scan covers .tsx files" "insecure.tsx" "$nodejs_scanned_files"
+
 # Reset state for C++
 FINDINGS=()
 CRITICAL_COUNT=0
@@ -92,6 +95,9 @@ scan_language "$ROOT_DIR/testdata/cpp" "cpp" "" ""
 
 assert_greater_than "C++ scan finds critical findings" 0 "$CRITICAL_COUNT"
 assert_greater_than "C++ scan finds total findings" 8 "$(get_findings_count)"
+
+cpp_scanned_files=$(printf '%s\n' "${FINDINGS[@]+"${FINDINGS[@]}"}")
+assert_contains "C++ scan covers plain .c files" "|insecure.c|" "$cpp_scanned_files"
 
 # Reset state for Java
 FINDINGS=()
@@ -564,12 +570,35 @@ assert_contains "build_include_flags go" "--include=*.go" "$(build_include_flags
 assert_contains "build_include_flags python" "--include=*.py" "$(build_include_flags "python")"
 assert_contains "build_include_flags nodejs includes .ts" "--include=*.ts" "$(build_include_flags "nodejs")"
 assert_contains "build_include_flags cpp" "--include=*.cpp" "$(build_include_flags "cpp")"
+assert_contains "build_include_flags cpp includes .c" "--include=*.c " "$(build_include_flags "cpp")"
 assert_contains "build_include_flags java" "--include=*.java" "$(build_include_flags "java")"
 assert_contains "build_include_flags rust" "--include=*.rs" "$(build_include_flags "rust")"
+assert_contains "build_include_flags kotlin includes .kts" "--include=*.kts" "$(build_include_flags "kotlin")"
+for nodejs_ext in cjs cts jsx tsx; do
+	assert_contains "build_include_flags nodejs includes .$nodejs_ext" "--include=*.$nodejs_ext" "$(build_include_flags "nodejs")"
+done
+
+# file_matches_language covers the added extensions
+for lang_file in cpp:src/openssl.c nodejs:src/app.cjs nodejs:src/app.cts nodejs:src/app.jsx nodejs:src/app.tsx kotlin:build.gradle.kts; do
+	if file_matches_language "${lang_file%%:*}" "${lang_file#*:}"; then
+		assert_equals "file_matches_language ${lang_file}" "true" "true"
+	else
+		assert_equals "file_matches_language ${lang_file}" "true" "false"
+	fi
+done
+if file_matches_language "cpp" "src/notes.md"; then
+	assert_equals "file_matches_language rejects unrelated extension" "false" "true"
+else
+	assert_equals "file_matches_language rejects unrelated extension" "false" "false"
+fi
 
 # build_test_exclude_flags
 assert_contains "build_test_exclude_flags go" "--exclude=*_test.go" "$(build_test_exclude_flags "go")"
 assert_contains "build_test_exclude_flags python" "--exclude=*_test.py" "$(build_test_exclude_flags "python")"
+assert_contains "build_test_exclude_flags cpp includes C tests" "--exclude=*_test.c " "$(build_test_exclude_flags "cpp")"
+for nodejs_test_ext in cjs cts jsx tsx; do
+	assert_contains "build_test_exclude_flags nodejs includes .test.$nodejs_test_ext" "--exclude=*.test.$nodejs_test_ext" "$(build_test_exclude_flags "nodejs")"
+done
 
 # build_lang_exclude_dirs
 assert_contains "build_lang_exclude_dirs nodejs" "node_modules" "$(build_lang_exclude_dirs "nodejs")"
