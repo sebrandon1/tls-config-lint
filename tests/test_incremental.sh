@@ -139,10 +139,13 @@ assert_true "Incremental selection accepts ruby sources" file_matches_language r
 assert_false "Incremental selection rejects mismatched extension" file_matches_language ruby src/app.py
 assert_false "Incremental selection rejects wrong language" file_matches_language csharp src/app.rb
 
-assert_true "Incremental selection keeps csharp test exclusion" file_matches_test_exclusion csharp src/App_test.cs
-assert_true "Incremental selection keeps kotlin test exclusion" file_matches_test_exclusion kotlin src/App_test.kt
-assert_true "Incremental selection keeps php test exclusion (suffix)" file_matches_test_exclusion php src/app_test.php
-assert_true "Incremental selection keeps php test exclusion (prefix)" file_matches_test_exclusion php src/test_app.php
+assert_true "Incremental selection keeps csharp test exclusion (plural)" file_matches_test_exclusion csharp src/FooTests.cs
+assert_true "Incremental selection keeps csharp test exclusion (singular)" file_matches_test_exclusion csharp src/FooTest.cs
+assert_true "Incremental selection keeps kotlin test exclusion" file_matches_test_exclusion kotlin src/FooTest.kt
+assert_true "Incremental selection keeps kotlin spec exclusion" file_matches_test_exclusion kotlin src/FooSpec.kt
+assert_true "Incremental selection keeps php test exclusion" file_matches_test_exclusion php src/FooTest.php
+assert_false "Incremental selection no longer excludes Go-style php names" file_matches_test_exclusion php src/test_app.php
+assert_true "Incremental selection keeps ruby spec exclusion" file_matches_test_exclusion ruby src/foo_spec.rb
 assert_true "Incremental selection keeps ruby test exclusion (suffix)" file_matches_test_exclusion ruby src/app_test.rb
 assert_true "Incremental selection keeps ruby test exclusion (prefix)" file_matches_test_exclusion ruby src/test_app.rb
 assert_false "Incremental selection does not exclude ruby sources" file_matches_test_exclusion ruby src/app.rb

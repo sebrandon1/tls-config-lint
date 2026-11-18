@@ -48,12 +48,12 @@ build_test_exclude_flags() {
 		python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
 		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts --exclude=*.test.cjs --exclude=*.spec.cjs --exclude=*.test.cts --exclude=*.spec.cts --exclude=*.test.jsx --exclude=*.spec.jsx --exclude=*.test.tsx --exclude=*.spec.tsx" ;;
 		cpp) echo "--exclude=*_test.c --exclude=*_test.cpp --exclude=*_test.cc" ;;
-		csharp) echo "--exclude=*_test.cs" ;;
+		csharp) echo "--exclude=*Tests.cs --exclude=*Test.cs" ;;
 		java) echo "--exclude=*Test.java --exclude=*Tests.java --exclude=*IT.java" ;;
 		rust) echo "--exclude=*_test.rs --exclude=*_tests.rs" ;;
-		kotlin) echo "--exclude=*_test.kt" ;;
-		php) echo "--exclude=*_test.php --exclude=test_*.php" ;;
-		ruby) echo "--exclude=*_test.rb --exclude=test_*.rb" ;;
+		kotlin) echo "--exclude=*Test.kt --exclude=*Tests.kt --exclude=*Spec.kt" ;;
+		php) echo "--exclude=*Test.php" ;;
+		ruby) echo "--exclude=*_spec.rb --exclude=*_test.rb --exclude=test_*.rb" ;;
 	esac
 }
 
@@ -65,6 +65,7 @@ build_lang_exclude_dirs() {
 		python) echo "--exclude-dir=__pycache__ --exclude-dir=venv --exclude-dir=.venv" ;;
 		java) echo "--exclude-dir=target --exclude-dir=build --exclude-dir=.gradle" ;;
 		rust) echo "--exclude-dir=target --exclude-dir=.cargo" ;;
+		ruby) echo "--exclude-dir=spec" ;;
 		*) echo "" ;;
 	esac
 }
@@ -192,8 +193,9 @@ file_matches_test_exclusion() {
 			nodejs:*.test.cjs | nodejs:*.spec.cjs | nodejs:*.test.cts | nodejs:*.spec.cts | \
 			nodejs:*.test.jsx | nodejs:*.spec.jsx | nodejs:*.test.tsx | nodejs:*.spec.tsx | \
 			cpp:*_test.c | cpp:*_test.cpp | cpp:*_test.cc | java:*Test.java | java:*Tests.java | java:*IT.java | \
-			rust:*_test.rs | rust:*_tests.rs | csharp:*_test.cs | kotlin:*_test.kt | \
-			php:*_test.php | php:test_*.php | ruby:*_test.rb | ruby:test_*.rb)
+			rust:*_test.rs | rust:*_tests.rs | csharp:*Test.cs | csharp:*Tests.cs | \
+			kotlin:*Test.kt | kotlin:*Tests.kt | kotlin:*Spec.kt | \
+			php:*Test.php | ruby:*_spec.rb | ruby:*_test.rb | ruby:test_*.rb)
 			return 0
 			;;
 		*) return 1 ;;
@@ -214,7 +216,7 @@ file_matches_excluded_dir() {
 				;;
 		esac
 		case "$lang:$component" in
-			python:__pycache__ | python:venv | python:.venv | java:target | java:build | java:.gradle | rust:target | rust:.cargo)
+			python:__pycache__ | python:venv | python:.venv | java:target | java:build | java:.gradle | rust:target | rust:.cargo | ruby:spec)
 				return 0
 				;;
 		esac
