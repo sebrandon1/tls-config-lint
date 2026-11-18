@@ -171,11 +171,13 @@ FINDINGS+=("test-high|HIGH|Test High|High desc|file.go|1|code")
 output=$(build_language_breakdown)
 assert_equals "breakdown is empty for a single language" "" "$output"
 
-# Restore the two-language fixture used by the assertions below
+# Restore the two-language fixture and regenerate the CLI summary that the
+# no-markdown assertions below inspect.
 FINDINGS=()
 FINDINGS+=("test-critical|CRITICAL|Test Critical|Critical desc|test.go|10|code")
 FINDINGS+=("test-medium|MEDIUM|Test Medium|Medium desc|test.py|20|code")
 FINDINGS+=("test-info|INFO|Test Info|Info desc|test.js|30|code")
+output=$(generate_summary "high")
 
 # CLI should not produce markdown syntax
 if echo "$output" | grep -q ":red_circle:"; then
