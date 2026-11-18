@@ -99,8 +99,8 @@ assert_equals "Missing config returns empty languages" "" "$CFG_LANGUAGES"
 assert_equals "Missing config returns empty severity-overrides" "" "$CFG_SEVERITY_OVERRIDES"
 
 # Test: Merge config with inputs
-export INPUT_SEVERITY_THRESHOLD="high"
-export INPUT_LANGUAGES="auto"
+export INPUT_SEVERITY_THRESHOLD=""
+export INPUT_LANGUAGES=""
 export INPUT_EXCLUDE_DIRS="my-dir"
 export INPUT_EXCLUDE_PATTERNS=""
 export INPUT_CONFIG_FILE="$TEMP_CONFIG"
@@ -110,22 +110,83 @@ export INPUT_SARIF_OUTPUT=""
 
 merge_config
 
-# Input severity is "high" (default), so config's "critical" should win
-assert_equals "Merge uses config severity when input is default" "critical" "$SEVERITY_THRESHOLD"
-# Input languages is "auto" (default), so config's list should win
-assert_equals "Merge uses config languages when input is auto" "go,python" "$LANGUAGES"
+# Omitted inputs fall back to config
+assert_equals "Merge uses config severity when input is omitted" "critical" "$SEVERITY_THRESHOLD"
+assert_equals "Merge uses config languages when input is omitted" "go,python" "$LANGUAGES"
 # Exclude dirs should be union of input + config
 assert_contains "Merge unions exclude dirs" "my-dir" "$EXCLUDE_DIRS"
 assert_contains "Merge unions exclude dirs" "test/fixtures" "$EXCLUDE_DIRS"
 
-# Test: Input overrides config when non-default
+# Test: Input overrides config, including values equal to the documented default
 export INPUT_SEVERITY_THRESHOLD="medium"
 export INPUT_LANGUAGES="cpp"
 
 merge_config
 
-assert_equals "Merge uses input severity when non-default" "medium" "$SEVERITY_THRESHOLD"
-assert_equals "Merge uses input languages when non-auto" "cpp" "$LANGUAGES"
+assert_equals "Merge uses input severity when provided" "medium" "$SEVERITY_THRESHOLD"
+assert_equals "Merge uses input languages when provided" "cpp" "$LANGUAGES"
+
+export INPUT_SEVERITY_THRESHOLD="high"
+export INPUT_LANGUAGES="auto"
+
+merge_config
+
+assert_equals "Explicit default severity beats config" "high" "$SEVERITY_THRESHOLD"
+assert_equals "Explicit auto languages beats config" "auto" "$LANGUAGES"
+
+# Test: Explicit false beats a config that enables incremental scanning
+TEMP_INCREMENTAL=$(mktemp)
+cat >"$TEMP_INCREMENTAL" <<'EOF'
+changed-files-only: true
+base-ref: origin/develop
+head-ref: release
+EOF
+export INPUT_CHANGED_FILES_ONLY="false"
+export INPUT_BASE_REF=""
+export INPUT_HEAD_REF=""
+export INPUT_CONFIG_FILE="$TEMP_INCREMENTAL"
+
+merge_config
+
+assert_equals "Explicit false beats config changed-files-only" "false" "$CHANGED_FILES_ONLY"
+assert_equals "Omitted base-ref takes config value" "origin/develop" "$BASE_REF"
+assert_equals "Omitted head-ref takes config value" "release" "$HEAD_REF"
+
+export INPUT_CHANGED_FILES_ONLY="true"
+export INPUT_BASE_REF="origin/main"
+export INPUT_HEAD_REF="HEAD"
+
+merge_config
+
+assert_equals "Explicit true beats config changed-files-only" "true" "$CHANGED_FILES_ONLY"
+assert_equals "Explicit base-ref beats config" "origin/main" "$BASE_REF"
+assert_equals "Explicit head-ref beats config" "HEAD" "$HEAD_REF"
+rm -f "$TEMP_INCREMENTAL"
+
+# Test: Neither input nor config yields the documented defaults
+TEMP_EMPTY=$(mktemp)
+export INPUT_SEVERITY_THRESHOLD=""
+export INPUT_LANGUAGES=""
+export INPUT_CHANGED_FILES_ONLY=""
+export INPUT_BASE_REF=""
+export INPUT_HEAD_REF=""
+export INPUT_CONFIG_FILE="$TEMP_EMPTY"
+
+merge_config
+
+assert_equals "Default severity is high" "high" "$SEVERITY_THRESHOLD"
+assert_equals "Default languages is auto" "auto" "$LANGUAGES"
+assert_equals "Default changed-files-only is false" "false" "$CHANGED_FILES_ONLY"
+assert_equals "Default base-ref is HEAD~1" "HEAD~1" "$BASE_REF"
+assert_equals "Default head-ref is HEAD" "HEAD" "$HEAD_REF"
+rm -f "$TEMP_EMPTY"
+
+# Restore inputs for subsequent tests
+export INPUT_SEVERITY_THRESHOLD="high"
+export INPUT_LANGUAGES="auto"
+export INPUT_CHANGED_FILES_ONLY="false"
+export INPUT_BASE_REF="HEAD~1"
+export INPUT_HEAD_REF="HEAD"
 
 # Test: Parse exceptions from config
 TEMP_EXCEPTIONS=$(mktemp)

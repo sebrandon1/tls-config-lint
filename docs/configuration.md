@@ -16,7 +16,10 @@ exclude-patterns:
   - insecure-skip-verify    # Intentional in test helpers
 ```
 
-Action inputs override config file values. Lists (exclude-dirs, exclude-patterns) are merged (union).
+Action inputs override config file values, including when an input is set to the documented default
+(for example `severity-threshold: high` or `changed-files-only: false`). An input that is not
+provided falls back to the config file, then to the documented default. Lists (exclude-dirs,
+exclude-patterns) are merged (union).
 
 `exclude-dirs` entries may be either a bare directory name (matches that directory at any depth,
 for example `fixtures`) or a path relative to `scan-path` (matches that path and everything under
