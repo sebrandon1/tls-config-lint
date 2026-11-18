@@ -853,6 +853,7 @@ cat >"$comment_dir/note.go" <<'EOF'
 package main
 // BANNEDCIPHER marker
 EOF
+# shellcheck disable=SC2034  # Consumed and reset by scan_language
 EXTRA_PATTERNS=$'org-comment\tHIGH\tComment marker\tMatches a comment on purpose\tBANNEDCIPHER\t'
 FINDINGS=()
 CRITICAL_COUNT=0
@@ -861,7 +862,9 @@ MEDIUM_COUNT=0
 INFO_COUNT=0
 scan_language "$comment_dir" "go" "" ""
 assert_greater_than "Custom pattern still matches a comment line" 0 "$(get_findings_count)"
+# shellcheck disable=SC2034  # Written by scan_language, reset for later tests
 EXTRA_PATTERNS=""
+# shellcheck disable=SC2034  # Written by scan_language, reset for later tests
 CUSTOM_PATTERN_IDS=""
 rm -rf "$comment_dir"
 
