@@ -127,6 +127,14 @@ if command -v jq &>/dev/null; then
 	version=$(jq -r '.metadata.version' "$json_file")
 	assert_equals "JSON metadata has version" "true" "$([[ -n "$version" ]] && echo true || echo false)"
 
+	# The version is the action ref, not the scanned repository's tag
+	# shellcheck disable=SC2034  # Read by get_tool_version
+	GITHUB_ACTION_REF="v1.2.3"
+	generate_json_report "$json_file" 2>/dev/null
+	version=$(jq -r '.metadata.version' "$json_file")
+	assert_equals "JSON metadata version is the action ref" "v1.2.3" "$version"
+	unset GITHUB_ACTION_REF
+
 	# Test: JSON has summary counts
 	total=$(jq '.summary.total' "$json_file")
 	assert_equals "JSON summary total" "2" "$total"

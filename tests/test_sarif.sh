@@ -163,6 +163,14 @@ assert_equals "Empty findings produces valid SARIF" "0" "$(echo "$sarif_json" | 
 assert_equals "Empty findings has zero rules" "0" "$(echo "$sarif_json" | jq '.runs[0].tool.driver.rules | length')"
 assert_equals "Empty findings has SARIF version" "2.1.0" "$(echo "$sarif_json" | jq -r '.version')"
 
+# Test: tool.driver.version reports the action ref, not the scanned repo's tag
+# shellcheck disable=SC2034  # Read by get_tool_version
+GITHUB_ACTION_REF="v1.2.3"
+generate_sarif "$sarif_out" 2>/dev/null
+sarif_json=$(cat "$sarif_out")
+assert_equals "SARIF driver version is the action ref" "v1.2.3" "$(echo "$sarif_json" | jq -r '.runs[0].tool.driver.version')"
+unset GITHUB_ACTION_REF
+
 # Test: Non-Go file produces correct helpUri lang prefix
 FINDINGS=()
 FINDINGS+=("verify-false|CRITICAL|VerifyFalse|Disables verification|client.py|10|verify=False|1")

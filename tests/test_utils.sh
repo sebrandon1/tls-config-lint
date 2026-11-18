@@ -122,6 +122,27 @@ else
 	assert_equals "get_tool_version returns non-empty" "true" "false"
 fi
 
+# GITHUB_ACTION_REF wins over whatever git describe finds
+# shellcheck disable=SC2034  # Read by get_tool_version
+GITHUB_ACTION_REF="v1.2.3"
+assert_equals "get_tool_version prefers GITHUB_ACTION_REF" "v1.2.3" "$(get_tool_version)"
+unset GITHUB_ACTION_REF
+
+# Without the ref, fall back to the action's own checkout
+ACTION_PATH="$ROOT_DIR"
+tool_ver=$(get_tool_version)
+if [[ -n "$tool_ver" ]] && [[ "$tool_ver" != "unknown" ]]; then
+	assert_equals "get_tool_version falls back to action checkout" "true" "true"
+else
+	assert_equals "get_tool_version falls back to action checkout" "true" "false"
+fi
+
+# Neither ref nor a git checkout: report unknown
+ACTION_PATH=$(mktemp -d)
+assert_equals "get_tool_version is unknown without git" "unknown" "$(get_tool_version)"
+rmdir "$ACTION_PATH"
+unset ACTION_PATH
+
 # --- log_msg writes to stderr ---
 output=$(log_msg "stderr test" 2>&1)
 assert_contains "log_msg writes to stderr" "[tls-config-lint]" "$output"
