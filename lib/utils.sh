@@ -28,8 +28,18 @@ else
 	COLOR_RESET=''
 fi
 
+# Report the ref of this action, not the scanned repository's tag. The runner
+# sets GITHUB_ACTION_REF for `uses: owner/repo@ref`; otherwise fall back to the
+# action's own checkout (ACTION_PATH), then to "unknown".
 get_tool_version() {
-	git describe --tags --always 2>/dev/null || echo "unknown"
+	if [[ -n "${GITHUB_ACTION_REF:-}" ]]; then
+		echo "$GITHUB_ACTION_REF"
+		return 0
+	fi
+	if [[ -n "${ACTION_PATH:-}" ]] && git -C "$ACTION_PATH" describe --tags --always 2>/dev/null; then
+		return 0
+	fi
+	echo "unknown"
 }
 
 # Normalize severity string to lowercase
