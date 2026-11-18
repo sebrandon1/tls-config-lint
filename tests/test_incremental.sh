@@ -88,6 +88,27 @@ reset_scan_state
 scan_language "$incremental_repo" "go" "" ""
 assert_equals "Empty diff scan produces no findings" "0" "${#FINDINGS[@]}"
 
+# Incremental scans honor nested exclude-dirs entries
+mkdir -p "$incremental_repo/internal/legacy" "$incremental_repo/other/legacy"
+cat >"$incremental_repo/internal/legacy/legacy.go" <<'EOF'
+package legacy
+
+import "crypto/tls"
+
+var legacy = &tls.Config{InsecureSkipVerify: true}
+EOF
+cp "$incremental_repo/internal/legacy/legacy.go" "$incremental_repo/other/legacy/legacy.go"
+git -C "$incremental_repo" add .
+git -C "$incremental_repo" commit -q -m "nested legacy files"
+nested_head=$(git -C "$incremental_repo" rev-parse HEAD)
+
+CHANGED_FILES_ONLY=true
+prepare_changed_files "$incremental_repo" "$head_ref" "$nested_head"
+reset_scan_state
+scan_language "$incremental_repo" "go" "internal/legacy" ""
+assert_greater_than "Incremental nested exclusion reports sibling path" 0 "${#FINDINGS[@]}"
+assert_true "Incremental scan skips nested excluded path" findings_all_from_file "other/legacy/legacy.go"
+
 empty_inc_exit=0
 env -i PATH="$PATH" HOME="$HOME" TERM=dumb \
 	GITHUB_ACTIONS=false \

@@ -6,6 +6,16 @@ The following directories are excluded from scanning by default:
 
 `vendor`, `.git`, `testdata`, `mocks`, `test`, `tests`, `e2e`, `testing`, `mock`, `fakes`, `fixtures`
 
+## User-Configured Exclude Directories
+
+`exclude-dirs` (action input or config file) adds directories to the defaults. An entry is either:
+
+- a directory **name**, matched at any depth (`fixtures` skips every directory named `fixtures`)
+- a **path relative to `scan-path`**, matched as a prefix (`internal/legacy` skips that directory
+  and everything under it, but not `other/legacy`)
+
+Both forms apply to full and incremental scans.
+
 ## Language-Specific Test File Exclusions
 
 - **Go:** `*_test.go` files

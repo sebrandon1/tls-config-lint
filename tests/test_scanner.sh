@@ -586,6 +586,84 @@ extra_flags=$(build_common_exclude_dirs "custom1,custom2")
 assert_contains "build_common_exclude_dirs extra dirs (custom1)" "custom1" "$extra_flags"
 assert_contains "build_common_exclude_dirs extra dirs (custom2)" "custom2" "$extra_flags"
 
+# Nested paths cannot be expressed as --exclude-dir; they are post-filtered
+nested_flags=$(build_common_exclude_dirs "internal/legacy,fixtures")
+if [[ "$nested_flags" == *"internal/legacy"* ]]; then
+	assert_equals "build_common_exclude_dirs omits nested entries" "true" "false"
+else
+	assert_equals "build_common_exclude_dirs omits nested entries" "true" "true"
+fi
+assert_contains "build_common_exclude_dirs keeps single-segment entries" "--exclude-dir=fixtures" "$nested_flags"
+
+# path_is_in_excluded_dir
+if path_is_in_excluded_dir "internal/legacy/a.go" "internal/legacy"; then
+	assert_equals "path_is_in_excluded_dir matches nested path" "true" "true"
+else
+	assert_equals "path_is_in_excluded_dir matches nested path" "true" "false"
+fi
+if path_is_in_excluded_dir "internal/legacy/a.go" "./internal/legacy/"; then
+	assert_equals "path_is_in_excluded_dir normalizes entry" "true" "true"
+else
+	assert_equals "path_is_in_excluded_dir normalizes entry" "true" "false"
+fi
+if path_is_in_excluded_dir "other/legacy/a.go" "internal/legacy"; then
+	assert_equals "path_is_in_excluded_dir rejects sibling path" "false" "true"
+else
+	assert_equals "path_is_in_excluded_dir rejects sibling path" "false" "false"
+fi
+if path_is_in_excluded_dir "internal/legacy/a.go" ""; then
+	assert_equals "path_is_in_excluded_dir ignores empty config" "false" "true"
+else
+	assert_equals "path_is_in_excluded_dir ignores empty config" "false" "false"
+fi
+if path_is_in_excluded_dir "internal/legacy/a.go" "legacy"; then
+	assert_equals "path_is_in_excluded_dir checks single-name components" "true" "true"
+else
+	assert_equals "path_is_in_excluded_dir checks single-name components" "true" "false"
+fi
+
+# file_matches_excluded_dir shares the nested-path behavior (incremental scans)
+if file_matches_excluded_dir "go" "internal/legacy/a.go" "internal/legacy"; then
+	assert_equals "file_matches_excluded_dir matches nested path" "true" "true"
+else
+	assert_equals "file_matches_excluded_dir matches nested path" "true" "false"
+fi
+if file_matches_excluded_dir "go" "other/legacy/a.go" "internal/legacy"; then
+	assert_equals "file_matches_excluded_dir rejects sibling path" "false" "true"
+else
+	assert_equals "file_matches_excluded_dir rejects sibling path" "false" "false"
+fi
+
+# Full scan: a nested exclude-dirs entry skips only that path
+echo "  --- Nested exclude-dirs Scan Tests ---"
+nested_dir=$(mktemp -d)
+mkdir -p "$nested_dir/internal/legacy" "$nested_dir/other/legacy"
+cat >"$nested_dir/internal/legacy/a.go" <<'GOEOF'
+package legacy
+import "crypto/tls"
+func f() { _ = &tls.Config{InsecureSkipVerify: true} }
+GOEOF
+cp "$nested_dir/internal/legacy/a.go" "$nested_dir/other/legacy/a.go"
+
+FINDINGS=()
+# shellcheck disable=SC2034
+CRITICAL_COUNT=0
+# shellcheck disable=SC2034
+HIGH_COUNT=0
+# shellcheck disable=SC2034
+MEDIUM_COUNT=0
+# shellcheck disable=SC2034
+INFO_COUNT=0
+scan_language "$nested_dir" "go" "internal/legacy" ""
+scanned_files=$(printf '%s\n' "${FINDINGS[@]+"${FINDINGS[@]}"}")
+assert_contains "nested exclude-dirs still scans sibling path" "other/legacy/a.go" "$scanned_files"
+if [[ "$scanned_files" == *"internal/legacy/a.go"* ]]; then
+	assert_equals "nested exclude-dirs skips excluded path" "true" "false"
+else
+	assert_equals "nested exclude-dirs skips excluded path" "true" "true"
+fi
+rm -rf "$nested_dir"
+
 # --- scan_pattern Column & Truncation Tests ---
 echo "  --- Column & Truncation Tests ---"
 

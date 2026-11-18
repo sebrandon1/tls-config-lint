@@ -112,7 +112,7 @@ Add SARIF output for findings in the Security tab:
 |-------|---------|-------------|
 | `severity-threshold` | `high` | Minimum severity to cause failure: `critical`, `high`, `medium`, `info` |
 | `languages` | `auto` | Comma-separated: `go,python,nodejs,cpp,java,rust,ruby,php,csharp,kotlin` or `auto` to detect |
-| `exclude-dirs` | _(empty)_ | Additional dirs to exclude (comma-separated) |
+| `exclude-dirs` | _(empty)_ | Additional dirs to exclude (comma-separated names, or paths relative to `scan-path`) |
 | `exclude-patterns` | _(empty)_ | Pattern IDs to suppress (comma-separated) |
 | `config-file` | `.tls-config-lint.yml` | Path to optional repo config file |
 | `scan-path` | `.` | Directory to scan |

@@ -80,13 +80,44 @@ build_common_exclude_dirs() {
 		IFS=',' read -ra dirs <<<"$extra_dirs"
 		for dir in "${dirs[@]}"; do
 			dir="${dir// /}"
-			if [[ -n "$dir" ]]; then
+			# grep matches directory base names only, so nested paths are
+			# filtered per match by path_is_in_excluded_dir instead.
+			if [[ -n "$dir" ]] && [[ "$dir" != */* ]]; then
 				flags="$flags --exclude-dir=$dir"
 			fi
 		done
 	fi
 
 	echo "$flags"
+}
+
+# True when file lies under an extra exclude-dirs entry. An entry without "/"
+# matches any path component; an entry with "/" matches that path relative to
+# the scan root, or a prefix of it.
+path_is_in_excluded_dir() {
+	local file="$1"
+	local extra_dirs="$2"
+	local entry component
+	local components=()
+	local entries=()
+
+	[[ -n "$extra_dirs" ]] || return 1
+	IFS='/' read -ra components <<<"$file"
+	IFS=',' read -ra entries <<<"$extra_dirs"
+	for entry in "${entries[@]}"; do
+		entry="${entry// /}"
+		entry="${entry#./}"
+		entry="${entry%/}"
+		[[ -n "$entry" ]] || continue
+		if [[ "$entry" == */* ]]; then
+			[[ "$file" == "$entry" || "$file" == "$entry/"* ]] && return 0
+		else
+			for component in "${components[@]}"; do
+				[[ "$component" == "$entry" ]] && return 0
+			done
+		fi
+	done
+	return 1
 }
 
 # Populate CHANGED_FILES with tracked, added/copied/modified/renamed files in
@@ -170,7 +201,7 @@ file_matches_excluded_dir() {
 	local lang="$1"
 	local file="$2"
 	local extra_dirs="$3"
-	local component dir
+	local component
 	local components=()
 	IFS='/' read -ra components <<<"$file"
 	for component in "${components[@]}"; do
@@ -184,16 +215,8 @@ file_matches_excluded_dir() {
 				return 0
 				;;
 		esac
-		if [[ -n "$extra_dirs" ]]; then
-			local dirs=()
-			IFS=',' read -ra dirs <<<"$extra_dirs"
-			for dir in "${dirs[@]}"; do
-				dir="${dir// /}"
-				[[ -n "$dir" && "$component" == "$dir" ]] && return 0
-			done
-		fi
 	done
-	return 1
+	path_is_in_excluded_dir "$file" "$extra_dirs"
 }
 
 files_for_language() {
@@ -324,6 +347,7 @@ scan_pattern() {
 	local exclude_test_flags="$6"
 	local lang_exclude_dirs="$7"
 	local common_exclude_dirs="$8"
+	local extra_exclude_dirs="${9:-}"
 
 	# Parse pattern: "id|severity|name|description|regex"
 	IFS='|' read -r pattern_id severity name description regex <<<"$pattern_line"
@@ -383,6 +407,11 @@ scan_pattern() {
 
 		# Strip leading ./ from file path
 		file="${file#./}"
+
+		# grep --exclude-dir cannot express nested paths, so filter them here
+		if path_is_in_excluded_dir "$file" "$extra_exclude_dirs"; then
+			continue
+		fi
 
 		# Skip if this pattern+file is excepted
 		if is_path_excluded "$pattern_id" "$file" "${EXCEPTIONS:-}"; then
@@ -540,7 +569,8 @@ scan_language() {
 	local pattern_line
 	eval 'for pattern_line in "${'"$patterns_var"'[@]}"; do
 		scan_pattern "$scan_path" "$lang" "$pattern_line" "$exclude_patterns" \
-			"$include_flags" "$exclude_test_flags" "$lang_exclude_dirs" "$common_exclude_dirs"
+			"$include_flags" "$exclude_test_flags" "$lang_exclude_dirs" "$common_exclude_dirs" \
+			"$exclude_dirs"
 	done'
 
 	# Apply validated user-defined patterns to this language.
@@ -556,7 +586,8 @@ scan_language() {
 			CUSTOM_PATTERN_IDS="$CUSTOM_PATTERN_IDS,$custom_id"
 		fi
 		scan_pattern "$scan_path" "$lang" "$custom_id|$custom_severity|$custom_name|$custom_description|$custom_regex" \
-			"$exclude_patterns" "$include_flags" "$exclude_test_flags" "$lang_exclude_dirs" "$common_exclude_dirs"
+			"$exclude_patterns" "$include_flags" "$exclude_test_flags" "$lang_exclude_dirs" "$common_exclude_dirs" \
+			"$exclude_dirs"
 	done <<<"${EXTRA_PATTERNS:-}"
 
 	# Apply Go-specific noise reduction

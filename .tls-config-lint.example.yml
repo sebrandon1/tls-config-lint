@@ -19,7 +19,9 @@ severity-threshold: high
 #   - csharp
 #   - kotlin
 
-# Directories to exclude from scanning (in addition to built-in exclusions)
+# Directories to exclude from scanning (in addition to built-in exclusions).
+# An entry is either a directory name (matched at any depth) or a path relative
+# to scan-path (matched as a prefix).
 # exclude-dirs:
 #   - test/fixtures
 #   - examples/insecure
