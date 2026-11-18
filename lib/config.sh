@@ -50,15 +50,72 @@ _flush_extra_pattern() {
 	extra_pattern_languages=""
 }
 
-_clean_extra_pattern_value() {
+# Remove a trailing comment from a scalar value without cutting inside quotes.
+# A quoted value keeps its contents (including '#'); anything after the closing
+# quote is ignored.
+_strip_inline_comment() {
 	local value="$1"
-	value="${value%%#*}"
-	value="${value%"${value##*[![:space:]]}"}"
-	if [[ "$value" == \"*\" && "$value" == *\" ]]; then
-		value="${value:1:${#value}-2}"
-	elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
-		value="${value:1:${#value}-2}"
+	local trimmed="${value#"${value%%[![:space:]]*}"}"
+
+	if [[ "$trimmed" == \[* ]]; then
+		# Inline list: keep everything through the closing bracket so a '#'
+		# inside a quoted item survives; trailing comments are dropped here.
+		local inside="${trimmed#\[}"
+		echo "[${inside%%]*}]"
+		return 0
 	fi
+	if [[ "$trimmed" == \"* || "$trimmed" == \'* ]]; then
+		local quote="${trimmed:0:1}"
+		local rest="${trimmed:1}"
+		echo "${rest%%"$quote"*}"
+		return 0
+	fi
+	echo "${value%%#*}"
+}
+
+# Append a trimmed item to a comma-separated config list.
+_append_list_value() {
+	local key="$1"
+	local value="$2"
+	value="${value#"${value%%[![:space:]]*}"}"
+	value="${value%"${value##*[![:space:]]}"}"
+	[[ -n "$value" ]] || return 0
+
+	local var
+	case "$key" in
+		languages) var="CFG_LANGUAGES" ;;
+		exclude-dirs) var="CFG_EXCLUDE_DIRS" ;;
+		exclude-patterns) var="CFG_EXCLUDE_PATTERNS" ;;
+		exceptions) var="CFG_EXCEPTIONS" ;;
+		severity-overrides) var="CFG_SEVERITY_OVERRIDES" ;;
+		*) return 0 ;;
+	esac
+
+	if [[ -n "${!var}" ]]; then
+		printf -v "$var" '%s,%s' "${!var}" "$value"
+	else
+		printf -v "$var" '%s' "$value"
+	fi
+}
+
+# Parse the inline list form ("[a, b, c]") into the same accumulation as "- a".
+_parse_inline_list() {
+	local key="$1"
+	local value="$2"
+	local item
+	local items=()
+	value="${value#[}"
+	value="${value%]}"
+	IFS=',' read -ra items <<<"$value"
+	for item in "${items[@]+"${items[@]}"}"; do
+		_append_list_value "$key" "$(_strip_inline_comment "$item")"
+	done
+}
+
+_clean_extra_pattern_value() {
+	local value
+	value=$(_strip_inline_comment "$1")
+	value="${value%"${value##*[![:space:]]}"}"
 	echo "$value"
 }
 
@@ -114,7 +171,7 @@ parse_config_file() {
 				fi
 				continue
 			fi
-			if [[ "$line" =~ ^[[:space:]][[:space:]][[:space:]][[:space:]]([a-z-]+):[[:space:]]*(.*) ]]; then
+			if [[ "$line" =~ ^[[:space:]]+([a-z-]+):[[:space:]]*(.*) ]]; then
 				local extra_field="${BASH_REMATCH[1]}"
 				local extra_value
 				extra_value=$(_clean_extra_pattern_value "${BASH_REMATCH[2]}")
@@ -143,61 +200,17 @@ parse_config_file() {
 
 		# Detect list items (lines starting with "  - ")
 		if [[ "$line" =~ ^[[:space:]]*-[[:space:]]+(.*) ]]; then
-			local value="${BASH_REMATCH[1]}"
-			# Remove inline comments
-			value="${value%%#*}"
-			# Trim trailing whitespace
-			value="${value%"${value##*[![:space:]]}"}"
-
-			case "$current_key" in
-				extra-patterns)
-					continue
-					;;
-				languages)
-					if [[ -n "$CFG_LANGUAGES" ]]; then
-						CFG_LANGUAGES="$CFG_LANGUAGES,$value"
-					else
-						CFG_LANGUAGES="$value"
-					fi
-					;;
-				exclude-dirs)
-					if [[ -n "$CFG_EXCLUDE_DIRS" ]]; then
-						CFG_EXCLUDE_DIRS="$CFG_EXCLUDE_DIRS,$value"
-					else
-						CFG_EXCLUDE_DIRS="$value"
-					fi
-					;;
-				exclude-patterns)
-					if [[ -n "$CFG_EXCLUDE_PATTERNS" ]]; then
-						CFG_EXCLUDE_PATTERNS="$CFG_EXCLUDE_PATTERNS,$value"
-					else
-						CFG_EXCLUDE_PATTERNS="$value"
-					fi
-					;;
-				exceptions)
-					if [[ -n "$CFG_EXCEPTIONS" ]]; then
-						CFG_EXCEPTIONS="$CFG_EXCEPTIONS,$value"
-					else
-						CFG_EXCEPTIONS="$value"
-					fi
-					;;
-				severity-overrides)
-					if [[ -n "$CFG_SEVERITY_OVERRIDES" ]]; then
-						CFG_SEVERITY_OVERRIDES="$CFG_SEVERITY_OVERRIDES,$value"
-					else
-						CFG_SEVERITY_OVERRIDES="$value"
-					fi
-					;;
-			esac
+			local value
+			value=$(_strip_inline_comment "${BASH_REMATCH[1]}")
+			_append_list_value "$current_key" "$value"
 			continue
 		fi
 
 		# Detect key: value pairs
 		if [[ "$line" =~ ^([a-z-]+):[[:space:]]*(.*) ]]; then
 			current_key="${BASH_REMATCH[1]}"
-			local value="${BASH_REMATCH[2]}"
-			# Remove inline comments
-			value="${value%%#*}"
+			local value
+			value=$(_strip_inline_comment "${BASH_REMATCH[2]}")
 			# Trim trailing whitespace
 			value="${value%"${value##*[![:space:]]}"}"
 
@@ -223,15 +236,11 @@ parse_config_file() {
 					CFG_HEAD_REF="$value"
 					;;
 				languages | exclude-dirs | exclude-patterns | exceptions | severity-overrides)
-					# If value is on same line (not a list), store it
-					if [[ -n "$value" ]]; then
-						case "$current_key" in
-							languages) CFG_LANGUAGES="$value" ;;
-							exclude-dirs) CFG_EXCLUDE_DIRS="$value" ;;
-							exclude-patterns) CFG_EXCLUDE_PATTERNS="$value" ;;
-							exceptions) CFG_EXCEPTIONS="$value" ;;
-							severity-overrides) CFG_SEVERITY_OVERRIDES="$value" ;;
-						esac
+					# Same-line value: an inline list ("[a, b]") or a single item.
+					if [[ "$value" == \[*\] ]]; then
+						_parse_inline_list "$current_key" "$value"
+					elif [[ -n "$value" ]]; then
+						_append_list_value "$current_key" "$value"
 					fi
 					;;
 				*)

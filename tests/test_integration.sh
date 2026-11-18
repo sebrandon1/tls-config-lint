@@ -364,6 +364,27 @@ assert_contains "Integration: ruby-scoped extra pattern reaches summary" "Ruby v
 cleanup_entrypoint
 rm -rf "$newlang_config_tmpdir"
 
+# --- Test 17b: Malformed extra-pattern fails loudly with exit 2 ---
+bad_pattern_tmpdir=$(mktemp -d)
+cat >"$bad_pattern_tmpdir/config.yml" <<'YAML'
+extra-patterns:
+  - id: org-missing-regex
+    severity: high
+    name: Missing regex
+    description: No regex field
+YAML
+
+run_entrypoint rc \
+	INPUT_SCAN_PATH="$ROOT_DIR/testdata/go" \
+	INPUT_LANGUAGES="go" \
+	INPUT_FAIL_ON_FINDINGS="false" \
+	INPUT_CONFIG_FILE="$bad_pattern_tmpdir/config.yml"
+
+assert_equals "Integration: malformed extra-pattern exits 2" "2" "$rc"
+
+cleanup_entrypoint
+rm -rf "$bad_pattern_tmpdir"
+
 # --- Test 18: Clean Go scan exits 0 with fail-on-findings enabled ---
 # A clean scan is the success path for users; on bash 3.2 an unguarded empty
 # FINDINGS expansion aborted it with an unbound-variable error.

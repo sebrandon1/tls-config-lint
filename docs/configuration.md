@@ -25,11 +25,30 @@ exclude-patterns) are merged (union).
 for example `fixtures`) or a path relative to `scan-path` (matches that path and everything under
 it, for example `test/fixtures`).
 
+### Accepted YAML shapes
+
+List-valued keys (`languages`, `exclude-dirs`, `exclude-patterns`, `exceptions`, `severity-overrides`)
+accept both the block form and the inline form:
+
+```yaml
+languages:
+  - go
+  - python
+exclude-dirs: [test/fixtures, examples/insecure]
+```
+
+Scalar values may be quoted. A quoted value keeps any `#` inside it and ignores a trailing comment,
+so `description: 'banned cipher #3'` is preserved verbatim. Inline lists must start with `[` and end
+with `]` on the same line.
+
 ### Custom Patterns
 
 Use `extra-patterns` to add organization-specific rules without changing the action. This is a
 narrow YAML list-of-maps schema; every entry requires `id`, `severity`, `name`, `description`, and
 `regex`. `languages` is optional: when omitted, the pattern runs for every selected language.
+Indentation is flexible: each entry may be nested under `extra-patterns:` or start at column 0, and
+its fields may be indented by any consistent amount. A field the parser does not recognize, or an
+entry missing a required field, fails the run with exit code 2 instead of being silently dropped.
 
 ```yaml
 extra-patterns:
