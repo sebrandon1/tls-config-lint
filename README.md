@@ -125,6 +125,9 @@ Add SARIF output for findings in the Security tab:
 | `head-ref` | `HEAD` | Git head ref used by incremental mode |
 | `debug` | `false` | Show which regex matched for each finding |
 
+Any input you provide overrides the config file, even when it equals the default shown above. The
+`Default` column is the effective value when neither an input nor the config file sets it.
+
 ## Outputs
 
 | Output | Description |

@@ -244,11 +244,24 @@ parse_config_file() {
 	_flush_extra_pattern
 }
 
+# Resolve one setting: provided input > config file value > documented default.
+resolve_setting() {
+	if [[ -n "$1" ]]; then
+		echo "$1"
+	elif [[ -n "$2" ]]; then
+		echo "$2"
+	else
+		echo "$3"
+	fi
+}
+
 # Merge inputs with config file values
 # Precedence: action inputs > config file > defaults
 merge_config() {
-	local input_severity="${INPUT_SEVERITY_THRESHOLD:-high}"
-	local input_languages="${INPUT_LANGUAGES:-auto}"
+	# Empty means "not provided": the runner always exports INPUT_* for a
+	# composite action, so an input's documented default is resolved below.
+	local input_severity="${INPUT_SEVERITY_THRESHOLD:-}"
+	local input_languages="${INPUT_LANGUAGES:-}"
 	local input_exclude_dirs="${INPUT_EXCLUDE_DIRS:-}"
 	local input_exclude_patterns="${INPUT_EXCLUDE_PATTERNS:-}"
 	local input_config_file="${INPUT_CONFIG_FILE:-.tls-config-lint.yml}"
@@ -257,30 +270,15 @@ merge_config() {
 	local input_sarif_output="${INPUT_SARIF_OUTPUT:-}"
 	local input_report_output="${INPUT_REPORT_OUTPUT:-}"
 	local input_baseline="${INPUT_BASELINE:-}"
-	local input_changed_files_only="${INPUT_CHANGED_FILES_ONLY:-false}"
-	local input_base_ref="${INPUT_BASE_REF:-HEAD~1}"
-	local input_head_ref="${INPUT_HEAD_REF:-HEAD}"
+	local input_changed_files_only="${INPUT_CHANGED_FILES_ONLY:-}"
+	local input_base_ref="${INPUT_BASE_REF:-}"
+	local input_head_ref="${INPUT_HEAD_REF:-}"
 
 	# Parse config file
 	parse_config_file "$input_config_file"
 
-	# Merge severity threshold (input wins if not default, else config, else default)
-	if [[ "$input_severity" != "high" ]]; then
-		SEVERITY_THRESHOLD="$input_severity"
-	elif [[ -n "$CFG_SEVERITY_THRESHOLD" ]]; then
-		SEVERITY_THRESHOLD="$CFG_SEVERITY_THRESHOLD"
-	else
-		SEVERITY_THRESHOLD="high"
-	fi
-
-	# Merge languages (input wins if not default)
-	if [[ "$input_languages" != "auto" ]]; then
-		LANGUAGES="$input_languages"
-	elif [[ -n "$CFG_LANGUAGES" ]]; then
-		LANGUAGES="$CFG_LANGUAGES"
-	else
-		LANGUAGES="auto"
-	fi
+	SEVERITY_THRESHOLD=$(resolve_setting "$input_severity" "${CFG_SEVERITY_THRESHOLD:-}" "high")
+	LANGUAGES=$(resolve_setting "$input_languages" "${CFG_LANGUAGES:-}" "auto")
 
 	# Merge exclude dirs (union of input + config)
 	EXCLUDE_DIRS=""
@@ -311,21 +309,9 @@ merge_config() {
 	else
 		BASELINE="${CFG_BASELINE:-}"
 	fi
-	if [[ "$input_changed_files_only" != "false" ]] && [[ -n "${CFG_CHANGED_FILES_ONLY:-}" ]]; then
-		CHANGED_FILES_ONLY="$input_changed_files_only"
-	else
-		CHANGED_FILES_ONLY="${CFG_CHANGED_FILES_ONLY:-$input_changed_files_only}"
-	fi
-	if [[ "$input_base_ref" != "HEAD~1" ]] && [[ -n "${CFG_BASE_REF:-}" ]]; then
-		BASE_REF="$input_base_ref"
-	else
-		BASE_REF="${CFG_BASE_REF:-$input_base_ref}"
-	fi
-	if [[ "$input_head_ref" != "HEAD" ]] && [[ -n "${CFG_HEAD_REF:-}" ]]; then
-		HEAD_REF="$input_head_ref"
-	else
-		HEAD_REF="${CFG_HEAD_REF:-$input_head_ref}"
-	fi
+	CHANGED_FILES_ONLY=$(resolve_setting "$input_changed_files_only" "${CFG_CHANGED_FILES_ONLY:-}" "false")
+	BASE_REF=$(resolve_setting "$input_base_ref" "${CFG_BASE_REF:-}" "HEAD~1")
+	HEAD_REF=$(resolve_setting "$input_head_ref" "${CFG_HEAD_REF:-}" "HEAD")
 	EXCEPTIONS="${CFG_EXCEPTIONS:-}"
 	SEVERITY_OVERRIDES="${CFG_SEVERITY_OVERRIDES:-}"
 	EXTRA_PATTERNS="${CFG_EXTRA_PATTERNS:-}"

@@ -10,11 +10,11 @@ inputs:
   severity-threshold:
     description: 'Minimum severity to cause failure: critical, high, medium, info'
     required: false
-    default: 'high'
+    default: ''
   languages:
     description: 'Comma-separated languages to scan: go,python,nodejs,cpp,java,rust,ruby,php,csharp,kotlin or auto to detect'
     required: false
-    default: 'auto'
+    default: ''
   exclude-dirs:
     description: 'Additional directories to exclude (comma-separated)'
     required: false
@@ -50,15 +50,15 @@ inputs:
   changed-files-only:
     description: 'Scan only files changed between base-ref and head-ref'
     required: false
-    default: 'false'
+    default: ''
   base-ref:
     description: 'Git base ref for changed-files-only mode (default: HEAD~1)'
     required: false
-    default: 'HEAD~1'
+    default: ''
   head-ref:
     description: 'Git head ref for changed-files-only mode (default: HEAD)'
     required: false
-    default: 'HEAD'
+    default: ''
   debug:
     description: 'Show which regex matched for each finding (helps diagnose false positives)'
     required: false
