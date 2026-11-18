@@ -52,7 +52,36 @@ result=$(detect_languages "$TEMP_DIR" 2>/dev/null)
 assert_equals "Empty dir returns empty string" "" "$result"
 rmdir "$TEMP_DIR"
 
-# Test: Newly scanned extensions are detected without a marker file
+# --- Deep and Extension-Only Detection Tests ---
+echo "  --- Deep and Extension-Only Detection Tests ---"
+
+# Test: A marker-less tree deeper than the fast-path depth still detects
+deep_dir=$(mktemp -d)
+mkdir -p "$deep_dir/a/b/c/d"
+touch "$deep_dir/a/b/c/d/x.rb"
+result=$(detect_languages "$deep_dir" 2>/dev/null)
+assert_equals "Detects Ruby at depth 4" "ruby" "$result"
+rm -rf "$deep_dir"
+
+# Test: Extensions the scanner reads but the old walk missed
+ext_dir=$(mktemp -d)
+touch "$ext_dir/only.mjs"
+result=$(detect_languages "$ext_dir" 2>/dev/null)
+assert_equals "Detects Node.js from a lone .mjs file" "nodejs" "$result"
+rm -rf "$ext_dir"
+
+ext_dir=$(mktemp -d)
+touch "$ext_dir/only.h"
+result=$(detect_languages "$ext_dir" 2>/dev/null)
+assert_equals "Detects C++ from a lone .h file" "cpp" "$result"
+rm -rf "$ext_dir"
+
+ext_dir=$(mktemp -d)
+touch "$ext_dir/only.cxx"
+result=$(detect_languages "$ext_dir" 2>/dev/null)
+assert_equals "Detects C++ from a lone .cxx file" "cpp" "$result"
+rm -rf "$ext_dir"
+
 ext_dir=$(mktemp -d)
 touch "$ext_dir/only.c"
 result=$(detect_languages "$ext_dir" 2>/dev/null)
@@ -77,6 +106,40 @@ touch "$ext_dir/scripts/build.kts"
 result=$(detect_languages "$ext_dir" 2>/dev/null)
 assert_equals "Detects Kotlin from a lone .kts script" "kotlin" "$result"
 rm -rf "$ext_dir"
+
+# Test: Build and dependency trees never count as detected source
+skip_dir=$(mktemp -d)
+mkdir -p "$skip_dir/vendor" "$skip_dir/node_modules"
+touch "$skip_dir/vendor/x.rb" "$skip_dir/node_modules/y.js"
+result=$(detect_languages "$skip_dir" 2>/dev/null)
+assert_equals "Pruned directories do not trigger detection" "" "$result"
+rm -rf "$skip_dir"
+
+# Test: Deep source next to a pruned tree is still found
+mixed_dir=$(mktemp -d)
+mkdir -p "$mixed_dir/vendor" "$mixed_dir/services/api/src/handlers"
+touch "$mixed_dir/vendor/x.rb"
+touch "$mixed_dir/services/api/src/handlers/x.rb"
+result=$(detect_languages "$mixed_dir" 2>/dev/null)
+assert_equals "Deep source beside a pruned tree is detected" "ruby" "$result"
+rm -rf "$mixed_dir"
+
+# Test: The scan path itself is never pruned, even when named like a build dir
+root_named_dir="$(mktemp -d)/build"
+mkdir -p "$root_named_dir"
+touch "$root_named_dir/x.go"
+result=$(detect_languages "$root_named_dir" 2>/dev/null)
+assert_equals "Scan path named build is still walked" "go" "$result"
+rm -rf "${root_named_dir%/build}"
+
+# Test: The unsupported notice is logged once even on the deep walk
+swift_dir=$(mktemp -d)
+mkdir -p "$swift_dir/a/b/c/d"
+touch "$swift_dir/a/b/c/d/x.swift"
+result=$(detect_languages "$swift_dir" 2>&1)
+swift_notices=$(printf '%s\n' "$result" | grep -c "Swift (not scanned)" || true)
+assert_equals "Unsupported notice logged once on deep walk" "1" "$swift_notices"
+rm -rf "$swift_dir"
 
 # --- Marker File Detection Tests ---
 echo "  --- Marker File Detection Tests ---"
