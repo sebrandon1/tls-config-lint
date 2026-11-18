@@ -18,6 +18,10 @@ exclude-patterns:
 
 Action inputs override config file values. Lists (exclude-dirs, exclude-patterns) are merged (union).
 
+`exclude-dirs` entries may be either a bare directory name (matches that directory at any depth,
+for example `fixtures`) or a path relative to `scan-path` (matches that path and everything under
+it, for example `test/fixtures`).
+
 ### Custom Patterns
 
 Use `extra-patterns` to add organization-specific rules without changing the action. This is a
@@ -167,6 +171,9 @@ return exit code 2. With no eligible changed files, the action succeeds with zer
     exclude-dirs: test/fixtures,examples/insecure
     exclude-patterns: insecure-skip-verify,hardcoded-tls-config
 ```
+
+Each `exclude-dirs` entry is either a directory name (matched at any depth) or a path relative to
+`scan-path` (matched as a prefix). Both forms work in full and incremental scans.
 
 ### Debug Mode
 
