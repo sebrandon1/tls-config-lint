@@ -7,6 +7,7 @@ set -euo pipefail
 # Outputs nothing if findings span only one language.
 build_language_breakdown() {
 	local go_count=0 py_count=0 js_count=0 cpp_count=0 java_count=0 rust_count=0
+	local rb_count=0 php_count=0 cs_count=0 kt_count=0
 	local lang_types=0
 	for finding in "${FINDINGS[@]+"${FINDINGS[@]}"}"; do
 		IFS='|' read -r _ _ _ _ file _ _ _ <<<"$finding"
@@ -14,49 +15,33 @@ build_language_breakdown() {
 			*.go) go_count=$((go_count + 1)) ;;
 			*.py) py_count=$((py_count + 1)) ;;
 			*.js | *.ts | *.mjs | *.mts) js_count=$((js_count + 1)) ;;
-			*.cpp | *.cc | *.hpp | *.h) cpp_count=$((cpp_count + 1)) ;;
+			*.cpp | *.cc | *.cxx | *.hpp | *.h) cpp_count=$((cpp_count + 1)) ;;
 			*.java) java_count=$((java_count + 1)) ;;
 			*.rs) rust_count=$((rust_count + 1)) ;;
+			*.rb) rb_count=$((rb_count + 1)) ;;
+			*.php) php_count=$((php_count + 1)) ;;
+			*.cs) cs_count=$((cs_count + 1)) ;;
+			*.kt) kt_count=$((kt_count + 1)) ;;
 		esac
 	done
-	for c in $go_count $py_count $js_count $cpp_count $java_count $rust_count; do
-		[[ "$c" -gt 0 ]] && lang_types=$((lang_types + 1))
+	# Labels in output order; each spec is "<count variable>:<label>".
+	local spec_list="go_count:Go cpp_count:C++ java_count:Java js_count:Node.js py_count:Python rust_count:Rust rb_count:Ruby php_count:PHP cs_count:C# kt_count:Kotlin"
+	local spec var
+	for spec in $spec_list; do
+		var=${spec%%:*}
+		[[ "${!var}" -gt 0 ]] && lang_types=$((lang_types + 1))
 	done
-	if [[ "$lang_types" -gt 1 ]]; then
-		local langs=""
-		local first=true
-		[[ "$go_count" -gt 0 ]] && {
-			$first || langs+=", "
-			langs+="Go ($go_count)"
-			first=false
-		}
-		[[ "$cpp_count" -gt 0 ]] && {
-			$first || langs+=", "
-			langs+="C++ ($cpp_count)"
-			first=false
-		}
-		[[ "$java_count" -gt 0 ]] && {
-			$first || langs+=", "
-			langs+="Java ($java_count)"
-			first=false
-		}
-		[[ "$js_count" -gt 0 ]] && {
-			$first || langs+=", "
-			langs+="Node.js ($js_count)"
-			first=false
-		}
-		[[ "$py_count" -gt 0 ]] && {
-			$first || langs+=", "
-			langs+="Python ($py_count)"
-			first=false
-		}
-		[[ "$rust_count" -gt 0 ]] && {
-			$first || langs+=", "
-			langs+="Rust ($rust_count)"
-			first=false
-		}
-		echo "$langs"
-	fi
+	[[ "$lang_types" -gt 1 ]] || return 0
+	local langs=""
+	local first=true
+	for spec in $spec_list; do
+		var=${spec%%:*}
+		[[ "${!var}" -gt 0 ]] || continue
+		$first || langs+=", "
+		langs+="${spec#*:} (${!var})"
+		first=false
+	done
+	echo "$langs"
 }
 
 # Check if any exclusions are configured

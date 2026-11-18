@@ -114,6 +114,71 @@ INFO_COUNT=1
 output=$(generate_summary "high")
 assert_contains "CLI summary shows multi-language breakdown" "By language:" "$output"
 
+# Test: breakdown counts newer languages (Ruby, PHP, C#, Kotlin) and .cxx
+FINDINGS=()
+FINDINGS+=("test-critical|CRITICAL|Test Critical|Critical desc|main.go|10|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|app.rb|11|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|index.php|12|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|Program.cs|13|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|Main.kt|14|code")
+FINDINGS+=("test-medium|MEDIUM|Test Medium|Medium desc|lib.cxx|15|code")
+
+output=$(build_language_breakdown)
+assert_contains "breakdown lists Go" "Go (1)" "$output"
+assert_contains "breakdown lists Ruby" "Ruby (1)" "$output"
+assert_contains "breakdown lists PHP" "PHP (1)" "$output"
+assert_contains "breakdown lists C#" "C# (1)" "$output"
+assert_contains "breakdown lists Kotlin" "Kotlin (1)" "$output"
+assert_contains "breakdown counts .cxx as C++" "C++ (1)" "$output"
+
+# Test: Ruby + PHP only still produces a breakdown line
+FINDINGS=()
+FINDINGS+=("test-high|HIGH|Test High|High desc|app.rb|11|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|index.php|12|code")
+
+output=$(build_language_breakdown)
+assert_contains "breakdown shows Ruby for two-language fixture" "Ruby (1)" "$output"
+assert_contains "breakdown shows PHP for two-language fixture" "PHP (1)" "$output"
+
+# Test: all ten supported languages are labeled
+FINDINGS=()
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.go|1|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.py|2|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.js|3|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.cpp|4|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.java|5|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.rs|6|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.rb|7|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.php|8|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.cs|9|code")
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.kt|10|code")
+
+output=$(build_language_breakdown)
+assert_contains "ten-language breakdown lists Go" "Go (1)" "$output"
+assert_contains "ten-language breakdown lists C++" "C++ (1)" "$output"
+assert_contains "ten-language breakdown lists Java" "Java (1)" "$output"
+assert_contains "ten-language breakdown lists Node.js" "Node.js (1)" "$output"
+assert_contains "ten-language breakdown lists Python" "Python (1)" "$output"
+assert_contains "ten-language breakdown lists Rust" "Rust (1)" "$output"
+assert_contains "ten-language breakdown lists Ruby" "Ruby (1)" "$output"
+assert_contains "ten-language breakdown lists PHP" "PHP (1)" "$output"
+assert_contains "ten-language breakdown lists C#" "C# (1)" "$output"
+assert_contains "ten-language breakdown lists Kotlin" "Kotlin (1)" "$output"
+
+# Test: a single-language scan produces no breakdown line
+FINDINGS=()
+FINDINGS+=("test-high|HIGH|Test High|High desc|file.go|1|code")
+output=$(build_language_breakdown)
+assert_equals "breakdown is empty for a single language" "" "$output"
+
+# Restore the two-language fixture and regenerate the CLI summary that the
+# no-markdown assertions below inspect.
+FINDINGS=()
+FINDINGS+=("test-critical|CRITICAL|Test Critical|Critical desc|test.go|10|code")
+FINDINGS+=("test-medium|MEDIUM|Test Medium|Medium desc|test.py|20|code")
+FINDINGS+=("test-info|INFO|Test Info|Info desc|test.js|30|code")
+output=$(generate_summary "high")
+
 # CLI should not produce markdown syntax
 if echo "$output" | grep -q ":red_circle:"; then
 	assert_equals "CLI mode has no markdown emoji" "true" "false"
