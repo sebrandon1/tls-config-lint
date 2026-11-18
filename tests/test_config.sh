@@ -69,6 +69,128 @@ assert_contains "Config parses bracketed new-language scope" "ruby,php" "$CFG_EX
 assert_contains "Config parses bare new-language scope" "csharp,kotlin" "$CFG_EXTRA_PATTERNS"
 rm -f "$TEMP_NEWLANG"
 
+# Test: Inline lists for every list-valued key
+TEMP_INLINE=$(mktemp)
+cat >"$TEMP_INLINE" <<'EOF'
+severity-threshold: high
+languages: [go, python]
+exclude-dirs: [test/fixtures, examples/insecure]
+exclude-patterns: [insecure-skip-verify, verify-false]
+exceptions: [insecure-skip-verify:test_helpers.go, min-version-tls10:internal/legacy/]
+severity-overrides: [min-version-tls10:critical, hardcoded-tls-config:medium]
+EOF
+parse_config_file "$TEMP_INLINE"
+assert_equals "Inline list languages" "go,python" "$CFG_LANGUAGES"
+assert_equals "Inline list exclude-dirs" "test/fixtures,examples/insecure" "$CFG_EXCLUDE_DIRS"
+assert_equals "Inline list exclude-patterns" "insecure-skip-verify,verify-false" "$CFG_EXCLUDE_PATTERNS"
+assert_equals "Inline list exceptions" "insecure-skip-verify:test_helpers.go,min-version-tls10:internal/legacy/" "$CFG_EXCEPTIONS"
+assert_equals "Inline list severity-overrides" "min-version-tls10:critical,hardcoded-tls-config:medium" "$CFG_SEVERITY_OVERRIDES"
+rm -f "$TEMP_INLINE"
+
+# Test: '#' inside a quoted value is preserved
+TEMP_HASH=$(mktemp)
+cat >"$TEMP_HASH" <<'EOF'
+exclude-patterns:
+  - 'pattern#literal'
+extra-patterns:
+  - id: org-hash
+    severity: high
+    name: Hashed
+    description: 'banned cipher #3'
+    regex: 'TLSv1[.#]'
+EOF
+parse_config_file "$TEMP_HASH"
+assert_equals "Quoted list value keeps '#'" "pattern#literal" "$CFG_EXCLUDE_PATTERNS"
+assert_contains "Quoted description keeps '#'" "banned cipher #3" "$CFG_EXTRA_PATTERNS"
+assert_contains "Quoted regex keeps '#'" "TLSv1[.#]" "$CFG_EXTRA_PATTERNS"
+rm -f "$TEMP_HASH"
+
+# Test: Quoted value followed by a comment stops at the quote
+TEMP_HASH_COMMENT=$(mktemp)
+cat >"$TEMP_HASH_COMMENT" <<'EOF'
+exclude-patterns:
+  - 'pattern#literal'    # trailing note
+EOF
+parse_config_file "$TEMP_HASH_COMMENT"
+assert_equals "Quoted value ignores trailing comment" "pattern#literal" "$CFG_EXCLUDE_PATTERNS"
+rm -f "$TEMP_HASH_COMMENT"
+
+# Test: Double-quoted '#' is preserved too
+TEMP_HASH_DQ=$(mktemp)
+cat >"$TEMP_HASH_DQ" <<'EOF'
+exclude-patterns: ["pattern#literal"]
+EOF
+parse_config_file "$TEMP_HASH_DQ"
+assert_equals "Double-quoted inline item keeps '#'" "pattern#literal" "$CFG_EXCLUDE_PATTERNS"
+rm -f "$TEMP_HASH_DQ"
+
+# Test: Unterminated quote keeps the rest of the value
+_strip_result=$(_strip_inline_comment "'unterminated #value")
+assert_equals "Unterminated quote keeps value" "unterminated #value" "$_strip_result"
+_strip_result=$(_strip_inline_comment "plain #comment")
+assert_equals "Unquoted value drops comment" "plain " "$_strip_result"
+
+# Test: Empty inline list and trailing comma are tolerated
+TEMP_EMPTY_LIST=$(mktemp)
+cat >"$TEMP_EMPTY_LIST" <<'EOF'
+languages: []
+exclude-dirs: [go,]
+EOF
+parse_config_file "$TEMP_EMPTY_LIST"
+assert_equals "Empty inline list yields empty value" "" "$CFG_LANGUAGES"
+assert_equals "Trailing comma does not add an item" "go" "$CFG_EXCLUDE_DIRS"
+rm -f "$TEMP_EMPTY_LIST"
+
+# Test: Unknown extra-pattern field under flexible indentation
+TEMP_BAD_FIELD=$(mktemp)
+cat >"$TEMP_BAD_FIELD" <<'EOF'
+extra-patterns:
+- id: org-bad-field
+  severity: high
+  name: Bad field
+  description: Has an unknown field
+  regex: 'MARKER'
+  bogus: value
+EOF
+parse_config_file "$TEMP_BAD_FIELD"
+assert_equals "Unknown extra-pattern field sets error flag" "true" "$CFG_EXTRA_PATTERNS_ERROR"
+rm -f "$TEMP_BAD_FIELD"
+
+# Test: Extra-pattern block indented with two spaces
+TEMP_TWO_SPACE=$(mktemp)
+cat >"$TEMP_TWO_SPACE" <<'EOF'
+extra-patterns:
+- id: org-two-space
+  severity: high
+  name: Two space entry
+  description: Parsed with two-space indentation
+  regex: 'INSECURE_MARKER'
+severity-threshold: medium
+EOF
+parse_config_file "$TEMP_TWO_SPACE"
+assert_contains "Two-space extra-pattern parses ID" "org-two-space" "$CFG_EXTRA_PATTERNS"
+assert_contains "Two-space extra-pattern parses description" "Parsed with two-space indentation" "$CFG_EXTRA_PATTERNS"
+assert_equals "Key after extra-pattern block still parses" "medium" "$CFG_SEVERITY_THRESHOLD"
+if [[ "$CFG_EXTRA_PATTERNS_ERROR" == "true" ]]; then
+	assert_equals "Two-space extra-pattern is valid" "true" "false"
+else
+	assert_equals "Two-space extra-pattern is valid" "true" "true"
+fi
+rm -f "$TEMP_TWO_SPACE"
+
+# Test: Malformed extra-pattern entry sets the error flag
+TEMP_BAD_PATTERN=$(mktemp)
+cat >"$TEMP_BAD_PATTERN" <<'EOF'
+extra-patterns:
+  - id: org-missing-regex
+    severity: high
+    name: Missing regex
+    description: No regex field
+EOF
+parse_config_file "$TEMP_BAD_PATTERN"
+assert_equals "Malformed extra-pattern sets error flag" "true" "$CFG_EXTRA_PATTERNS_ERROR"
+rm -f "$TEMP_BAD_PATTERN"
+
 # Test: Unknown key produces warning with suggestion
 TEMP_UNKNOWN=$(mktemp)
 cat >"$TEMP_UNKNOWN" <<'EOF'
