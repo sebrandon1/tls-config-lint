@@ -777,6 +777,97 @@ else
 fi
 rm -rf "$nested_dir"
 
+# --- Comment-Only Line Tests ---
+echo "  --- Comment-Only Line Tests ---"
+
+check_comment() {
+	local lang="$1" expected="$2" text="$3" label="$4"
+	if is_comment_line "$lang" "$text"; then
+		assert_equals "is_comment_line: $label" "$expected" "true"
+	else
+		assert_equals "is_comment_line: $label" "$expected" "false"
+	fi
+}
+
+check_comment go true "   // InsecureSkipVerify: true" "Go // with indentation"
+check_comment nodejs true "// rejectUnauthorized: false" "Node.js //"
+check_comment cpp true "    /* SSL_VERIFY_NONE" "C++ unclosed block comment"
+check_comment cpp false "#include <openssl/ssl.h>" "C++ preprocessor is code"
+check_comment java true "  // SSLContext" "Java //"
+check_comment rust true "// VERIFY_NONE" "Rust //"
+check_comment csharp true "// callback" "C# //"
+check_comment kotlin true "  // ssl" "Kotlin //"
+check_comment php true "// verify false" "PHP //"
+check_comment php true "/* verify false" "PHP unclosed block comment"
+check_comment php true "# verify false" "PHP hash comment"
+check_comment php false '#[Route("/x")]' "PHP attribute is code"
+check_comment php false "/* off */ verify_peer => false" "PHP closed block prefix keeps code"
+check_comment unknown false "// anything" "Unknown language is not a comment"
+check_comment python true "  # verify=False" "Python #"
+check_comment ruby true "# VERIFY_NONE" "Ruby #"
+check_comment go false "*p = handler" "Go dereference is code"
+check_comment go false "/* off */ InsecureSkipVerify: true" "closed block prefix keeps code"
+check_comment go false "x := 1 // note" "trailing comment keeps code"
+
+comment_dir=$(mktemp -d)
+cat >"$comment_dir/commented.go" <<'EOF'
+package main
+// InsecureSkipVerify: true
+EOF
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+scan_language "$comment_dir" "go" "" ""
+assert_equals "Commented-out Go match yields no findings" "0" "$(get_findings_count)"
+
+rm -f "$comment_dir/commented.go"
+cat >"$comment_dir/trailing.go" <<'EOF'
+package main
+var c = tls.Config{InsecureSkipVerify: true} // why
+EOF
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+scan_language "$comment_dir" "go" "" ""
+assert_greater_than "Code with a trailing comment still reports" 0 "$(get_findings_count)"
+
+rm -f "$comment_dir/trailing.go"
+cat >"$comment_dir/off.cpp" <<'EOF'
+#include <openssl/ssl.h>
+/* off */ SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
+EOF
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+scan_language "$comment_dir" "cpp" "" ""
+assert_greater_than "Closed block-comment prefix keeps the finding" 0 "$(get_findings_count)"
+
+rm -f "$comment_dir/off.cpp"
+cat >"$comment_dir/note.go" <<'EOF'
+package main
+// BANNEDCIPHER marker
+EOF
+# shellcheck disable=SC2034  # Consumed and reset by scan_language
+EXTRA_PATTERNS=$'org-comment\tHIGH\tComment marker\tMatches a comment on purpose\tBANNEDCIPHER\t'
+FINDINGS=()
+CRITICAL_COUNT=0
+HIGH_COUNT=0
+MEDIUM_COUNT=0
+INFO_COUNT=0
+scan_language "$comment_dir" "go" "" ""
+assert_greater_than "Custom pattern still matches a comment line" 0 "$(get_findings_count)"
+# shellcheck disable=SC2034  # Written by scan_language, reset for later tests
+EXTRA_PATTERNS=""
+# shellcheck disable=SC2034  # Written by scan_language, reset for later tests
+CUSTOM_PATTERN_IDS=""
+rm -rf "$comment_dir"
+
 # --- scan_pattern Column & Truncation Tests ---
 echo "  --- Column & Truncation Tests ---"
 

@@ -112,6 +112,12 @@ MinVersion: tls.VersionTLS10, // tls-lint:ignore:min-version-tls10
 
 A bare `tls-lint:ignore` suppresses all patterns on that line. A targeted `tls-lint:ignore:pattern-id` suppresses only the named pattern, so other patterns matching the same line are still reported.
 
+### Commented-Out Code
+
+Built-in patterns skip lines that are entirely comments, so `// InsecureSkipVerify: true` is not reported. A line that contains code is still reported even when it carries a trailing comment: `InsecureSkipVerify: true, // why`. Comment syntax is language-specific: `//` and an unclosed `/*` for Go, Node.js, C++, Java, Rust, C#, Kotlin, and PHP; `#` for Python and Ruby; in PHP `#` counts unless it opens an attribute (`#[`).
+
+Custom `extra-patterns` are exempt, so a pattern that deliberately matches comment text still reports. Multi-line block comments and Python docstrings are not tracked; a line inside one that does not start with a comment marker is still scanned.
+
 See [`.tls-config-lint.example.yml`](../.tls-config-lint.example.yml) for a full example.
 
 ## Advanced Usage Examples

@@ -298,6 +298,36 @@ is_line_suppressed() {
 	return 1
 }
 
+# True when a source line is entirely a comment in the given language. A line
+# that only starts with a comment marker and continues with code is not a
+# comment line, so '/* off */ InsecureSkipVerify: true' still counts as code.
+is_comment_line() {
+	local lang="$1"
+	local text="$2"
+	local trimmed="${text#"${text%%[![:space:]]*}"}"
+
+	case "$lang" in
+		python | ruby)
+			[[ "$trimmed" == "#"* ]] && return 0
+			;;
+		php)
+			# '#' starts a comment only when it is not a PHP 8 attribute.
+			[[ "$trimmed" == "#"* && "$trimmed" != "#["* ]] && return 0
+			;;
+	esac
+
+	case "$lang" in
+		php | go | nodejs | cpp | java | rust | csharp | kotlin)
+			[[ "$trimmed" == "//"* ]] && return 0
+			# An opening '/*' with no closing '*/' means the rest of the line is
+			# comment text; a leading '*' is left alone because it is also a
+			# dereference in Go and C.
+			[[ "$trimmed" == "/*"* && "$trimmed" != *"*/"* ]] && return 0
+			;;
+	esac
+	return 1
+}
+
 # Look up a severity override for a pattern ID
 get_severity_override() {
 	local pattern_id="$1"
@@ -432,6 +462,13 @@ scan_pattern() {
 		# Skip if line has inline suppression comment
 		if is_line_suppressed "$pattern_id" "$match_text"; then
 			INLINE_SUPPRESSION_COUNT=$((INLINE_SUPPRESSION_COUNT + 1))
+			continue
+		fi
+
+		# Skip comment-only lines. Custom patterns are exempt because they may
+		# deliberately target comment text (for example a banned-cipher note).
+		if [[ ",${CUSTOM_PATTERN_IDS}," != *",$pattern_id,"* ]] && is_comment_line "$lang" "$match_text"; then
+			log_debug "Skipping comment-only line in $file:$line_num"
 			continue
 		fi
 
