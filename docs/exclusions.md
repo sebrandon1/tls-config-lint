@@ -23,10 +23,10 @@ Both forms apply to full and incremental scans.
 - **Node.js:** `*.test.js`, `*.spec.js` (and `.mjs`/`.ts`/`.mts`/`.cjs`/`.cts`/`.jsx`/`.tsx` variants), `node_modules/`, `__tests__/`
 - **C++:** `*_test.c`, `*_test.cpp`, `*_test.cc`
 - **Java:** `*Test.java`, `*Tests.java`, `*IT.java`, `target/`, `build/`, `.gradle/`
-- **Kotlin:** `*_test.kt`
-- **C#/.NET:** `*_test.cs`
-- **PHP:** `*_test.php`, `test_*.php`
-- **Ruby:** `*_test.rb`, `test_*.rb`
+- **Kotlin:** `*Test.kt`, `*Tests.kt`, `*Spec.kt`
+- **C#/.NET:** `*Test.cs`, `*Tests.cs`
+- **PHP:** `*Test.php`
+- **Ruby:** `*_spec.rb`, `*_test.rb`, `test_*.rb`, `spec/`
 - **Rust:** `*_test.rs`, `*_tests.rs`, `target/`, `.cargo/`
 
 ## Go TLSSecurityProfile Noise Reduction

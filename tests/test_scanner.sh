@@ -599,6 +599,80 @@ assert_contains "build_test_exclude_flags cpp includes C tests" "--exclude=*_tes
 for nodejs_test_ext in cjs cts jsx tsx; do
 	assert_contains "build_test_exclude_flags nodejs includes .test.$nodejs_test_ext" "--exclude=*.test.$nodejs_test_ext" "$(build_test_exclude_flags "nodejs")"
 done
+assert_contains "build_test_exclude_flags csharp includes *Tests.cs" "--exclude=*Tests.cs" "$(build_test_exclude_flags "csharp")"
+assert_contains "build_test_exclude_flags csharp includes *Test.cs" "--exclude=*Test.cs" "$(build_test_exclude_flags "csharp")"
+assert_contains "build_test_exclude_flags kotlin includes *Spec.kt" "--exclude=*Spec.kt" "$(build_test_exclude_flags "kotlin")"
+assert_contains "build_test_exclude_flags php includes *Test.php" "--exclude=*Test.php" "$(build_test_exclude_flags "php")"
+assert_contains "build_test_exclude_flags ruby includes *_spec.rb" "--exclude=*_spec.rb" "$(build_test_exclude_flags "ruby")"
+assert_contains "build_lang_exclude_dirs ruby excludes spec" "--exclude-dir=spec" "$(build_lang_exclude_dirs "ruby")"
+
+# file_matches_test_exclusion follows each ecosystem's own convention
+for test_file in csharp:FooTests.cs csharp:FooTest.cs kotlin:FooTest.kt kotlin:FooTests.kt kotlin:FooSpec.kt php:FooTest.php ruby:foo_spec.rb ruby:foo_test.rb ruby:test_foo.rb; do
+	if file_matches_test_exclusion "${test_file%%:*}" "${test_file#*:}"; then
+		assert_equals "test exclusion matches ${test_file}" "true" "true"
+	else
+		assert_equals "test exclusion matches ${test_file}" "true" "false"
+	fi
+done
+for prod_file in csharp:TestClient.cs kotlin:TestHarness.kt php:contest.php ruby:spec_helper.rb; do
+	if file_matches_test_exclusion "${prod_file%%:*}" "${prod_file#*:}"; then
+		assert_equals "test exclusion keeps ${prod_file}" "false" "true"
+	else
+		assert_equals "test exclusion keeps ${prod_file}" "false" "false"
+	fi
+done
+
+# --- Idiomatic test-file exclusions hold during a real scan ---
+echo "  --- Idiomatic Test Exclusion Scans ---"
+
+idiomatic_dir=$(mktemp -d)
+cat >"$idiomatic_dir/FooTests.cs" <<'EOF'
+class FooTests { void Run() { ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; } }
+EOF
+cat >"$idiomatic_dir/Prod.cs" <<'EOF'
+class Prod { void Run() { ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; } }
+EOF
+cat >"$idiomatic_dir/FooTest.kt" <<'EOF'
+fun run() { SSLContext.getInstance("TLSv1") }
+EOF
+cat >"$idiomatic_dir/Prod.kt" <<'EOF'
+fun run() { SSLContext.getInstance("TLSv1") }
+EOF
+cat >"$idiomatic_dir/FooTest.php" <<'EOF'
+<?php curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+EOF
+cat >"$idiomatic_dir/prod.php" <<'EOF'
+<?php curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+EOF
+cat >"$idiomatic_dir/foo_spec.rb" <<'EOF'
+http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+EOF
+cat >"$idiomatic_dir/prod.rb" <<'EOF'
+http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+EOF
+
+for idiomatic_lang in csharp kotlin php ruby; do
+	FINDINGS=()
+	CRITICAL_COUNT=0
+	HIGH_COUNT=0
+	MEDIUM_COUNT=0
+	INFO_COUNT=0
+	scan_language "$idiomatic_dir" "$idiomatic_lang" "" ""
+	scanned=$(printf '%s\n' "${FINDINGS[@]+"${FINDINGS[@]}"}")
+	case "$idiomatic_lang" in
+		csharp) prod_name="Prod.cs" test_name="FooTests.cs" ;;
+		kotlin) prod_name="Prod.kt" test_name="FooTest.kt" ;;
+		php) prod_name="prod.php" test_name="FooTest.php" ;;
+		ruby) prod_name="prod.rb" test_name="foo_spec.rb" ;;
+	esac
+	assert_contains "$idiomatic_lang scan reports the production file" "|$prod_name|" "$scanned"
+	if [[ "$scanned" == *"|$test_name|"* ]]; then
+		assert_equals "$idiomatic_lang scan skips its test file" "true" "false"
+	else
+		assert_equals "$idiomatic_lang scan skips its test file" "true" "true"
+	fi
+done
+rm -rf "$idiomatic_dir"
 
 # build_lang_exclude_dirs
 assert_contains "build_lang_exclude_dirs nodejs" "node_modules" "$(build_lang_exclude_dirs "nodejs")"
@@ -661,6 +735,16 @@ if file_matches_excluded_dir "go" "other/legacy/a.go" "internal/legacy"; then
 	assert_equals "file_matches_excluded_dir rejects sibling path" "false" "true"
 else
 	assert_equals "file_matches_excluded_dir rejects sibling path" "false" "false"
+fi
+if file_matches_excluded_dir "ruby" "spec/support/helper.rb" ""; then
+	assert_equals "file_matches_excluded_dir skips ruby spec dir" "true" "true"
+else
+	assert_equals "file_matches_excluded_dir skips ruby spec dir" "true" "false"
+fi
+if file_matches_excluded_dir "csharp" "spec/support/helper.cs" ""; then
+	assert_equals "file_matches_excluded_dir keeps other languages' spec dir" "false" "true"
+else
+	assert_equals "file_matches_excluded_dir keeps other languages' spec dir" "false" "false"
 fi
 
 # Full scan: a nested exclude-dirs entry skips only that path
