@@ -20,8 +20,8 @@ Both forms apply to full and incremental scans.
 
 - **Go:** `*_test.go` files
 - **Python:** `*_test.py`, `test_*.py`, `conftest.py`, `__pycache__/`, `venv/`, `.venv/`
-- **Node.js:** `*.test.js`, `*.spec.js` (and `.ts`/`.mjs`/`.mts` variants), `node_modules/`, `__tests__/`
-- **C++:** `*_test.cpp`, `*_test.cc`
+- **Node.js:** `*.test.js`, `*.spec.js` (and `.mjs`/`.ts`/`.mts`/`.cjs`/`.cts`/`.jsx`/`.tsx` variants), `node_modules/`, `__tests__/`
+- **C++:** `*_test.c`, `*_test.cpp`, `*_test.cc`
 - **Java:** `*Test.java`, `*Tests.java`, `*IT.java`, `target/`, `build/`, `.gradle/`
 - **Kotlin:** `*_test.kt`
 - **C#/.NET:** `*_test.cs`

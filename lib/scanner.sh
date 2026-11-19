@@ -29,12 +29,12 @@ build_include_flags() {
 	case "$lang" in
 		go) echo "--include=*.go" ;;
 		python) echo "--include=*.py" ;;
-		nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts" ;;
-		cpp) echo "--include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
+		nodejs) echo "--include=*.js --include=*.mjs --include=*.ts --include=*.mts --include=*.cjs --include=*.cts --include=*.jsx --include=*.tsx" ;;
+		cpp) echo "--include=*.c --include=*.cpp --include=*.cc --include=*.cxx --include=*.h --include=*.hpp" ;;
 		csharp) echo "--include=*.cs" ;;
 		java) echo "--include=*.java" ;;
 		rust) echo "--include=*.rs" ;;
-		kotlin) echo "--include=*.kt" ;;
+		kotlin) echo "--include=*.kt --include=*.kts" ;;
 		php) echo "--include=*.php" ;;
 		ruby) echo "--include=*.rb" ;;
 	esac
@@ -46,8 +46,8 @@ build_test_exclude_flags() {
 	case "$lang" in
 		go) echo "--exclude=*_test.go" ;;
 		python) echo "--exclude=*_test.py --exclude=test_*.py --exclude=conftest.py" ;;
-		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts" ;;
-		cpp) echo "--exclude=*_test.cpp --exclude=*_test.cc" ;;
+		nodejs) echo "--exclude=*.test.js --exclude=*.spec.js --exclude=*.test.mjs --exclude=*.spec.mjs --exclude=*.test.ts --exclude=*.spec.ts --exclude=*.test.mts --exclude=*.spec.mts --exclude=*.test.cjs --exclude=*.spec.cjs --exclude=*.test.cts --exclude=*.spec.cts --exclude=*.test.jsx --exclude=*.spec.jsx --exclude=*.test.tsx --exclude=*.spec.tsx" ;;
+		cpp) echo "--exclude=*_test.c --exclude=*_test.cpp --exclude=*_test.cc" ;;
 		csharp) echo "--exclude=*_test.cs" ;;
 		java) echo "--exclude=*Test.java --exclude=*Tests.java --exclude=*IT.java" ;;
 		rust) echo "--exclude=*_test.rs --exclude=*_tests.rs" ;;
@@ -172,8 +172,9 @@ file_matches_language() {
 	local file="$2"
 	case "$lang:$file" in
 		go:*.go | python:*.py | nodejs:*.js | nodejs:*.mjs | nodejs:*.ts | nodejs:*.mts | \
-			cpp:*.cpp | cpp:*.cc | cpp:*.cxx | cpp:*.h | cpp:*.hpp | java:*.java | rust:*.rs | \
-			csharp:*.cs | kotlin:*.kt | php:*.php | ruby:*.rb)
+			nodejs:*.cjs | nodejs:*.cts | nodejs:*.jsx | nodejs:*.tsx | \
+			cpp:*.c | cpp:*.cpp | cpp:*.cc | cpp:*.cxx | cpp:*.h | cpp:*.hpp | java:*.java | rust:*.rs | \
+			csharp:*.cs | kotlin:*.kt | kotlin:*.kts | php:*.php | ruby:*.rb)
 			return 0
 			;;
 		*) return 1 ;;
@@ -188,7 +189,9 @@ file_matches_test_exclusion() {
 		go:*_test.go | python:*_test.py | python:test_*.py | python:conftest.py | \
 			nodejs:*.test.js | nodejs:*.spec.js | nodejs:*.test.mjs | nodejs:*.spec.mjs | \
 			nodejs:*.test.ts | nodejs:*.spec.ts | nodejs:*.test.mts | nodejs:*.spec.mts | \
-			cpp:*_test.cpp | cpp:*_test.cc | java:*Test.java | java:*Tests.java | java:*IT.java | \
+			nodejs:*.test.cjs | nodejs:*.spec.cjs | nodejs:*.test.cts | nodejs:*.spec.cts | \
+			nodejs:*.test.jsx | nodejs:*.spec.jsx | nodejs:*.test.tsx | nodejs:*.spec.tsx | \
+			cpp:*_test.c | cpp:*_test.cpp | cpp:*_test.cc | java:*Test.java | java:*Tests.java | java:*IT.java | \
 			rust:*_test.rs | rust:*_tests.rs | csharp:*_test.cs | kotlin:*_test.kt | \
 			php:*_test.php | php:test_*.php | ruby:*_test.rb | ruby:test_*.rb)
 			return 0

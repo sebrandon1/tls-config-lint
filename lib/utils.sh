@@ -150,12 +150,12 @@ file_to_lang_prefix() {
 	case "$1" in
 		*.go) echo "go" ;;
 		*.py) echo "python" ;;
-		*.js | *.mjs | *.ts | *.mts) echo "nodejs" ;;
-		*.cpp | *.cc | *.cxx | *.h | *.hpp) echo "cpp" ;;
+		*.js | *.mjs | *.ts | *.mts | *.cjs | *.cts | *.jsx | *.tsx) echo "nodejs" ;;
+		*.c | *.cpp | *.cc | *.cxx | *.h | *.hpp) echo "cpp" ;;
 		*.cs) echo "csharp" ;;
 		*.java) echo "java" ;;
 		*.rs) echo "rust" ;;
-		*.kt) echo "kotlin" ;;
+		*.kt | *.kts) echo "kotlin" ;;
 		*.php) echo "php" ;;
 		*.rb) echo "ruby" ;;
 		*) echo "" ;;
