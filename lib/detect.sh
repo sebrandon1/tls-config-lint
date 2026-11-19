@@ -35,30 +35,56 @@ detect_languages() {
 	[[ -f "$scan_path/Gemfile" ]] && has_ruby=true
 	[[ -f "$scan_path/composer.json" ]] && has_php=true
 
-	# Find all supported and unsupported source files in one traversal. The
-	# per-language checks above used to repeat this walk for every extension.
-	while IFS= read -r -d '' file; do
-		case "$file" in
-			*.go) has_go=true ;;
-			*.py) has_python=true ;;
-			*.js | *.ts | *.mjs | *.mts | *.cjs | *.cts | *.jsx | *.tsx) has_nodejs=true ;;
-			*.c | *.cpp | *.cc | *.hpp) has_cpp=true ;;
-			*.cs) has_csharp=true ;;
-			*.java) has_java=true ;;
-			*.rs) has_rust=true ;;
-			*.kt | *.kts) has_kotlin=true ;;
-			*.php) has_php=true ;;
-			*.rb) has_ruby=true ;;
-			*.swift) has_unsupported_swift=true ;;
-		esac
-	done < <(find "$scan_path" -maxdepth 3 -type f \( \
-		-name '*.go' -o -name '*.py' -o -name '*.js' -o -name '*.ts' \
-		-o -name '*.mjs' -o -name '*.mts' -o -name '*.cjs' -o -name '*.cts' \
-		-o -name '*.jsx' -o -name '*.tsx' \
-		-o -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.cs' \
-		-o -name '*.java' -o -name '*.rs' -o -name '*.kt' -o -name '*.kts' -o -name '*.php' \
-		-o -name '*.rb' -o -name '*.swift' \
-		\) -print0 2>/dev/null)
+	# Fast path: the depth-3 walk below covers most repos without walking their
+	# whole tree. If it finds nothing, a second unbounded walk looks deeper.
+	# Both passes prune build and dependency directories so their contents never
+	# count as detected source.
+	#
+	# The extension list here is duplicated from lib/scanner.sh; it should come
+	# from the language registry tracked in #99.
+	local pass find_expr file
+	local prune_expr=(-mindepth 1 \( -name vendor -o -name .git -o -name node_modules -o -name testdata
+		-o -name target -o -name build -o -name venv -o -name .venv
+		-o -name __pycache__ -o -name .gradle -o -name .cargo \) -prune -o)
+	for pass in fast full; do
+		if [[ "$pass" == "fast" ]]; then
+			find_expr=(-maxdepth 3 "${prune_expr[@]}")
+		else
+			find_expr=("${prune_expr[@]}")
+		fi
+
+		while IFS= read -r -d '' file; do
+			case "$file" in
+				*.go) has_go=true ;;
+				*.py) has_python=true ;;
+				*.js | *.ts | *.mjs | *.mts | *.cjs | *.cts | *.jsx | *.tsx) has_nodejs=true ;;
+				*.c | *.cpp | *.cc | *.cxx | *.h | *.hpp) has_cpp=true ;;
+				*.cs) has_csharp=true ;;
+				*.java) has_java=true ;;
+				*.rs) has_rust=true ;;
+				*.kt | *.kts) has_kotlin=true ;;
+				*.php) has_php=true ;;
+				*.rb) has_ruby=true ;;
+				*.swift) has_unsupported_swift=true ;;
+			esac
+		done < <(find "$scan_path" "${find_expr[@]+"${find_expr[@]}"}" -type f \( \
+			-name '*.go' -o -name '*.py' -o -name '*.js' -o -name '*.ts' \
+			-o -name '*.mjs' -o -name '*.mts' -o -name '*.cjs' -o -name '*.cts' \
+			-o -name '*.jsx' -o -name '*.tsx' \
+			-o -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.cxx' -o -name '*.h' -o -name '*.hpp' \
+			-o -name '*.cs' -o -name '*.java' -o -name '*.rs' -o -name '*.kt' -o -name '*.kts' \
+			-o -name '*.php' -o -name '*.rb' -o -name '*.swift' \
+			\) -print0 2>/dev/null)
+
+		# A supported language found by the fast path (marker or shallow file)
+		# makes the unbounded walk unnecessary.
+		if [[ "$pass" == "fast" ]]; then
+			if $has_go || $has_python || $has_nodejs || $has_cpp || $has_csharp ||
+				$has_java || $has_rust || $has_kotlin || $has_php || $has_ruby; then
+				break
+			fi
+		fi
+	done
 
 	$has_go && detected+=("go")
 	$has_python && detected+=("python")
