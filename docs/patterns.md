@@ -211,6 +211,7 @@ tlsConfig := &tls.Config{
 **ID:** `weak-cipher-rc4` | **Severity:** CRITICAL
 
 RC4 is a completely broken stream cipher with multiple practical attacks. RFC 7465 prohibits its use in TLS. Any data encrypted with RC4 should be considered compromised.
+**Detection scope:** The pattern matches cipher suites assigned to `CipherSuites` on the same line, or cipher constants/names standing alone on a line (slice-literal members, with optional trailing comments). References whose only purpose is to *reject* or *translate* weak suites — `case` labels, comparison switches, alias maps — intentionally do not match. Deny-list slices whose members stand alone on a line still match: grep cannot distinguish an allow-list from a deny-list by shape alone. Use `// tls-lint:ignore` or a config `exceptions` entry for remaining edge cases.
 
 **Insecure:**
 ```go
@@ -236,6 +237,7 @@ tlsConfig := &tls.Config{
 **ID:** `null-cipher` | **Severity:** CRITICAL
 
 NULL ciphers provide authentication but no encryption whatsoever. All data is transmitted in plaintext over the wire, defeating the purpose of TLS entirely.
+**Detection scope:** The pattern matches cipher suites assigned to `CipherSuites` on the same line, or cipher constants/names standing alone on a line (slice-literal members, with optional trailing comments). References whose only purpose is to *reject* or *translate* NULL suites — `case` labels, comparison switches, alias maps — intentionally do not match. Deny-list slices whose members stand alone on a line still match: grep cannot distinguish an allow-list from a deny-list by shape alone. Use `// tls-lint:ignore` or a config `exceptions` entry for remaining edge cases.
 
 **Insecure:**
 ```go
@@ -374,6 +376,8 @@ tlsConfig := &tls.Config{
 **ID:** `weak-cipher-3des` | **Severity:** HIGH
 
 3DES has an effective key strength of only 112 bits and is vulnerable to the Sweet32 birthday attack. CBC-mode ciphers are susceptible to padding oracle attacks such as Lucky13.
+
+**Detection scope:** The pattern matches cipher suites assigned to `CipherSuites` on the same line, or cipher constants/names standing alone on a line (slice-literal members, with optional trailing comments). References whose only purpose is to *reject* or *translate* weak suites — `case` labels, comparison switches, alias maps — intentionally do not match. Deny-list slices whose members stand alone on a line still match: grep cannot distinguish an allow-list from a deny-list by shape alone. Use `// tls-lint:ignore` or a config `exceptions` entry for remaining edge cases.
 
 **Insecure:**
 ```go

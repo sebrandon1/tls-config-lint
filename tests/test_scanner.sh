@@ -43,6 +43,35 @@ for finding in "${FINDINGS[@]}"; do
 done
 assert_equals "Scanner handles colons in filenames" "true" "$found_colon_file"
 
+# Test: weak-cipher patterns detect usage (same-line and slice-literal member)
+rc4_findings=0
+for finding in "${FINDINGS[@]}"; do
+	if [[ "$finding" == weak-cipher-rc4* ]]; then
+		rc4_findings=$((rc4_findings + 1))
+	fi
+done
+assert_equals "Go scan detects RC4 cipher usage in all forms" "5" "$rc4_findings"
+
+# Test: null-cipher pattern detects usage and anchors on CipherSuites
+null_findings=0
+for finding in "${FINDINGS[@]+${FINDINGS[@]}}"; do
+	if [[ "$finding" == null-cipher* ]]; then
+		null_findings=$((null_findings + 1))
+	fi
+done
+assert_equals "Go scan detects NULL cipher usage" "1" "$null_findings"
+
+# Test: weak-cipher and null-cipher patterns do not flag rejection/translation code
+# (deny-list slices are the exception — they still match by design)
+rejection_findings=0
+for finding in "${FINDINGS[@]+${FINDINGS[@]}}"; do
+	IFS='|' read -r rid _ _ _ rfile _ _ _ <<<"$finding"
+	if [[ "$rfile" == *"rejection.go"* ]] && ([[ "$rid" == weak-cipher-* ]] || [[ "$rid" == null-cipher* ]]); then
+		rejection_findings=$((rejection_findings + 1))
+	fi
+done
+assert_equals "Go scan flags only the deny-list slice in rejection.go (not true rejection code)" "1" "$rejection_findings"
+
 # Reset state for Python
 FINDINGS=()
 CRITICAL_COUNT=0
